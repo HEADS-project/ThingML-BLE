@@ -1,0 +1,149 @@
+import "../Utils/ExitHandler.thingml"
+import "HCISocket.thingml"
+
+
+thing Controller includes ExitHandlerMsgs, HCISocketMsgs, HCIMsgs
+@c_header "#include <bluetooth/bluetooth.h>"
+{
+  required port exitcommands {
+    receives stopsignal
+    sends doexit
+  }
+
+  required port HCISocket {
+    receives Opened, Closed
+    sends Open, Close
+  }
+
+  required port HCICommands {
+    sends Reset, SetFilterAll, SetLEFilterAll
+    receives ResetCompleted, SetFilterAllCompleted, SetLEFilterAllCompleted
+
+    sends SetLEAdvertise, SetLEAdvertiseData, SetLEAdvertiseEnable, SetLocalName, SetLEScanResponseData
+    receives SetLEAdvertiseCompleted, SetLEAdvertiseDataCompleted, SetLEAdvertiseEnableCompleted, SetLocalNameCompleted, SetLEScanResponseDataCompleted
+
+    sends SetLEScanParameters, SetLEScanEnable
+    receives SetLEScanParametersCompleted, SetLEScanEnableCompleted
+
+    receives EventLEAdvertisingReport
+  }
+
+  statechart Ctrl init Initialising {
+    state Initialising  {
+      on entry HCISocket!Open()
+      transition -> Failure event HCISocket?Closed
+
+      /* Reset the socket */
+      internal event HCISocket?Opened action HCICommands!Reset()
+      transition -> Failure event e:HCICommands?ResetCompleted guard (e.Status > 0)
+
+      /* Set controller filter */
+      internal event e:HCICommands?ResetCompleted guard (e.Status == 0) action HCICommands!SetFilterAll()
+      transition -> Failure event e:HCICommands?SetFilterAllCompleted guard (e.Status > 0)
+
+      /* Set LE controller filter */
+      internal event e:HCICommands?SetFilterAllCompleted guard (e.Status == 0) action HCICommands!SetLEFilterAll()
+      transition -> Failure event e:HCICommands?SetLEFilterAllCompleted guard (e.Status > 0)
+
+      transition -> Running event e:HCICommands?SetLEFilterAllCompleted guard (e.Status == 0)
+    }
+
+    state Failure {
+      on entry do
+        print "Controller failed!\n"
+        exitcommands!doexit(-1)
+      end
+    }
+
+    state Stopped {
+      on entry do
+        exitcommands!doexit(0)
+      end
+    }
+
+    composite state Running init Standby
+    {
+      /* BLE Controller states */
+      state Standby {
+        on entry do
+          print "STANDBY :)\n"
+          HCICommands!SetLocalName()
+        end
+
+        /* Scanning test */
+        internal event HCICommands?SetLocalNameCompleted action HCICommands!SetLEScanParameters()
+        internal event HCICommands?SetLEScanParametersCompleted action HCICommands!SetLEScanEnable(1)
+        transition -> Scanning event HCICommands?SetLEScanEnableCompleted
+
+        /* Advertisement test
+        internal event HCICommands?SetLocalNameCompleted action HCICommands!SetLEAdvertise()
+        internal event HCICommands?SetLEAdvertiseCompleted action HCICommands!SetLEAdvertiseData()
+        internal event HCICommands?SetLEAdvertiseDataCompleted action HCICommands!SetLEScanResponseData()
+        internal event HCICommands?SetLEScanResponseDataCompleted action HCICommands!SetLEAdvertiseEnable(1)
+        transition -> Advertising event HCICommands?SetLEAdvertiseEnableCompleted
+        */
+
+        internal event exitcommands?stopsignal action HCISocket!Close()
+      }
+
+      state Scanning {
+        on entry do
+          print "Scanning :)\n"
+        end
+
+        internal event exitcommands?stopsignal action do
+          HCICommands!SetLEScanEnable(0)
+          HCISocket!Close()
+        end
+
+        internal
+      }
+
+      state Advertising {
+        on entry do
+          print "Avertising :)\n"
+        end
+
+        internal event exitcommands?stopsignal action do
+          HCICommands!SetLEAdvertiseEnable(0)
+          HCISocket!Close()
+        end
+
+        internal event e : HCICommands?EventLEAdvertisingReport action do
+          print "[ADVERTISEMENT]: "
+          print e.Event
+          print ", "
+          print e.AddressType
+          print ", "
+          print 'batostr('&e.Address&') '
+          print ", "
+          print e.RSSI
+          print "\n"
+        end
+      }
+
+      state Initiating {
+      }
+
+      state Connection {
+      }
+
+      transition -> Stopped event HCISocket?Closed
+    }
+  }
+}
+
+
+configuration ControllerTest
+@add_c_libraries "bluetooth"
+{
+  instance hci : HCISocket
+  instance ctrl : Controller
+  instance exth : ExitHandler
+
+  connector ctrl.HCISocket => hci.Socket
+  connector ctrl.HCICommands => hci.Commands
+  connector ctrl.exitcommands => exth.commands
+
+  set hci.Device = "B8:27:EB:03:FA:CD" // "hci0" also works
+}

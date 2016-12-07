@@ -1,0 +1,232 @@
+import "Datatypes.thingml"
+import "HCIMessages.thingml"
+
+thing fragment HCISocketMsgs
+{
+  message Open();
+  message Close();
+
+  message Opened();
+  message Closed();
+}
+
+
+thing HCISocket includes HCISocketMsgs, HCI
+@c_header "#include <errno.h>"
+@c_header "#include <stdio.h>"
+@c_header "#include <sys/ioctl.h>"
+@c_header "#include <bluetooth/bluetooth.h>"
+@c_header "#include <bluetooth/hci.h>"
+@c_header "#include <bluetooth/hci_lib.h>"
+@c_header "struct ble_adv_data_pack { uint32_t a,b,c,d,e,f,g,h; };"
+{
+  property Device : String
+  property DevHandle : Int = -1
+
+  provided port Socket
+  {
+    receives Open, Close
+    sends Opened, Closed
+  }
+  
+  /* Open the HCI socket and set some parameters */
+  function InitialiseSocket()
+  do
+    '
+      // Find the device ID of address specified
+      int device_id = hci_devid('&Device&');
+      if (device_id < 0) {
+        printf("[ERROR] Couldn\'t find device with address ");
+        fflush(stdout);
+        perror('&Device&');
+        return;
+      }
+      // Open the device
+      int handle = hci_open_dev(device_id);
+      if (handle < 0) {
+        perror("[ERROR] Couldn\'t open HCI socket");
+        return;
+      }
+      // Set socket filters to give us all events from the Controller
+      struct hci_filter filt;
+      filt.type_mask = 0xFFFFFFFF;
+      filt.event_mask[0] = 0xFFFFFFFF;
+      filt.event_mask[1] = 0xFFFFFFFF;
+      filt.opcode = 0x0000;
+      if (setsockopt(handle, SOL_HCI, HCI_FILTER, &filt, sizeof(filt)) < 0) {
+        perror("[ERROR] Couldn\'t set HCI socket filter");
+        hci_close_dev(handle);
+        return;
+      }
+      // We are open for business
+      '&DevHandle&' = handle;
+    '
+  end
+
+  /* Function to close the socket */
+  function CloseSocket()
+  do
+    'hci_close_dev('&DevHandle&');'
+  end
+
+  /* Function to read data from the socket */
+  function StartSocketReader()
+  @fork_linux_thread "true"
+  do
+    '
+      int bytes_read = 0;
+      uint8_t buffer[HCI_MAX_FRAME_SIZE];
+    '
+    while (DevHandle >= 0) do
+      '
+        bytes_read = read('&DevHandle&', buffer, HCI_MAX_FRAME_SIZE);
+        if (bytes_read < 0) {
+          if (errno == EAGAIN || errno == EINTR) {
+            usleep(1);
+          } else {
+            // Something went wrong, just close the socket and give up
+            // It will eventually go into closed state and inform others
+            hci_close_dev('&DevHandle&');
+            '&DevHandle&' = -1;
+            return;
+          }
+        } else {
+          // Decode packet and send appropriate messages
+          'DecodeSocketData( 'bytes_read', 'buffer' )'
+        }
+      '
+    end
+  end
+
+  /* Function to send data to the socket */
+  function SendCommand(Group: Int, Command: Int, Length : Byte, Data: DataPointer )
+  do
+    if (DevHandle >= 0) do
+      '
+        if (hci_send_cmd('&DevHandle&', '&Group&', '&Command&', '&Length&', '&Data&') < 0) {
+          // Something went wrong, just close the socket and give up
+          // It will eventually go into closed state and inform others
+          hci_close_dev('&DevHandle&');
+          '&DevHandle&' = -1;
+        }
+      '
+    end
+  end
+
+
+  /* STATE LOGIC */
+  statechart Socket init Closed 
+  {
+    state Closed
+    {
+      transition -> Opening event Socket?Open
+    }
+
+    state Opening
+    {
+      on entry InitialiseSocket()
+
+      transition -> Open guard (DevHandle >= 0) action Socket!Opened()
+      transition -> Closed action Socket!Closed()
+    }
+
+    state Open
+    {
+      on entry StartSocketReader()
+
+      transition -> Closed guard (DevHandle < 0) action Socket!Closed()
+
+      transition -> Closed event Socket?Close action do
+        CloseSocket()
+        Socket!Closed()
+      end
+
+      /* Commands to send to Bluetooth controller */
+      internal event Commands?Reset action SendCommand('0x03', '0x0003', '0', 'NULL')
+
+      internal event Commands?SetFilterAll action do
+        'uint8_t mask[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };'
+        SendCommand('0x03', '0x0001', '8', 'mask')
+      end
+
+      internal event Commands?SetLEFilterAll action do
+        'uint8_t mask[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };'
+        SendCommand('0x08', '0x0001', '8', 'mask')
+      end
+
+      internal event Commands?SetLEAdvertise action do
+        '
+          uint8_t data[15] = {
+            0xA0, 0x00, // Advertising min interval (100ms)
+            0x00, 0x08, // Advertising max interval (1.28s)
+            0x02, // Advertising type (ADV_SCAN_IND)
+            0x00, // Own address type (Public)
+            0x00, // Peer address type (Public)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Peer address
+            0x07, // Advertising channel (all channels)
+            0x00 // Advertising filter policy (process from all devices)
+          };
+        '
+        SendCommand('0x08', '0x0006', '15', 'data')
+      end
+
+      internal event Commands?SetLEAdvertiseData action do
+        '
+          uint8_t data[32] = {
+            0x0D, // Data length
+            0x0C, 0x09, \'T\',\'h\',\'i\',\'n\',\'g\',\'M\',\'L\',\'-\',\'B\',\'L\',\'E\', // Advertise our name
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+          };
+        '
+        SendCommand('0x08', '0x0008', '32', 'data')
+      end
+
+      internal event Commands?SetLEScanResponseData action do
+        '
+          uint8_t data[32] = {
+            0x0D, // Data length
+            0x0C, 0x09, \'T\',\'h\',\'i\',\'n\',\'g\',\'M\',\'L\',\'-\',\'B\',\'L\',\'E\', // Advertise our name
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+          };
+        '
+        SendCommand('0x08', '0x0009', '32', 'data')
+      end
+
+      internal event e : Commands?SetLEAdvertiseEnable action do
+        SendCommand('0x08', '0x000A', '1', '&'&e.Enable)
+      end
+
+      internal event Commands?SetLocalName action do
+        '
+          uint8_t data[248];
+          const char* name = "ThingML-BLE Test";
+          strcpy(data, name);
+        '
+        SendCommand('0x03', '0x0013', '248', 'data')
+      end
+
+      internal event Commands?SetLEScanParameters action do
+        '
+          uint8_t data[7] = {
+            0x01, // Scan Type (active scanning)
+            0x10, 0x00, // Scan Interval (10ms)
+            0x10, 0x00, // Scan Window (10ms)
+            0x00, // Own Address Type (public)
+            0x00 // Filter Policy (everything)
+          };
+        '
+        SendCommand('0x08', '0x000B', '7', 'data')
+      end
+
+      internal event e : Commands?SetLEScanEnable action do
+        '
+          uint8_t data[2] = {
+            '&e.Enable&', // Scan enable/disable
+            0x00 // Filter duplicates (no)
+          };
+        '
+        SendCommand('0x08', '0x000C', '2', 'data')
+      end
+    }
+  }
+}

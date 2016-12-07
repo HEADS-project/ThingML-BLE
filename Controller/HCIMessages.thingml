@@ -1,0 +1,157 @@
+import "Datatypes.thingml"
+
+thing fragment HCIMsgs
+{
+  message Reset();
+  message SetFilterAll();
+  message SetLEFilterAll();
+  message SetLEAdvertise();
+  message SetLEAdvertiseData();
+  message SetLEAdvertiseEnable(Enable : Byte);
+  message SetLocalName();
+  message SetLEScanResponseData();
+  message SetLEScanParameters();
+  message SetLEScanEnable(Enable : Byte);
+
+  message ResetCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetFilterAllCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEFilterAllCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEAdvertiseCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEAdvertiseDataCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEAdvertiseEnableCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLocalNameCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEScanResponseDataCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEScanParametersCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+  message SetLEScanEnableCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message EventLEAdvertisingReport(Event : Byte, AddressType : Byte, Address : BDAddr, Lenght : Byte, Data : LEAdvData, RSSI : Byte);
+}
+
+thing fragment HCI includes HCIMsgs
+{
+  provided port Commands
+  {
+    receives Reset, SetFilterAll, SetLEFilterAll
+    sends ResetCompleted, SetFilterAllCompleted, SetLEFilterAllCompleted
+
+    receives SetLEAdvertise, SetLEAdvertiseData, SetLEAdvertiseEnable, SetLocalName, SetLEScanResponseData
+    sends SetLEAdvertiseCompleted, SetLEAdvertiseDataCompleted, SetLEAdvertiseEnableCompleted, SetLocalNameCompleted, SetLEScanResponseDataCompleted
+
+    receives SetLEScanParameters, SetLEScanEnable
+    sends SetLEScanParametersCompleted, SetLEScanEnableCompleted
+
+    sends EventLEAdvertisingReport
+  }
+
+  function DecodeSocketData(Length : Int, Data : Buffer)
+  do
+    '
+      uint8_t *buffer = '&Data&';
+      uint8_t position;
+
+      uint8_t type = buffer[0];
+      uint8_t event, plen, num_command_packets;
+      uint16_t opcode, op_group, op_command;
+      uint8_t status;
+
+      uint8_t le_event;
+      uint8_t le_adv_num_reports, rssi;
+      le_advertising_info *le_adv_report;
+      struct ble_adv_data_pack data;
+
+
+      switch (type) {
+        case 0x04: // HCI Event
+          event = buffer[1];
+          plen = buffer[2];
+
+          switch (event) {
+            case 0x0E: // Command Complete event
+              num_command_packets = buffer[3];
+              opcode = buffer[4] | (buffer[5] << 8);
+              op_group = cmd_opcode_ogf(opcode);
+              op_command = cmd_opcode_ocf(opcode);
+
+              switch (op_group) {
+                case 0x03: // Controller commands
+                  switch (op_command) {
+                    case 0x0001: // Set Event Mask command
+                      status = buffer[6];
+                      'Commands!SetFilterAllCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x0003: // Reset command
+                      status = buffer[6];
+                      'Commands!ResetCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x0013: // Set Local Name command
+                      status = buffer[6];
+                      'Commands!SetLocalNameCompleted('num_command_packets', 'status' )'
+                      return;
+                  }
+                  break;
+
+                case 0x08: // LE Commands
+                  switch (op_command) {
+                    case 0x0001: // Set LE Event Mask command
+                      status = buffer[6];
+                      'Commands!SetLEFilterAllCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x0006: // Set LE Advertising Parameters command
+                      status = buffer[6];
+                      'Commands!SetLEAdvertiseCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x0008: // Set LE Advertising Data command
+                      status = buffer[6];
+                      'Commands!SetLEAdvertiseDataCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x000A: // Set LE Advertising Enable command
+                      status = buffer[6];
+                      'Commands!SetLEAdvertiseEnableCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x000B: // Set LE Scan Parameters command
+                      status = buffer[6];
+                      'Commands!SetLEScanParametersCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x000C: // Set LE Scan Enable command
+                      status = buffer[6];
+                      'Commands!SetLEScanEnableCompleted('num_command_packets', 'status' )'
+                      return;
+                    case 0x0009: // Set LE Scan Response Data command
+                      status = buffer[6];
+                      'Commands!SetLEScanResponseDataCompleted('num_command_packets', 'status' )'
+                      return;
+                  }
+              }
+              break;
+
+            case 0x3E: // LE Meta Event
+              le_event = buffer[3];
+
+              switch (le_event) {
+                case 0x02: // LE Advertising / Scan Inquiry Report
+                  le_adv_num_reports = buffer[4];
+                  position = 5;
+
+                  while (le_adv_num_reports > 0) {
+                    le_adv_report = &buffer[position];
+                    memset(&data, 0, 32);
+                    memcpy(&data, le_adv_report->data, le_adv_report->length);
+                    position += 9+le_adv_report->length;
+                    rssi = buffer[position];
+                    position++;
+
+                    'Commands!EventLEAdvertisingReport('le_adv_report->evt_type', 'le_adv_report->bdaddr_type', 'le_adv_report->bdaddr', 'le_adv_report->length', 'data', 'rssi' )'
+
+                    le_adv_num_reports--;
+                  }
+                  return;
+              }
+              break;
+          }
+          break;
+      }
+
+      printf("[INFO] Received %d unhandled bytes\n", '&Length&');
+    '
+  end
+}
