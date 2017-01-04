@@ -1,0 +1,32 @@
+import "ExitHandler.thingml"
+
+thing Test includes ExitHandlerMsgs
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  statechart States init Start
+  {
+    state Start
+    {
+      on entry print "Started\n"
+
+      transition -> Stop event Signals?Interrupt
+    }
+
+    state Stop
+    {
+      on entry Signals!Quit(0)
+    }
+  }
+}
+
+configuration Testion
+{
+  instance e : ExitHandler
+  instance t : Test
+
+  connector t.Signals => e.Signals
+}

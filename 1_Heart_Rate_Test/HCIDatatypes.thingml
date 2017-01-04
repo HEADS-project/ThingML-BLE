@@ -1,0 +1,7 @@
+datatype HCIEventMask<8>
+  @c_type "set_event_mask_cp"
+  @c_header "#include <bluetooth/hci.h>";
+
+datatype BluetoothLocalName<248>
+  @c_type "change_local_name_cp"
+  @c_header "#include <bluetooth/hci.h>";
