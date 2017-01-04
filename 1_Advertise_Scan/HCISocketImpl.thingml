@@ -1,0 +1,73 @@
+import "HCISocket.thingml"
+
+thing HCISocketProxyImpl includes HCISocketProxy
+@c_header "#include <errno.h>"
+@c_header "#include <stdio.h>"
+@c_header "#include <sys/ioctl.h>"
+@c_header "#include <bluetooth/bluetooth.h>"
+@c_header "#include <bluetooth/hci.h>"
+@c_header "#include <bluetooth/hci_lib.h>"
+{
+  property DevHandle : Int = -1
+
+  /* Open the HCI socket and set some parameters */
+  function OpenSocket()
+  do
+    '
+      // Find the device ID of address specified
+      int device_id = hci_devid('&Device&');
+      if (device_id < 0) {
+        printf("[ERROR] Couldn\'t find device with address ");
+        fflush(stdout);
+        perror('&Device&');
+        return;
+      }
+      // Open the device
+      int handle = hci_open_dev(device_id);
+      if (handle < 0) {
+        perror("[ERROR] Couldn\'t open HCI socket");
+        return;
+      }
+      // Set socket filters to give us all events from the Controller
+      struct hci_filter filt;
+      filt.type_mask = 0xFFFFFFFF;
+      filt.event_mask[0] = 0xFFFFFFFF;
+      filt.event_mask[1] = 0xFFFFFFFF;
+      filt.opcode = 0x0000;
+      if (setsockopt(handle, SOL_HCI, HCI_FILTER, &filt, sizeof(filt)) < 0) {
+        perror("[ERROR] Couldn\'t set HCI socket filter");
+        hci_close_dev(handle);
+        return;
+      }
+      // We are open for business
+      '&DevHandle&' = handle;
+    '
+  end
+
+  /* Close HCI socket */
+  function CloseSocket()
+  do
+    'hci_close_dev('&DevHandle&');'
+  end
+
+  /* Check if socket is open */
+  function SocketIsOpen() : Byte
+  do
+    return DevHandle >= 0
+  end
+
+  /* Function to send data to the socket */
+  function SendCommand(Group: Int, Command: Int, Length : Byte, Data: DataPointer )
+  do
+    if (DevHandle >= 0) do
+      '
+        if (hci_send_cmd('&DevHandle&', '&Group&', '&Command&', '&Length&', '&Data&') < 0) {
+          // Something went wrong, just close the socket and give up
+          // It will eventually go into closed state and inform others
+          hci_close_dev('&DevHandle&');
+          '&DevHandle&' = -1;
+        }
+      '
+    end
+  end
+}

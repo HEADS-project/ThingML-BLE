@@ -1,0 +1,54 @@
+import "ExitHandler.thingml"
+import "HCISocketImpl.thingml"
+
+thing Advertiser includes HCISocket, ExitHandlerMsgs
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  statechart States init Open
+  {
+    state Open
+    {
+      on entry Socket!Open()
+
+      transition -> Initialise event Socket?Opened
+      transition -> Quit event Socket?Closed
+    }
+
+    state Initialise
+    {
+      on entry print "Initialising :)\n"
+
+      transition -> Close event Signals?Interrupt
+    }
+
+    state Close
+    {
+      on entry Socket!Close()
+      transition -> Quit event Socket?Closed
+    }
+
+    state Quit
+    {
+      on entry Signals!Quit(0)
+    }
+  }
+}
+
+configuration BLE_ADVERTISE
+@add_c_libraries "bluetooth"
+{
+  instance e : ExitHandler
+  instance s : HCISocketProxyImpl
+  instance a : Advertiser
+
+  connector a.Signals => e.Signals
+  connector a.Socket => s.Socket
+  connector a.HCICommands => s.Commands
+  connector a.HCIEvents => s.Events
+
+  set s.Device = "B8:27:EB:03:FA:CD"
+}

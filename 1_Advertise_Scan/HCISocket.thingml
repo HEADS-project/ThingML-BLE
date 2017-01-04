@@ -1,0 +1,100 @@
+import "Datatypes.thingml"
+import "HCIMessages.thingml"
+
+thing fragment HCISocketMsgs
+{
+  message Open();
+  message Close();
+
+  message Opened();
+  message Closed();
+}
+
+thing fragment HCISocket includes HCISocketMsgs, HCI
+{
+  required port Socket
+  {
+    sends Open, Close
+    receives Opened, Closed
+  }
+}
+
+thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
+{
+  property Device : String // Device address or name
+
+  provided port Socket
+  {
+    receives Open, Close
+    sends Opened, Closed
+  }
+
+  provided port Commands
+  {
+    sends Reset
+    sends SetEventMask
+    sends SetEventMaskAll
+    sends SetLocalName
+    sends SetLEEventMask
+    sends SetLEEventMaskAll
+    sends SetLEAdvertisementParameters
+    sends SetLEAdvertiseEnable
+    sends SetLEAdvertisingData
+    sends SetLEScanResponseData
+    sends SetLEScanParameters
+    sends SetLEScanEnable
+  }
+
+  provided port Events
+  {
+    receives ResetCompleted
+    receives SetEventMaskCompleted
+    receives SetLocalNameCompleted
+    receives SetLEEventMaskCompleted
+    receives SetLEAdvertisementParametersCompleted
+    receives SetLEAdvertiseEnableCompleted
+    receives SetLEAdvertisingDataCompleted
+    receives SetLEScanResponseDataCompleted
+    receives SetLEScanParametersCompleted
+    receives SetLEScanEnableCompleted
+  }
+
+  /* Platform specific functions */
+  function OpenSocket() @abstract "true" do end
+  function CloseSocket() @abstract "true" do end
+  function SocketIsOpen() @abstract "true" : Byte do end
+
+  function SendCommand(Group: Int, Command: Int, Length : Byte, Data : DataPointer) @abstract "true" do end
+
+  /* Platform independent functions */
+  function DecodeEvent(Event : Byte, Length : Byte, Data : DataPointer) do
+    /* --- Received events --- */
+  end
+
+  /* Statechart (platform independent) */
+  statechart Socket init Closed 
+  {
+    state Closed
+    {
+      on entry CloseSocket()
+
+      transition -> Opening event Socket?Open
+    }
+
+    state Opening
+    {
+      on entry OpenSocket()
+
+      transition -> Open guard (SocketIsOpen() > 0) action Socket!Opened()
+      transition -> Closed guard (SocketIsOpen() == 0) action Socket!Closed()
+    }
+
+    state Open
+    {
+      transition -> Closed guard (SocketIsOpen() == 0) action Socket!Closed()
+      transition -> Closed event Socket?Close action Socket!Closed()
+
+      /* --- Commands to send --- */
+    }
+  }
+}
