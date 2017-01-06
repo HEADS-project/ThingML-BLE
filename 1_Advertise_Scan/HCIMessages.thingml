@@ -41,36 +41,3 @@ thing fragment HCIControllerCommandMsgs
   message SetLEScanEnable(Enable : Byte, FilterDuplicates : Byte);
   message SetLEScanEnableCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
 }
-
-thing fragment HCI includes HCIControllerCommandMsgs
-{
-  required port HCICommands
-  {
-    sends Reset
-    sends SetEventMask
-    sends SetEventMaskAll
-    sends SetLocalName
-    sends SetLEEventMask
-    sends SetLEEventMaskAll
-    sends SetLEAdvertisementParameters
-    sends SetLEAdvertiseEnable
-    sends SetLEAdvertisingData
-    sends SetLEScanResponseData
-    sends SetLEScanParameters
-    sends SetLEScanEnable
-  }
-
-  required port HCIEvents
-  {
-    receives ResetCompleted
-    receives SetEventMaskCompleted
-    receives SetLocalNameCompleted
-    receives SetLEEventMaskCompleted
-    receives SetLEAdvertisementParametersCompleted
-    receives SetLEAdvertiseEnableCompleted
-    receives SetLEAdvertisingDataCompleted
-    receives SetLEScanResponseDataCompleted
-    receives SetLEScanParametersCompleted
-    receives SetLEScanEnableCompleted
-  }
-}

@@ -10,12 +10,40 @@ thing fragment HCISocketMsgs
   message Closed();
 }
 
-thing fragment HCISocket includes HCISocketMsgs, HCI
+thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs
 {
   required port Socket
   {
     sends Open, Close
     receives Opened, Closed
+  }
+
+  required port HCICommands
+  {
+    sends Reset
+    sends SetEventMask,SetEventMaskAll
+    sends SetLocalName
+    sends SetLEEventMask,SetLEEventMaskAll
+    sends SetLEAdvertisementParameters
+    sends SetLEAdvertiseEnable
+    sends SetLEAdvertisingData
+    sends SetLEScanResponseData
+    sends SetLEScanParameters
+    sends SetLEScanEnable
+  }
+
+  required port HCIEvents
+  {
+    receives ResetCompleted
+    receives SetEventMaskCompleted
+    receives SetLocalNameCompleted
+    receives SetLEEventMaskCompleted
+    receives SetLEAdvertisementParametersCompleted
+    receives SetLEAdvertiseEnableCompleted
+    receives SetLEAdvertisingDataCompleted
+    receives SetLEScanResponseDataCompleted
+    receives SetLEScanParametersCompleted
+    receives SetLEScanEnableCompleted
   }
 }
 
@@ -31,44 +59,59 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
 
   provided port Commands
   {
-    sends Reset
-    sends SetEventMask
-    sends SetEventMaskAll
-    sends SetLocalName
-    sends SetLEEventMask
-    sends SetLEEventMaskAll
-    sends SetLEAdvertisementParameters
-    sends SetLEAdvertiseEnable
-    sends SetLEAdvertisingData
-    sends SetLEScanResponseData
-    sends SetLEScanParameters
-    sends SetLEScanEnable
+    receives Reset
+    receives SetEventMask,SetEventMaskAll
+    receives SetLocalName
+    receives SetLEEventMask,SetLEEventMaskAll
+    receives SetLEAdvertisementParameters
+    receives SetLEAdvertiseEnable
+    receives SetLEAdvertisingData
+    receives SetLEScanResponseData
+    receives SetLEScanParameters
+    receives SetLEScanEnable
   }
 
   provided port Events
   {
-    receives ResetCompleted
-    receives SetEventMaskCompleted
-    receives SetLocalNameCompleted
-    receives SetLEEventMaskCompleted
-    receives SetLEAdvertisementParametersCompleted
-    receives SetLEAdvertiseEnableCompleted
-    receives SetLEAdvertisingDataCompleted
-    receives SetLEScanResponseDataCompleted
-    receives SetLEScanParametersCompleted
-    receives SetLEScanEnableCompleted
+    sends ResetCompleted
+    sends SetEventMaskCompleted
+    sends SetLocalNameCompleted
+    sends SetLEEventMaskCompleted
+    sends SetLEAdvertisementParametersCompleted
+    sends SetLEAdvertiseEnableCompleted
+    sends SetLEAdvertisingDataCompleted
+    sends SetLEScanResponseDataCompleted
+    sends SetLEScanParametersCompleted
+    sends SetLEScanEnableCompleted
   }
 
   /* Platform specific functions */
-  function OpenSocket() @abstract "true" do end
-  function CloseSocket() @abstract "true" do end
-  function SocketIsOpen() @abstract "true" : Byte do end
+  function OpenSocket() @abstract "true" @SuppressWarnings "Call" do end
+  function CloseSocket() @abstract "true" @SuppressWarnings "Call" do end
+  function SocketIsOpen() @abstract "true" @SuppressWarnings "Call" : Byte do end
 
-  function SendCommand(Group: Int, Command: Int, Length : Byte, Data : DataPointer) @abstract "true" do end
+  function SendCommand(Group: Int, Command : Int, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
 
   /* Platform independent functions */
   function DecodeEvent(Event : Byte, Length : Byte, Data : DataPointer) do
     /* --- Received events --- */
+    if (Event == '0x0E') do // Command Completed Event
+      var NumberAllowedCommandPackets : Byte = ''&Data&'[0]'
+      var Group : Int = '((int16_t)'&Data&'[2]) >> 2'
+      var Command : Int = '(((int16_t)'&Data&'[2] & 0x03) << 8) | ((int16_t)'&Data&'[1])'
+      var ReturnData : DataPointer = '&'&Data&'[3]'
+      OnCommandCompletedEvent(NumberAllowedCommandPackets, Group, Command, ReturnData)
+
+    end
+  end
+
+  function OnCommandCompletedEvent(NumberAllowedCommandPackets : Byte, Group : Int, Command : Int, Data : DataPointer) do
+    if (Group == '0x0003') do
+      if (Command == '0x0003') do // Reset
+        var Status : Byte = ''&Data&'[0]'
+        Events!ResetCompleted(NumberAllowedCommandPackets, Status)
+      end
+    end
   end
 
   /* Statechart (platform independent) */
@@ -95,6 +138,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
       transition -> Closed event Socket?Close action Socket!Closed()
 
       /* --- Commands to send --- */
+      internal event Commands?Reset action SendCommand('0x03', '0x0003', '0', 'NULL')
     }
   }
 }

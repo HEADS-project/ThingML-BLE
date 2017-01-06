@@ -12,6 +12,7 @@ thing HCISocketProxyImpl includes HCISocketProxy
 
   /* Open the HCI socket and set some parameters */
   function OpenSocket()
+  @SuppressWarnings "Call"
   do
     '
       // Find the device ID of address specified
@@ -41,23 +42,28 @@ thing HCISocketProxyImpl includes HCISocketProxy
       }
       // We are open for business
       '&DevHandle&' = handle;
+      'StartSocketReader()'
     '
   end
 
   /* Close HCI socket */
   function CloseSocket()
+  @SuppressWarnings "Call"
   do
     'hci_close_dev('&DevHandle&');'
   end
 
   /* Check if socket is open */
-  function SocketIsOpen() : Byte
+  function SocketIsOpen()
+  @SuppressWarnings "Call"
+  : Byte
   do
     return DevHandle >= 0
   end
 
   /* Function to send data to the socket */
   function SendCommand(Group: Int, Command: Int, Length : Byte, Data: DataPointer )
+  @SuppressWarnings "Call"
   do
     if (DevHandle >= 0) do
       '
@@ -66,6 +72,47 @@ thing HCISocketProxyImpl includes HCISocketProxy
           // It will eventually go into closed state and inform others
           hci_close_dev('&DevHandle&');
           '&DevHandle&' = -1;
+        }
+      '
+    end
+  end
+
+  /* Function to read data from the socket */
+  function StartSocketReader()
+  @fork_linux_thread "true"
+  do
+    var MessageType : Byte
+    var EventType : Byte
+    var Length : Byte
+    var Data : DataPointer
+    '
+      int bytes_read = 0;
+      uint8_t buffer[HCI_MAX_FRAME_SIZE];
+    '
+    while (DevHandle >= 0) do
+      '
+        bytes_read = read('&DevHandle&', buffer, HCI_MAX_FRAME_SIZE);
+        if (bytes_read < 0) {
+          if (errno == EAGAIN || errno == EINTR) {
+            usleep(1);
+          } else {
+            // Something went wrong, just close the socket and give up
+            // It will eventually go into closed state and inform others
+            hci_close_dev('&DevHandle&');
+            '&DevHandle&' = -1;
+            return;
+          }
+        } else {
+          // Decode packet and send appropriate messages
+          '&MessageType&' = buffer[0];
+          switch ('&MessageType&') {
+            case 0x04: // HCL Event Message
+              '&EventType&' = buffer[1];
+              '&Length&' = buffer[2];
+              '&Data&' = &buffer[3];
+              'DecodeEvent(EventType, Length, Data)'
+              break;
+          }
         }
       '
     end

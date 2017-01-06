@@ -12,7 +12,10 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
   {
     state Open
     {
-      on entry Socket!Open()
+      on entry do
+        print "[INFO]: Opening HCI socket...\n"
+        Socket!Open()
+      end
 
       transition -> Initialise event Socket?Opened
       transition -> Quit event Socket?Closed
@@ -20,15 +23,59 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
 
     state Initialise
     {
-      on entry print "Initialising :)\n"
+      on entry do
+        print "[INFO]: Initialising BLE Controller...\n"
+        HCICommands!Reset()
+      end
+
+      internal event e:HCIEvents?ResetCompleted guard (e.Status == 0) action HCICommands!SetEventMaskAll()
+      transition -> Failure event e:HCIEvents?ResetCompleted guard (e.Status > 0)
+
+      internal event e:HCIEvents?SetEventMaskCompleted guard (e.Status == 0) action HCICommands!SetLEEventMaskAll()
+      transition -> Failure event e:HCIEvents?SetEventMaskCompleted guard (e.Status > 0)
+
+      transition -> SetAdvertiseData event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status > 0)
 
       transition -> Close event Signals?Interrupt
     }
 
+    state SetAdvertiseData
+    {
+      on entry do
+        print "[INFO]: Setting advertisement and scan response data...\n"
+      end
+
+      transition -> Close event Signals?Interrupt
+    }
+
+    state Advertising
+    {
+      on entry print "[INFO]: Advertising :)\n"
+
+      transition -> Close event Signals?Interrupt
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: Something went wrong :(\n"
+        Socket!Close()
+      end
+
+      transition -> Quit event Socket?Closed
+      transition -> Quit event Signals?Interrupt
+    }
+
     state Close
     {
-      on entry Socket!Close()
+      on entry do
+        print "[INFO]: Closing HCI socket...\n"
+        Socket!Close()
+      end
+
       transition -> Quit event Socket?Closed
+      transition -> Quit event Signals?Interrupt
     }
 
     state Quit

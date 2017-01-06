@@ -8,4 +8,4 @@ object String
   @c_type "const char *";
 
 object DataPointer
-  @c_type "void *";
+  @c_type "uint8_t *";
