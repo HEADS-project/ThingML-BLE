@@ -1,0 +1,121 @@
+import "ExitHandler.thingml"
+import "HCISocketImpl.thingml"
+
+thing Scanner includes HCISocket, ExitHandlerMsgs
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  statechart States init Open
+  {
+    state Open
+    {
+      on entry do
+        print "[INFO]: Opening HCI socket...\n"
+        Socket!Open()
+      end
+
+      transition -> Initialise event Socket?Opened
+      transition -> Quit event Socket?Closed
+    }
+
+    state Initialise
+    {
+      on entry do
+        print "[INFO]: Initialising BLE Controller...\n"
+        HCICommands!Reset()
+      end
+
+      internal event e:HCIEvents?ResetCompleted guard (e.Status == 0) action HCICommands!SetEventMaskAll()
+      transition -> Failure event e:HCIEvents?ResetCompleted guard (e.Status > 0)
+
+      internal event e:HCIEvents?SetEventMaskCompleted guard (e.Status == 0) action HCICommands!SetLEEventMaskAll()
+      transition -> Failure event e:HCIEvents?SetEventMaskCompleted guard (e.Status > 0)
+
+      transition -> SetScanningParameters event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status > 0)
+
+      transition -> Close event Signals?Interrupt
+    }
+
+    state SetScanningParameters
+    {
+      on entry do
+        print "[INFO]: Setting scan parameters...\n"
+
+        var Type : BLEScanType = BLEScanType:ACTIVE
+        var Interval : Int = '0x0010'
+        var Window : Int = '0x0010'
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var FilterPolicy : BLEScanFilterPolicy = BLEScanFilterPolicy:ALL
+
+        HCICommands!SetLEScanParameters(Type, Interval, Window, OwnAddressType, FilterPolicy)
+      end
+
+      internal event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status == 0) action HCICommands!SetLEScanEnable('0x01', '0x00')
+      transition -> Failure event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status > 0)
+
+      transition -> Scanning event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+    }
+
+    state Scanning
+    {
+      on entry print "[INFO]: Scanning :)\n"
+
+      internal event e:HCIEvents?LEAdvertisementReport action do
+        print "[INFO]: Got advertisement report!\n"
+      end
+
+      internal event Signals?Interrupt action HCICommands!SetLEScanEnable('0x00', '0x00')
+
+      transition -> Close event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: Something went wrong :(\n"
+        Socket!Close()
+      end
+
+      transition -> Quit event Socket?Closed
+      transition -> Quit event Signals?Interrupt
+    }
+
+    state Close
+    {
+      on entry do
+        print "[INFO]: Closing HCI socket...\n"
+        Socket!Close()
+      end
+
+      transition -> Quit event Socket?Closed
+      transition -> Quit event Signals?Interrupt
+    }
+
+    state Quit
+    {
+      on entry Signals!Quit(0)
+    }
+  }
+}
+
+configuration BLE_SCAN
+@add_c_libraries "bluetooth"
+{
+  instance handler : ExitHandler
+  instance hci     : HCISocketProxyImpl
+  instance scanner : Scanner
+
+  connector scanner.Signals => handler.Signals
+  connector scanner.Socket => hci.Socket
+  connector scanner.HCICommands => hci.Commands
+  connector scanner.HCIEvents => hci.Events
+
+  //set hci.Device = "B8:27:EB:03:FA:CD"
+  set hci.Device = "B8:27:EB:F1:1D:FF"
+}
