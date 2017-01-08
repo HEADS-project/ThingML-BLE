@@ -94,7 +94,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
 
   /* Platform independent functions */
   function DecodeEvent(Event : Byte, Length : Byte, Data : DataPointer) do
-    /* --- Received events --- */
+    /* ------ Received events ------ */
     if (Event == '0x0E') do // Command Completed Event
       var NumberAllowedCommandPackets : Byte = ''&Data&'[0]'
       var Group : Int = '((int16_t)'&Data&'[2]) >> 2'
@@ -106,13 +106,40 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
   end
 
   function OnCommandCompletedEvent(NumberAllowedCommandPackets : Byte, Group : Int, Command : Int, Data : DataPointer) do
-    if (Group == '0x0003') do
+    if (Group == '0x03') do
       if (Command == '0x0003') do // Reset
         var Status : Byte = ''&Data&'[0]'
         Events!ResetCompleted(NumberAllowedCommandPackets, Status)
       end
+      if (Command == '0x0001') do // Set event mask
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetEventMaskCompleted(NumberAllowedCommandPackets, Status)
+      end
+    end
+    if (Group == '0x08') do
+      if (Command == '0x0001') do // Set LE event mask
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEEventMaskCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0006') do // Set LE advertisement parameters
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertisementParametersCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0008') do // Set LE advertising data
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertisingDataCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0009') do // Set LE scan response data
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEScanResponseDataCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000A') do // Set LE advertise enable
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertiseEnableCompleted(NumberAllowedCommandPackets, Status)
+      end
     end
   end
+
 
   /* Statechart (platform independent) */
   statechart Socket init Closed 
@@ -137,8 +164,60 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs
       transition -> Closed guard (SocketIsOpen() == 0) action Socket!Closed()
       transition -> Closed event Socket?Close action Socket!Closed()
 
-      /* --- Commands to send --- */
+      /* ------ Commands to send ------ */
+      /* --- BR/EDR commands --- */
+      /* Controller configuration */
       internal event Commands?Reset action SendCommand('0x03', '0x0003', '0', 'NULL')
+
+      internal event e:Commands?SetEventMask action SendCommand('0x03', '0x0001', '8', '(uint8_t*)&'&e.Mask)
+      internal event Commands?SetEventMaskAll action do
+        var Mask : HCIEventMask = '{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }'
+        SendCommand('0x03', '0x0001', '8', '(uint8_t*)&'&Mask)
+      end
+
+      /* --- LE commands --- */
+      /* Controller configuration */
+      internal event e:Commands?SetLEEventMask action SendCommand('0x08', '0x0001', '8', '(uint8_t*)&'&e.Mask)
+      internal event Commands?SetLEEventMaskAll action do
+        var Mask : HCIEventMask = '{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }'
+        SendCommand('0x08', '0x0001', '8', '(uint8_t*)&'&Mask)
+      end
+
+      /* Advertisement */
+      internal event e:Commands?SetLEAdvertisementParameters action do
+        '
+          le_set_advertising_parameters_cp data;
+          data.min_interval = '&e.MinInterval&';
+          data.max_interval = '&e.MaxInterval&';
+          data.advtype = '&e.Type&';
+          data.own_bdaddr_type = '&e.OwnAddressType&';
+          data.direct_bdaddr_type = '&e.PeerAddressType&';
+          data.direct_bdaddr = '&e.PeerAddress&';
+          data.chan_map = '&e.Channel&';
+          data.filter = '&e.FilterPolicy&';
+        '
+        SendCommand('0x08', '0x0006', '15', '(uint8_t*)&data')
+      end
+
+      internal event e:Commands?SetLEAdvertisingData action do
+        '
+          le_set_advertising_data_cp data;
+          data.length = '&e.Length&';
+          memcpy(data.data, '&e.Data&'.bytes, 31);
+        '
+        SendCommand('0x08', '0x0008', '32', '(uint8_t*)&data')
+      end
+
+      internal event e:Commands?SetLEScanResponseData action do
+        '
+          le_set_scan_response_data_cp data;
+          data.length = '&e.Length&';
+          memcpy(data.data, '&e.Data&'.bytes, 31);
+        '
+        SendCommand('0x08', '0x0009', '32', '(uint8_t*)&data')
+      end
+
+      internal event e:Commands?SetLEAdvertiseEnable action SendCommand('0x08', '0x000A', '1', '(uint8_t*)&'&e.Enable)
     }
   }
 }

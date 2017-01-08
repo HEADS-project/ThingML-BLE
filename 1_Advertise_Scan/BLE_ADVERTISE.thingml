@@ -44,7 +44,44 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
     {
       on entry do
         print "[INFO]: Setting advertisement and scan response data...\n"
+
+        var MinInterval : Int = '0x0640'
+        var MaxInterval : Int = '0x0640'
+        var Type : BLEAdvertisingType = BLEAdvertisingType:ADV_NONCONN_IND 
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var PeerAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var PeerAddress : BTAddress = '{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+        var Channel : BLEAdvertisingChannel = BLEAdvertisingChannel:ALL 
+        var FilterPolicy : BLEAdvertisingFilterPolicy = BLEAdvertisingFilterPolicy:ALL 
+
+        HCICommands!SetLEAdvertisementParameters(MinInterval,MaxInterval,Type,OwnAddressType,PeerAddressType,PeerAddress,Channel,FilterPolicy)
       end
+
+      internal event e:HCIEvents?SetLEAdvertisementParametersCompleted guard (e.Status == 0) action do
+        var Length : Byte = '0x0D'
+        var Data : BLEAdvertiseData = '{ 0x0C, 0x09,\'T\',\'h\',\'i\',\'n\',\'g\',\'M\',
+                                        \'L\',\'-\',\'B\',\'L\',\'E\', 0x00, 0x00, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+        HCICommands!SetLEAdvertisingData(Length,Data)
+      end
+      transition -> Failure event e:HCIEvents?SetLEAdvertisementParametersCompleted guard (e.Status > 0)
+
+      internal event e:HCIEvents?SetLEAdvertisingDataCompleted guard (e.Status == 0) action do
+        var Length : Byte = '0x00'
+        var Data : BLEAdvertiseData = '{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+        HCICommands!SetLEScanResponseData(Length,Data)
+      end
+      transition -> Failure event e:HCIEvents?SetLEAdvertisingDataCompleted guard (e.Status > 0)
+
+      internal event e:HCIEvents?SetLEScanResponseDataCompleted guard (e.Status == 0) action HCICommands!SetLEAdvertiseEnable('0x01')
+      transition -> Failure event e:HCIEvents?SetLEScanResponseDataCompleted guard (e.Status > 0)
+
+      transition -> Advertising event e:HCIEvents?SetLEAdvertiseEnableCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEAdvertiseEnableCompleted guard (e.Status > 0)
 
       transition -> Close event Signals?Interrupt
     }
@@ -53,7 +90,10 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
     {
       on entry print "[INFO]: Advertising :)\n"
 
-      transition -> Close event Signals?Interrupt
+      internal event Signals?Interrupt action HCICommands!SetLEAdvertiseEnable('0x00')
+
+      transition -> Close event e:HCIEvents?SetLEAdvertiseEnableCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEAdvertiseEnableCompleted guard (e.Status > 0)
     }
 
     state Failure
@@ -97,5 +137,6 @@ configuration BLE_ADVERTISE
   connector a.HCICommands => s.Commands
   connector a.HCIEvents => s.Events
 
-  set s.Device = "B8:27:EB:03:FA:CD"
+  //set s.Device = "B8:27:EB:03:FA:CD"
+  set s.Device = "B8:27:EB:F1:1D:FF"
 }
