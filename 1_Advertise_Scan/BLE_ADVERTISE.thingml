@@ -47,7 +47,7 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
 
         var MinInterval : Int = '0x0640'
         var MaxInterval : Int = '0x0640'
-        var Type : BLEAdvertisingType = BLEAdvertisingType:ADV_NONCONN_IND 
+        var Type : BLEAdvertisingType = BLEAdvertisingType:ADV_SCAN_IND 
         var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
         var PeerAddressType : BLEAddressType = BLEAddressType:PUBLIC 
         var PeerAddress : BTAddress = '{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
@@ -68,9 +68,9 @@ thing Advertiser includes HCISocket, ExitHandlerMsgs
       transition -> Failure event e:HCIEvents?SetLEAdvertisementParametersCompleted guard (e.Status > 0)
 
       internal event e:HCIEvents?SetLEAdvertisingDataCompleted guard (e.Status == 0) action do
-        var Length : Byte = '0x00'
-        var Data : BLEAdvertiseData = '{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        var Length : Byte = '0x10'
+        var Data : BLEAdvertiseData = '{ 0x0F, 0x24, 0x16,\'/\',\'/\',\'t\',\'h\',\'i\',
+                                        \'n\',\'g\',\'m\',\'l\',\'.\',\'o\',\'r\',\'g\',
                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
         HCICommands!SetLEScanResponseData(Length,Data)
