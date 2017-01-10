@@ -1,0 +1,94 @@
+import "ModuleMsgs.thingml"
+import "HCISocketImpl.thingml"
+
+thing fragment BLEInitialiser includes ModuleMsgs
+{
+  required port Initialiser
+  {
+    sends Start, Stop
+    receives Started, Stopped, Failure
+  }
+}
+
+thing BLEInitialiserImpl includes ModuleMsgs, HCISocket
+{
+  provided port Initialiser
+  {
+    receives Start, Stop
+    sends Started, Stopped, Failure
+  }
+
+  statechart States init Closed
+  {
+    state Closed
+    {
+      transition -> Opening event Initialiser?Start
+
+      internal event Initialiser?Stop action Initialiser!Stopped()
+    }
+
+    state Opening
+    {
+      on entry do
+        print "[INFO]: Opening HCI socket...\n"
+        Socket!Open()
+      end
+
+      transition -> Initialise event Socket?Opened
+      transition -> Failure event Socket?Closed
+    }
+
+    state Initialise
+    {
+      on entry do
+        print "[INFO]: Initialising BLE Controller...\n"
+        HCICommands!Reset()
+      end
+
+      internal event e:HCIEvents?ResetCompleted guard (e.Status == 0) action HCICommands!SetEventMaskAll()
+      transition -> Failure event e:HCIEvents?ResetCompleted guard (e.Status > 0)
+
+      internal event e:HCIEvents?SetEventMaskCompleted guard (e.Status == 0) action HCICommands!SetLEEventMaskAll()
+      transition -> Failure event e:HCIEvents?SetEventMaskCompleted guard (e.Status > 0)
+
+      transition -> Open event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEEventMaskCompleted guard (e.Status > 0)
+
+      transition -> Failure event Socket?Closed
+      transition -> Closing event Initialiser?Stop
+    }
+
+    state Open
+    {
+      on entry do
+        print "[INFO]: HCI Socket initialised...\n"
+        Initialiser!Started()
+      end
+
+      transition -> Failure event Socket?Closed
+      transition -> Closing event Initialiser?Stop
+    }
+
+    state Closing
+    {
+      on entry do
+        print "[INFO]: Closing HCI socket...\n"
+        Socket!Close()
+      end
+
+      transition -> Closed event Socket?Closed action Initialiser!Stopped()
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: BLE_initialiser failed :(\n"
+        Socket!Close()
+        Initialiser!Failure()
+      end
+
+      internal event Initialiser?Start action Initialiser!Failure()
+      internal event Initialiser?Stop action Initialiser!Failure()
+    }
+  }
+}

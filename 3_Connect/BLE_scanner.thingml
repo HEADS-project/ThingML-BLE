@@ -1,0 +1,107 @@
+import "ModuleMsgs.thingml"
+import "HCIDatatypes.thingml"
+import "HCISocketImpl.thingml"
+
+thing fragment BLEScannerMsgs
+{
+  message ConnectableAdvertisement(AddressType : BLEAddressType, Address : BTAddress);
+}
+
+thing fragment BLEScanner includes ModuleMsgs, BLEScannerMsgs
+{
+  required port Scanner
+  {
+    sends Start, Stop
+    receives Started, Stopped, Failure
+
+    receives ConnectableAdvertisement
+  }
+}
+
+thing BLEScannerImpl includes ModuleMsgs, BLEScannerMsgs, HCISocket
+{
+  provided port Scanner
+  {
+    receives Start, Stop
+    sends Started, Stopped, Failure
+
+    sends ConnectableAdvertisement
+  }
+
+  statechart States init Stopped
+  {
+    state Stopped
+    {
+      transition -> Initialising event Scanner?Start
+
+      internal event Scanner?Stop action Scanner!Stopped()
+    }
+
+    state Initialising
+    {
+      on entry do
+        print "[INFO]: Initialising scanning...\n"
+
+        var Type : BLEScanType = BLEScanType:ACTIVE
+        var Interval : Int = '0x0010'
+        var Window : Int = '0x0010'
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var FilterPolicy : BLEScanFilterPolicy = BLEScanFilterPolicy:ALL
+
+        HCICommands!SetLEScanParameters(Type, Interval, Window, OwnAddressType, FilterPolicy)
+      end
+
+      internal event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status == 0) action HCICommands!SetLEScanEnable('0x01', '0x00')
+      transition -> Failure event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status > 0)
+
+      transition -> Scanning event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0)
+      transition -> Failure event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+
+      transition -> Failure event Socket?Closed
+      transition -> Stopping event Scanner?Stop
+    }
+
+    state Scanning
+    {
+      on entry do
+        print "[INFO]: Scanning started...\n"
+        Scanner!Started()
+      end
+
+      internal event e:HCIEvents?LEAdvertisementReport action do
+        print "[INFO]: Got advertisement report!\n"
+        if (e.Type == BLEAdvertisementReportType:ADV_IND or e.Type == BLEAdvertisementReportType:ADV_DIRECT_IND) do
+          Scanner!ConnectableAdvertisement(e.AddressType, e.Address)
+        end
+      end
+
+      transition -> Failure event Socket?Closed
+      transition -> Stopping event Scanner?Stop
+    }
+
+    state Stopping
+    {
+      on entry do
+        print "[INFO]: Stopping scanning...\n"
+        HCICommands!SetLEScanEnable('0x00', '0x00')
+      end
+
+      transition -> Stopped event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0) action Scanner!Stopped()
+      transition -> Failure event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+
+      transition -> Failure event Socket?Closed
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: BLE_scanner failed :(\n"
+        Socket!Close()
+        Scanner!Failure()
+      end
+
+      internal event Scanner?Start action Scanner!Failure()
+      internal event Scanner?Stop action Scanner!Failure()
+    }
+  }
+}

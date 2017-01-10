@@ -1,0 +1,138 @@
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_scanner.thingml"
+import "BLE_connecter.thingml"
+import "HCIDatatypes.thingml"
+
+thing Main includes BLEInitialiser, BLEScanner, BLEConnecter, ExitHandlerMsgs
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  property ConnectAddressType : BLEAddressType
+  property ConnectAddress : BTAddress
+
+  statechart States init Initialise
+  {
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> Scan event Initialiser?Started
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Signals?Interrupt
+    }
+
+
+    /* Scan for connectable devices, then connect to them */
+    composite state Scan init Start
+    {
+      state Start
+      {
+        on entry Connecter!Stop()
+        internal event Connecter?Stopped action Scanner!Start()
+        transition -> Running event Scanner?Started
+      }
+      state Running
+      {
+      }
+
+      transition -> Connect event e:Scanner?ConnectableAdvertisement action do
+        ConnectAddressType = e.AddressType
+        ConnectAddress = e.Address
+      end
+
+      transition -> Failed event Scanner?Stopped
+      transition -> Failed event Scanner?Failure
+      transition -> Uninitialise event Signals?Interrupt
+    }
+
+    composite state Connect init Start
+    {
+      state Start
+      {
+        on entry Scanner!Stop()
+        internal event Scanner?Stopped action Connecter!Connect(ConnectAddressType, ConnectAddress)
+      }
+
+      transition -> Scan event Connecter?Connected action do
+        print "!!! CONNECTED - DO SOMETHING COOL !!!\n"
+      end
+
+      transition -> Failed event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+      transition -> Uninitialise event Signals?Interrupt
+    }
+    /* .................................................. */
+
+
+    state Uninitialise
+    {
+      on entry Connecter!Stop()
+      internal event Connecter?Stopped action Scanner!Stop()
+      internal event Scanner?Stopped action Initialiser!Stop()
+
+      transition -> Failed event Scanner?Failure
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Initialiser?Stopped
+      transition -> Quit event Signals?Interrupt
+    }
+
+    state Failed
+    {
+      on entry do
+        print "[ERROR] Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    state Quit
+    {
+      on entry do
+        print "[INFO] Finished, quitting...\n"
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+configuration BLE_CONNECT
+@add_c_libraries "bluetooth"
+{
+  instance handler      : ExitHandler
+  instance hci          : HCISocketProxyImpl
+
+  instance initialiser  : BLEInitialiserImpl
+  instance scanner      : BLEScannerImpl
+  instance connecter    : BLEConnecterImpl
+
+  instance main         : Main
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Scanner => scanner.Scanner
+  connector main.Connecter => connecter.Connecter
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector scanner.Socket => hci.Socket
+  connector scanner.HCICommands => hci.Commands
+  connector scanner.HCIEvents => hci.Events
+
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+
+
+
+  set hci.Device = "B8:27:EB:03:FA:CD"
+  //set hci.Device = "B8:27:EB:F1:1D:FF"
+}

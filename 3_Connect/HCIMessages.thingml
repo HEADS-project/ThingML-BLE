@@ -1,0 +1,61 @@
+import "Datatypes.thingml"
+import "HCIDatatypes.thingml"
+
+thing fragment HCIControllerCommandMsgs
+{
+  /* --- BR/EDR commands --- */
+  /* Controller configuration */
+  message Reset();
+  message ResetCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetEventMask(Mask : HCIEventMask);
+  message SetEventMaskAll();
+  message SetEventMaskCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetLocalName(Name : BTLocalName);
+  message SetLocalNameCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  /* Connections */
+  message Disconnect(ConnectionHandle : Int, Reason : BTDisconnectReason);
+  message DisconnectStatus(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message DisconnectionCompleted(Status : Byte, ConnectionHandle : Int, Reason : BTDisconnectReason);
+
+  /* --- LE commands --- */
+  /* Controller configuration */
+  message SetLEEventMask(Mask : HCIEventMask);
+  message SetLEEventMaskAll();
+  message SetLEEventMaskCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  /* Advertisement */
+  message SetLEAdvertisementParameters(MinInterval : Int, MaxInterval : Int, Type : BLEAdvertisingType, OwnAddressType : BLEAddressType, PeerAddressType : BLEAddressType, PeerAddress : BTAddress, Channel : BLEAdvertisingChannel, FilterPolicy : BLEAdvertisingFilterPolicy);
+  message SetLEAdvertisementParametersCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetLEAdvertiseEnable(Enable : Byte);
+  message SetLEAdvertiseEnableCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetLEAdvertisingData(Length : Byte, Data : BLEAdvertiseData);
+  message SetLEAdvertisingDataCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetLEScanResponseData(Length : Byte, Data : BLEAdvertiseData);
+  message SetLEScanResponseDataCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message LEAdvertisementReport(Type : BLEAdvertisementReportType, AddressType : BLEAddressType, Address : BTAddress, Length : Byte, Data : BLEAdvertiseData);
+
+  /* Scanning */
+  message SetLEScanParameters(Type : BLEScanType, Interval : Int, Window : Int, OwnAddressType : BLEAddressType, FilterPolicy : BLEScanFilterPolicy);
+  message SetLEScanParametersCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message SetLEScanEnable(Enable : Byte, FilterDuplicates : Byte);
+  message SetLEScanEnableCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  /* Connections */
+  message LECreateConnection(Interval : Int, Window : Int, FilterPolicy : BLEInitiatorFilterPolicy, PeerAddressType : BLEAddressType, PeerAddress : BTAddress, OwnAddressType : BLEAddressType, ConnIntervalMin : Int, ConnIntervalMax : Int, ConnLatency : Int, SupervisionTimeout : Int, CELengthMin : Int, CELengthMax : Int);
+  message LECreateConnectionStatus(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message LECreateConnectionCancel();
+  message LECreateConnectionCancelCompleted(NumberAllowedCommandPackets : Byte, Status : Byte);
+
+  message LEConnectionComplete(Status : Byte, ConnectionHandle : Int, Role : BLELinkRole, PeerAddressType : BLEAddressType, PeerAddress : BTAddress, ConnInterval : Int, ConnLatency : Int, SupervisionTimeout : Int, MasterClockAccuracy : Byte);
+  message LEEnhancedConnectionComplete(Status : Byte, ConnectionHandle : Int, Role : BLELinkRole, PeerAddressType : BLEAddressType, PeerAddress : BTAddress, LocalResolvablePrivateAddress : BTAddress, PeerResolvablePrivateAddress : BTAddress, ConnInterval : Int, ConnLatency : Int, SupervisionTimeout : Int, MasterClockAccuracy : Byte);
+}
