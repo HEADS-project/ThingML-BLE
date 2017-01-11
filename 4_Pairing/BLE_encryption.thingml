@@ -1,0 +1,82 @@
+import "ModuleMsgs.thingml"
+import "HCIDatatypes.thingml"
+import "HCISocketImpl.thingml"
+
+thing fragment BLEEncryptionMsgs
+{
+  message GenerateRandomNumber();
+  message GenerateRandomNumberCompleted(Random : BLERandomNumber);
+}
+
+thing fragment BLEEncryption includes ModuleMsgs, BLEEncryptionMsgs
+{
+  required port Encrypter
+  {
+    sends Start
+    receives Started, Failure
+
+    sends GenerateRandomNumber
+    receives GenerateRandomNumberCompleted
+  }
+}
+
+thing BLEEncryptionImpl includes ModuleMsgs, BLEEncryptionMsgs, HCISocket
+{
+  provided port Encrypter
+  {
+    receives Start
+    sends Started, Failure
+
+    receives GenerateRandomNumber
+    sends GenerateRandomNumberCompleted
+  }
+
+  property GeneratedRandomNumber : BLERandomNumber
+
+
+  statechart States init WaitForSocket
+  {
+    state WaitForSocket
+    {
+      transition -> Ready event Socket?Opened
+    }
+
+    composite state Ready init Waiting
+    {
+      state Waiting
+      {
+        transition -> RandomFirstPart event Encrypter?GenerateRandomNumber action HCICommands!LERand()
+      }
+
+      /* Generation of 128 bit random numbers */
+      state RandomFirstPart
+      {
+        transition -> RandomSecondPart event e:HCIEvents?LERandCompleted guard (e.Status == 0) action do
+          'memcpy(&'&GeneratedRandomNumber&'.bytes[0], &'&e.Random&'.bytes[0], 8);'
+          HCICommands!LERand()
+        end
+      }
+
+      state RandomSecondPart
+      {
+        transition -> Waiting event e:HCIEvents?LERandCompleted guard (e.Status == 0) action do
+          'memcpy(&'&GeneratedRandomNumber&'.bytes[8], &'&e.Random&'.bytes[0], 8);'
+          print "[INFO]: Generated 128-bit random number on controller.\n"
+          Encrypter!GenerateRandomNumberCompleted(GeneratedRandomNumber)
+        end
+      }
+
+      /* ------------------------------------ */
+      internal event Encrypter?Start action Encrypter!Started()
+
+      transition -> Failed event e:HCIEvents?LERandCompleted guard (e.Status == 0)
+      transition -> Failed event Socket?Closed
+    }
+
+    state Failed
+    {
+      on entry Encrypter!Failure()
+      internal event Encrypter?Start action Encrypter!Failure()
+    }
+  }
+}

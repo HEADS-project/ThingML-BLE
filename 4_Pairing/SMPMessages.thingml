@@ -1,0 +1,33 @@
+import "Datatypes.thingml"
+import "HCIDatatypes.thingml"
+import "SMPDatatypes.thingml"
+
+thing fragment SMPMsgs
+{
+  message SMPPairingRequest(Handle : UInt, IOCapability : SMPIOCapabilities, OOBDataPresent : Boolean, Bonding : Boolean, MITM : Boolean, SecureConnection : Boolean, Keypress : Boolean, MaximumEncryptionKeySize : Byte, InitiatorKeyDistribution : SMPKeyDistribution, ResponderKeyDistribution : SMPKeyDistribution);
+  message SMPPairingResponse(Handle : UInt, IOCapability : SMPIOCapabilities, OOBDataPresent : Boolean, Bonding : Boolean, MITM : Boolean, SecureConnection : Boolean, Keypress : Boolean, MaximumEncryptionKeySize : Byte, InitiatorKeyDistribution : SMPKeyDistribution, ResponderKeyDistribution : SMPKeyDistribution);
+
+  message SMPPairingConfirm(Handle : UInt, ConfirmValue : SMPKey);
+
+  message SMPPairingRandom(Handle : UInt, RandomValue : SMPKey);
+
+  message SMPPairingFailed(Handle : UInt, Reason : SMPPairingFailReason);
+
+  message SMPPairingPublicKey(Handle : UInt, KeyX : SMPPublicKey, KeyY : SMPPublicKey);
+
+  message SMPPairingDHKeyCheck(Handle : UInt, DHKeyCheck : SMPKey);
+
+  message SMPKeypressNotification(Handle : UInt, Type : SMPKeypressNotification);
+
+  message SMPEncryptionInformation(Handle : UInt, LongTermKey : SMPKey);
+
+  message SMPMasterIdentification(Handle : UInt, EDIV : UInt, Rand : SMPRand);
+
+  message SMPIdentityInformation(Handle : UInt, IdentityResolvingKey : SMPKey);
+
+  message SMPIdentityAddressInformation(Handle : UInt, AddressType : BLEAddressType, Address : BTAddress);
+
+  message SMPSigningInformation(Handle : UInt, SignatureKey : SMPKey);
+
+  message SMPSecurityRequest(Handle : UInt, Bonding : Boolean, MITM : Boolean, SecureConnection : Boolean, Keypress : Boolean);
+}

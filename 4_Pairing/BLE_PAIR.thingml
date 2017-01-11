@@ -1,0 +1,165 @@
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_connecter.thingml"
+import "SMPProxy.thingml"
+import "BLE_encryption.thingml"
+import "HCIDatatypes.thingml"
+
+thing Main includes BLEInitialiser, BLEConnecter, ExitHandlerMsgs, SMP, BLEEncryption
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  property ConnectAddressType : BLEAddressType
+  property ConnectAddress : BTAddress
+  property ConnectedHandle : UInt
+
+  statechart States init Initialise
+  {
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> Connect event Initialiser?Started
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Signals?Interrupt
+    }
+
+    /* .................................................. */
+
+    // Initiate connection to the AND UA-651BLE
+    state Connect
+    {
+      on entry Connecter!Connect()
+      transition -> Pairing event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+      end
+
+      internal event Signals?Interrupt action Connecter!Stop()
+      transition -> Uninitialise event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+    }
+
+    composite state Pairing init Request
+    {
+      state Request
+      {
+        internal event SMP?SMPSecurityRequest action do
+          print "[INFO]: Received Security request, requesting pairing...\n"
+
+          var IOCapability : SMPIOCapabilities = SMPIOCapabilities:NO_INPUT_NO_OUTPUT 
+          var OOBDataPresent : Boolean = false
+          var Bonding : Boolean = true
+          var MITM : Boolean = false
+          var SecureConnection : Boolean = false
+          var Keypress : Boolean = false
+          var MaximumEncryptionKeySize : Byte = 16
+          var InitiatorKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+          var ResponderKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+
+          SMP!SMPPairingRequest(ConnectedHandle, IOCapability, OOBDataPresent, Bonding, MITM, SecureConnection, Keypress, MaximumEncryptionKeySize, InitiatorKeyDistribution, ResponderKeyDistribution)
+        end
+
+        transition -> Confirm event e:SMP?SMPPairingResponse guard (e.Bonding == true and e.MITM == false and e.SecureConnection == false and e.Keypress == false and e.MaximumEncryptionKeySize == 16 and e.InitiatorKeyDistribution == SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY and e.ResponderKeyDistribution == SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY)
+        transition -> PairFailed event SMP?SMPPairingResponse
+      }
+
+      state Confirm
+      {
+        on entry do
+          print "[INFO]: Confirm Pairing...\n"
+          Encrypter!GenerateRandomNumber()
+        end
+
+        internal event e:Encrypter?GenerateRandomNumberCompleted action do
+          print "!!! Got random number !!!\n"
+        end
+      }
+
+      state PairFailed
+      {
+        on entry do
+          print "[ERROR]: Pairing procedure failed.\n"
+          Connecter!Stop()
+        end
+      }
+
+      internal event Signals?Interrupt action Connecter!Stop()
+      transition -> Uninitialise event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+    }
+
+    /* .................................................. */
+
+
+    state Uninitialise
+    {
+      on entry Initialiser!Stop()
+
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Initialiser?Stopped
+      transition -> Quit event Signals?Interrupt
+    }
+
+    state Failed
+    {
+      on entry do
+        print "[ERROR] Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    state Quit
+    {
+      on entry do
+        print "[INFO] Finished, quitting...\n"
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+configuration BLE_PAIR
+@add_c_libraries "bluetooth"
+{
+  instance handler      : ExitHandler
+  instance hci          : HCISocketProxyImpl
+
+  instance initialiser  : BLEInitialiserImpl
+  instance connecter    : BLEConnecterImpl
+  instance encrypter    : BLEEncryptionImpl
+
+  instance main         : Main
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Connecter => connecter.Connecter
+  connector main.SMP => hci.SMP
+  connector main.Encrypter => encrypter.Encrypter
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+
+  connector encrypter.Socket => hci.Socket
+  connector encrypter.HCICommands => hci.Commands
+  connector encrypter.HCIEvents => hci.Events
+
+
+
+  set hci.Device = "B8:27:EB:03:FA:CD"
+  //set hci.Device = "B8:27:EB:F1:1D:FF"
+  
+  set connecter.ConnectAddressType = BLEAddressType:PUBLIC
+  set connecter.ConnectAddress = "5C:31:3E:03:54:2F"
+}
