@@ -53,11 +53,11 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
         var PeerAddress : BTAddress = ConnectAddress
         var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
         var ConnIntervalMin : Int = '0x0006'
-        var ConnIntervalMax : Int = '0x0050'
-        var ConnLatency : Int = '0x000A'
-        var SupervisionTimeout : Int = '0x00D0'
-        var CELengthMin : Int = '0x0010'
-        var CELengthMax : Int = '0x0200'
+        var ConnIntervalMax : Int = '0x000C'
+        var ConnLatency : Int = '0x0000'
+        var SupervisionTimeout : Int = '0x00c8'
+        var CELengthMin : Int = '0x0004'
+        var CELengthMax : Int = '0x0006'
         
         HCICommands!LECreateConnection(Interval, Window, FilterPolicy, PeerAddressType, PeerAddress, OwnAddressType, ConnIntervalMin, ConnIntervalMax, ConnLatency, SupervisionTimeout, CELengthMin, CELengthMax)
       end
