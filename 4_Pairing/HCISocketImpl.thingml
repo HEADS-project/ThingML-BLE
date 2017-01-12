@@ -61,6 +61,27 @@ thing HCISocketProxyImpl includes HCISocketProxy
     return DevHandle >= 0
   end
 
+  /* Get the address of the controller currently connected to */
+  function GetBTAddress()
+  @SuppressWarnings "Call"
+  : BTAddress
+  do
+    var Address : BTAddress = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}'
+    if (DevHandle >= 0) do
+      '
+        int device_id = hci_devid('&Device&');
+        if (device_id < 0) {
+          printf("[ERROR] Couldn\'t find device with address ");
+          fflush(stdout);
+          perror('&Device&');
+        }
+        // Get the address
+        hci_devba(device_id, &'&Address&');
+      '
+    end
+    return Address
+  end
+
   /* Function to send data to the socket */
   function SendCommand(Group: UInt, Command: UInt, Length : Byte, Data: DataPointer )
   @SuppressWarnings "Call"
@@ -82,6 +103,27 @@ thing HCISocketProxyImpl includes HCISocketProxy
   @SuppressWarnings "Call"
   do
     if (DevHandle >= 0) do
+      '
+        uint8_t buffer[HCI_MAX_ACL_SIZE];
+        buffer[0] = HCI_ACLDATA_PKT;
+        *((uint16_t*)&buffer[1]) = '&Handle&' & 0x0FFF;
+        *((uint16_t*)&buffer[3]) = '&Length&' + 4;
+        *((uint16_t*)&buffer[5]) = '&Length&';
+        *((uint16_t*)&buffer[7]) = '&CID&';
+        memcpy(&buffer[9], '&Data&', '&Length&');
+
+        while (write('&DevHandle&', buffer, '&Length&'+9) < 0) {
+          if (errno == EAGAIN || errno == EINTR)
+            continue;
+
+          hci_close_dev('&DevHandle&');
+          '&DevHandle&' = -1;
+        }
+
+      '
+      /* 
+       * THIS METHOD DIDN'T WORK FOR SOME REASON, DID I DO SOMETHING WRONG??
+       *
       '
         uint8_t type = HCI_ACLDATA_PKT;
         hci_acl_hdr ha;
@@ -115,6 +157,7 @@ thing HCISocketProxyImpl includes HCISocketProxy
           '&DevHandle&' = -1;
         }
       '
+      */
     end
   end
 

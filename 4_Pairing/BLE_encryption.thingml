@@ -6,6 +6,15 @@ thing fragment BLEEncryptionMsgs
 {
   message GenerateRandomNumber();
   message GenerateRandomNumberCompleted(Random : BLERandomNumber);
+
+  message GenerateConfirm(Rand : BLERandomNumber, IAT : BLEAddressType, IA : BTAddress, RAT : BLEAddressType, RA : BTAddress);
+  message GenerateConfirmCompleted(Confirm : BLERandomNumber);
+
+  message CheckConfirm(Received : BLERandomNumber, Calculated : BLERandomNumber);
+  message CheckConfirmCompleted(Correct : Boolean);
+
+  message GenerateSTK(Srand : BLERandomNumber, Mrand : BLERandomNumber);
+  message GenerateSTKCompleted(STK : BLERandomNumber);
 }
 
 thing fragment BLEEncryption includes ModuleMsgs, BLEEncryptionMsgs
@@ -17,6 +26,12 @@ thing fragment BLEEncryption includes ModuleMsgs, BLEEncryptionMsgs
 
     sends GenerateRandomNumber
     receives GenerateRandomNumberCompleted
+    sends GenerateConfirm
+    receives GenerateConfirmCompleted
+    sends CheckConfirm
+    receives CheckConfirmCompleted
+    sends GenerateSTK
+    receives GenerateSTKCompleted
   }
 }
 
@@ -29,9 +44,106 @@ thing BLEEncryptionImpl includes ModuleMsgs, BLEEncryptionMsgs, HCISocket
 
     receives GenerateRandomNumber
     sends GenerateRandomNumberCompleted
+    receives GenerateConfirm
+    sends GenerateConfirmCompleted
+    receives CheckConfirm
+    sends CheckConfirmCompleted
+    receives GenerateSTK
+    sends GenerateSTKCompleted
   }
 
+  /* Generation of 128 bit random numbers */
   property GeneratedRandomNumber : BLERandomNumber
+  /* Generation of 128 bit Confirm */
+  property Rand : BLERandomNumber
+  property IAT : BLEAddressType
+  property IA : BTAddress
+  property RAT : BLEAddressType
+  property RA : BTAddress
+  /* Generation of 128 bit STK */
+  property Srand : BLERandomNumber
+  property Mrand : BLERandomNumber
+
+
+  function GenerateP1() : BLERandomNumber do
+    var p1 : BLERandomNumber
+    // Concatenate p1
+    var IOCapability : SMPIOCapabilities = SMPIOCapabilities:NO_INPUT_NO_OUTPUT 
+    var OOBDataPresent : Boolean = false
+    var Bonding : Boolean = true
+    var MITM : Boolean = false
+    var SecureConnection : Boolean = false
+    var Keypress : Boolean = false
+    var MaximumEncryptionKeySize : Byte = 16
+    var InitiatorKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+    var ResponderKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+    '
+      // Pairing response
+      uint8_t pres[7];
+      pres[0] = 0x02;
+      pres[1] = '&IOCapability&';
+      pres[2] = ('&OOBDataPresent&') ? 0x01 : 0x00;
+      pres[3] = ( (('&Bonding&') ? 0x01 : 0x00) | (('&MITM&') ? 0x04 : 0x00) | (('&SecureConnection&') ? 0x08 : 0x00) | (('&Keypress&') ? 0x10 : 0x00) );
+      pres[4] = '&MaximumEncryptionKeySize&';
+      pres[5] = '&InitiatorKeyDistribution&';
+      pres[6] = '&ResponderKeyDistribution&';
+      // Pairing response
+      uint8_t preq[7];
+      preq[0] = 0x01;
+      preq[1] = '&IOCapability&';
+      preq[2] = ('&OOBDataPresent&') ? 0x01 : 0x00;
+      preq[3] = ( (('&Bonding&') ? 0x01 : 0x00) | (('&MITM&') ? 0x04 : 0x00) | (('&SecureConnection&') ? 0x08 : 0x00) | (('&Keypress&') ? 0x10 : 0x00) );
+      preq[4] = '&MaximumEncryptionKeySize&';
+      preq[5] = '&InitiatorKeyDistribution&';
+      preq[6] = '&ResponderKeyDistribution&';
+      // Address types
+      uint8_t rat = '&RAT&' & 0x01;
+      uint8_t iat = '&IAT&' & 0x01;
+
+      // Concatenate
+      '&p1&'.bytes[ 0] = iat;
+      '&p1&'.bytes[ 1] = rat;
+      '&p1&'.bytes[ 2] = preq[0];
+      '&p1&'.bytes[ 3] = preq[1];
+      '&p1&'.bytes[ 4] = preq[2];
+      '&p1&'.bytes[ 5] = preq[3];
+      '&p1&'.bytes[ 6] = preq[4];
+      '&p1&'.bytes[ 7] = preq[5];
+      '&p1&'.bytes[ 8] = preq[6];
+      '&p1&'.bytes[ 9] = pres[0];
+      '&p1&'.bytes[10] = pres[1];
+      '&p1&'.bytes[11] = pres[2];
+      '&p1&'.bytes[12] = pres[3];
+      '&p1&'.bytes[13] = pres[4];
+      '&p1&'.bytes[14] = pres[5];
+      '&p1&'.bytes[15] = pres[6];
+    '
+    return p1
+  end
+
+  function GenerateP2() : BLERandomNumber do
+    var p2 : BLERandomNumber
+    '
+     // Concatenate
+     '&p2&'.bytes[ 0] = '&RA&'.b[0];
+     '&p2&'.bytes[ 1] = '&RA&'.b[1];
+     '&p2&'.bytes[ 2] = '&RA&'.b[2];
+     '&p2&'.bytes[ 3] = '&RA&'.b[3];
+     '&p2&'.bytes[ 4] = '&RA&'.b[4];
+     '&p2&'.bytes[ 5] = '&RA&'.b[5];
+     '&p2&'.bytes[ 6] = '&IA&'.b[0];
+     '&p2&'.bytes[ 7] = '&IA&'.b[1];
+     '&p2&'.bytes[ 8] = '&IA&'.b[2];
+     '&p2&'.bytes[ 9] = '&IA&'.b[3];
+     '&p2&'.bytes[10] = '&IA&'.b[4];
+     '&p2&'.bytes[11] = '&IA&'.b[5];
+     '&p2&'.bytes[12] = 0x00;
+     '&p2&'.bytes[13] = 0x00;
+     '&p2&'.bytes[14] = 0x00;
+     '&p2&'.bytes[15] = 0x00;
+    '
+    return p2
+  end
 
 
   statechart States init WaitForSocket
@@ -46,6 +158,28 @@ thing BLEEncryptionImpl includes ModuleMsgs, BLEEncryptionMsgs, HCISocket
       state Waiting
       {
         transition -> RandomFirstPart event Encrypter?GenerateRandomNumber action HCICommands!LERand()
+        transition -> ConfirmFirstPart event e:Encrypter?GenerateConfirm action do
+          Rand = e.Rand
+          IAT = e.IAT
+          IA = e.IA
+          RAT = e.RAT
+          RA = e.RA
+        end
+        transition -> GenerateSTK event e:Encrypter?GenerateSTK action do
+          Srand = e.Srand
+          Mrand = e.Mrand
+        end
+
+        /* Check equality of 128 bit Confirm */
+        internal event e:Encrypter?CheckConfirm action do
+          var Result : Boolean = true
+          '
+            uint8_t i;
+            for (i = 0; i < 16; i++)
+              '&Result&' = ('&Result&' && ('&e.Received&'.bytes[i] == '&e.Calculated&'.bytes[i]));
+          '
+          Encrypter!CheckConfirmCompleted(Result)
+        end
       }
 
       /* Generation of 128 bit random numbers */
@@ -66,10 +200,86 @@ thing BLEEncryptionImpl includes ModuleMsgs, BLEEncryptionMsgs, HCISocket
         end
       }
 
+      /* Generation of 128 bit Confirm */
+      state ConfirmFirstPart
+      {
+        on entry do
+          var k : BLERandomNumber = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+          var r : BLERandomNumber = Rand
+          var p1 : BLERandomNumber = GenerateP1()
+          var plaintext : BLERandomNumber
+          '
+            // r XOR p1
+            uint8_t i;
+            for (i = 0; i < 16; i++)
+              '&plaintext&'.bytes[i] = '&r&'.bytes[i] ^ '&p1&'.bytes[i];
+          '
+          HCICommands!LEEncrypt(k, plaintext)
+        end
+
+        transition -> ConfirmSecondPart event e:HCIEvents?LEEncryptCompleted guard (e.Status == 0) action do
+          var k : BLERandomNumber = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+          var p2 : BLERandomNumber = GenerateP2()
+          var plaintext : BLERandomNumber
+          '
+            // first_encrypted XOR p2
+            uint8_t i;
+            for (i = 0; i < 16; i++)
+              '&plaintext&'.bytes[i] = '&e.Encrypted&'.bytes[i] ^ '&p2&'.bytes[i];
+          '
+          HCICommands!LEEncrypt(k, plaintext)
+        end
+      }
+
+      state ConfirmSecondPart
+      {
+        transition -> Waiting event e:HCIEvents?LEEncryptCompleted guard (e.Status == 0) action do
+          print "[INFO]: Encrypted Confirm on controller.\n"
+          Encrypter!GenerateConfirmCompleted(e.Encrypted)
+        end
+      }
+
+      /* Generation of 128 bit STK */
+      state GenerateSTK
+      {
+        on entry do
+          var k : BLERandomNumber = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+          var r1 : BLERandomNumber = Srand
+          var r2 : BLERandomNumber = Mrand
+          var r : BLERandomNumber
+          '
+            // Concatenate
+            '&r&'.bytes[ 0] = '&r2&'.bytes[ 0];
+            '&r&'.bytes[ 1] = '&r2&'.bytes[ 1];
+            '&r&'.bytes[ 2] = '&r2&'.bytes[ 2];
+            '&r&'.bytes[ 3] = '&r2&'.bytes[ 3];
+            '&r&'.bytes[ 4] = '&r2&'.bytes[ 4];
+            '&r&'.bytes[ 5] = '&r2&'.bytes[ 5];
+            '&r&'.bytes[ 6] = '&r2&'.bytes[ 6];
+            '&r&'.bytes[ 7] = '&r2&'.bytes[ 7];
+            '&r&'.bytes[ 8] = '&r1&'.bytes[ 0];
+            '&r&'.bytes[ 9] = '&r1&'.bytes[ 1];
+            '&r&'.bytes[10] = '&r1&'.bytes[ 2];
+            '&r&'.bytes[11] = '&r1&'.bytes[ 3];
+            '&r&'.bytes[12] = '&r1&'.bytes[ 4];
+            '&r&'.bytes[13] = '&r1&'.bytes[ 5];
+            '&r&'.bytes[14] = '&r1&'.bytes[ 6];
+            '&r&'.bytes[15] = '&r1&'.bytes[ 7];
+          '
+          HCICommands!LEEncrypt(k, r)
+        end
+
+        transition -> Waiting event e:HCIEvents?LEEncryptCompleted guard (e.Status == 0) action do
+          print "[INFO]: Encrypted Confirm on controller.\n"
+          Encrypter!GenerateSTKCompleted(e.Encrypted)
+        end
+      }
+
       /* ------------------------------------ */
       internal event Encrypter?Start action Encrypter!Started()
 
-      transition -> Failed event e:HCIEvents?LERandCompleted guard (e.Status == 0)
+      transition -> Failed event e:HCIEvents?LERandCompleted guard (e.Status > 0)
+      transition -> Failed event e:HCIEvents?LEEncryptCompleted guard (e.Status > 0)
       transition -> Failed event Socket?Closed
     }
 

@@ -7,7 +7,7 @@ thing fragment HCISocketMsgs
   message Open();
   message Close();
 
-  message Opened();
+  message Opened(Address : BTAddress);
   message Closed();
 }
 
@@ -34,6 +34,8 @@ thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs, SMP
     sends SetLEScanEnable
     sends LECreateConnection, LECreateConnectionCancel
     sends LERand
+    sends LEEncrypt
+    sends LEStartEncryption
   }
 
   required port HCIEvents
@@ -54,6 +56,9 @@ thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs, SMP
     receives LECreateConnectionStatus, LECreateConnectionCancelCompleted
     receives LEConnectionComplete, LEEnhancedConnectionComplete
     receives LERandCompleted
+    receives LEEncryptCompleted
+    receives EncryptionChanged
+    receives LEStartEncryptionStatus
   }
 }
 
@@ -82,6 +87,8 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
     receives SetLEScanEnable
     receives LECreateConnection, LECreateConnectionCancel
     receives LERand
+    receives LEEncrypt
+    receives LEStartEncryption
   }
 
   provided port Events
@@ -102,6 +109,9 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
     sends LECreateConnectionStatus, LECreateConnectionCancelCompleted
     sends LEConnectionComplete, LEEnhancedConnectionComplete
     sends LERandCompleted
+    sends LEEncryptCompleted
+    sends EncryptionChanged
+    sends LEStartEncryptionStatus
   }
 
   // SMP Ports are included from fragment ...
@@ -110,6 +120,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
   function OpenSocket() @abstract "true" @SuppressWarnings "Call" do end
   function CloseSocket() @abstract "true" @SuppressWarnings "Call" do end
   function SocketIsOpen() @abstract "true" @SuppressWarnings "Call" : Byte do end
+  function GetBTAddress() @abstract "true" @SuppressWarnings "Call" : BTAddress do end
 
   function SendCommand(Group : UInt, Command : UInt, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
   function SendACLData(Handle : UInt, CID : UInt, Length : UInt, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
@@ -122,6 +133,12 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       var ConnectionHandle : UInt = '(*((uint16_t*)&'&Data&'[1]) & 0x0FFF)'
       var Reason : BTDisconnectReason = ''&Data&'[3]'
       Events!DisconnectionCompleted(Status, ConnectionHandle, Reason)
+    end
+    if (Event == '0x08') do // Encryption Change Event
+      var Status : Byte = ''&Data&'[0]'
+      var ConnectionHandle : UInt = '(*((uint16_t*)&'&Data&'[1]) & 0x0FFF)'
+      var Enabled : Byte = ''&Data&'[3]'
+      Events!EncryptionChanged(Status, ConnectionHandle, Enabled)
     end
     if (Event == '0x0E') do // Command Completed Event
       var NumberAllowedCommandPackets : Byte = ''&Data&'[0]'
@@ -196,6 +213,12 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         var Random : BLERandomPart = '*((ble_random_part_t*)&'&Data&'[1])'
         Events!LERandCompleted(NumberAllowedCommandPackets, Status, Random)
       end
+      if (Command == '0x0017') do // Encrypt
+        var Status : Byte = ''&Data&'[0]'
+        var EncryptedData : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+        Events!LEEncryptCompleted(NumberAllowedCommandPackets, Status, EncryptedData)
+      end
+
     end
   end
 
@@ -210,6 +233,9 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
     if (Group == '0x08') do
       if (Command == '0x000D') do // LE Create Connection
         Events!LECreateConnectionStatus(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000D') do // LE Start Encryption
+        Events!LEStartEncryptionStatus(NumberAllowedCommandPackets, Status)
       end
     end
   end
@@ -318,12 +344,12 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       SMP!SMPPairingResponse(Handle, IOCapability, OOBDataPresent, Bonding, MITM, SecureConnection, Keypress, MaximumEncryptionKeySize, InitiatorKeyDistribution, ResponderKeyDistribution)
     end
     if (Code == '0x03') do
-      var ConfirmValue : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var ConfirmValue : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPPairingConfirm(Handle, ConfirmValue)
     end
     if (Code == '0x04') do
-      var RandomValue : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var RandomValue : BLERandomNumber= '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPPairingRandom(Handle, RandomValue)
     end
@@ -333,18 +359,18 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       SMP!SMPPairingFailed(Handle, Reason)
     end
     if (Code == '0x06') do
-      var LongTermKey : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var LongTermKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPEncryptionInformation(Handle, LongTermKey)
     end
     if (Code == '0x07') do
       var EDIV : UInt = '*((uint16_t*)&'&Data&'[1])'
-      var Rand : SMPRand = '*((smp_rand_t*)&'&Data&'[3])'
+      var Rand : BLERandomPart = '*((ble_random_part_t*)&'&Data&'[3])'
 
       SMP!SMPMasterIdentification(Handle, EDIV, Rand)
     end
     if (Code == '0x08') do
-      var IdentityResolvingKey : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var IdentityResolvingKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPIdentityInformation(Handle, IdentityResolvingKey)
     end
@@ -355,7 +381,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       SMP!SMPIdentityAddressInformation(Handle, AddressType, Address)
     end
     if (Code == '0x0A') do
-      var SignatureKey : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var SignatureKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPSigningInformation(Handle, SignatureKey)
     end
@@ -374,7 +400,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       SMP!SMPPairingPublicKey(Handle, KeyX, KeyY)
     end
     if (Code == '0x0D') do
-      var DHKeyCheck : SMPKey = '*((smp_key_t*)&'&Data&'[1])'
+      var DHKeyCheck : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
 
       SMP!SMPPairingDHKeyCheck(Handle, DHKeyCheck)
     end
@@ -404,7 +430,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
     {
       on entry OpenSocket()
 
-      transition -> Open guard (SocketIsOpen() > 0) action Socket!Opened()
+      transition -> Open guard (SocketIsOpen() > 0) action Socket!Opened(GetBTAddress())
       transition -> Closed guard (SocketIsOpen() == 0) action Socket!Closed()
     }
 
@@ -525,6 +551,26 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
       /* Encryption */
       internal event Commands?LERand action SendCommand('0x08', '0x0018', '0', 'NULL')
 
+      internal event e:Commands?LEEncrypt action do
+        '
+          ble_random_number_t data[2];
+          data[0] = '&e.Key&';
+          data[1] = '&e.Plaintext&';
+        '
+        SendCommand('0x08', '0x0017', '32', 'data')
+      end
+
+      internal event e:Commands?LEStartEncryption action do
+        '
+          uint8_t data[28];
+          *((uint16_t*)&data[0]) = '&e.ConnectionHandle&';
+          *((ble_random_part_t*)&data[2]) = '&e.Random&';
+          *((uint16_t*)&data[10]) = '&e.EDIV&';
+          *((ble_random_number_t*)&data[12]) = '&e.LTK&';
+        '
+        SendCommand('0x08', '0x0019', '28', 'data')
+      end
+
       /* ------ Security Manager Protocol ------ */
       internal event e:SMP?SMPPairingRequest action do
         '
@@ -558,7 +604,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x03;
-          *((smp_key_t*)&data[1]) = '&e.ConfirmValue&';
+          *((ble_random_number_t*)&data[1]) = '&e.ConfirmValue&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end
@@ -567,7 +613,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x04;
-          *((smp_key_t*)&data[1]) = '&e.RandomValue&';
+          *((ble_random_number_t*)&data[1]) = '&e.RandomValue&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end
@@ -585,7 +631,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x06;
-          *((smp_key_t*)&data[1]) = '&e.LongTermKey&';
+          *((ble_random_number_t*)&data[1]) = '&e.LongTermKey&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end
@@ -595,7 +641,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
           uint8_t data[11];
           data[0] = 0x07;
           *((uint16_t*)&data[1]) = '&e.EDIV&';
-          *((smp_rand_t*)&data[3]) = '&e.Rand&';
+          *((ble_random_part_t*)&data[3]) = '&e.Rand&';
         '
         SendACLData(e.Handle, '0x0006', 11, 'data')
       end
@@ -604,7 +650,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x08;
-          *((smp_key_t*)&data[1]) = '&e.IdentityResolvingKey&';
+          *((ble_random_number_t*)&data[1]) = '&e.IdentityResolvingKey&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end
@@ -623,7 +669,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x0A;
-          *((smp_key_t*)&data[1]) = '&e.SignatureKey&';
+          *((ble_random_number_t*)&data[1]) = '&e.SignatureKey&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end
@@ -651,7 +697,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
         '
           uint8_t data[17];
           data[0] = 0x0D;
-          *((smp_key_t*)&data[1]) = '&e.DHKeyCheck&';
+          *((ble_random_number_t*)&data[1]) = '&e.DHKeyCheck&';
         '
         SendACLData(e.Handle, '0x0006', 17, 'data')
       end

@@ -5,7 +5,7 @@ import "HCISocketImpl.thingml"
 thing fragment BLEConnecterMsgs
 {
   message Connect();
-  message Connected(Handle : UInt);
+  message Connected(Handle : UInt, AddressType : BLEAddressType, Address : BTAddress);
 }
 
 thing fragment BLEConnecter includes ModuleMsgs, BLEConnecterMsgs
@@ -29,6 +29,8 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
   property ConnectAddress : String
 
   property ConnectedHandle : Int
+  property ConnectedAddressType : BLEAddressType
+  property ConnectedAddress : BTAddress
 
   statechart States init NotConnected
   {
@@ -61,7 +63,9 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
       end
 
       internal event e:HCIEvents?LECreateConnectionStatus guard (e.Status == 0) action do
-        print "[INFO]: Requested connection to \n"
+        print "[INFO]: Requested connection to "
+        print ConnectAddress
+        print "...\n"
       end
       transition -> Failure event e:HCIEvents?LECreateConnectionStatus guard (e.Status > 0)
 
@@ -71,6 +75,8 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
 
       transition -> Connected event e:HCIEvents?LEConnectionComplete guard (e.Status == 0) action do
         ConnectedHandle = e.ConnectionHandle
+        ConnectedAddressType = e.PeerAddressType
+        ConnectedAddress = e.PeerAddress
         print "[INFO]: Normal connection complete\n"
       end
       transition -> Failure event e:HCIEvents?LEConnectionComplete guard (e.Status > 0)
@@ -88,12 +94,12 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
     {
       on entry do
         print "[INFO]: CONNECTED :D\n"
-        Connecter!Connected(ConnectedHandle)
+        Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
       end
 
-      internal event Connecter?Connect action Connecter!Connected(ConnectedHandle)
+      internal event Connecter?Connect action Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
 
-      transition -> NotConnected event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action do
+      transition -> Closed event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action do
         print "[INFO]: Connection closed by remote.\n"
         Connecter!Stopped()
       end
@@ -112,11 +118,17 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
       end
       transition -> Failure event e:HCIEvents?DisconnectStatus guard (e.Status > 0)
 
-      transition -> NotConnected event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action Connecter!Stopped()
+      transition -> Closed event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action Connecter!Stopped()
       transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
 
       transition -> Failure event Connecter?Stop
       transition -> Failure event Socket?Closed
+    }
+
+    state Closed
+    {
+      internal event Connecter?Connect action Connecter!Failure()
+      internal event Connecter?Stop action Connecter!Stopped()
     }
 
     state Failure

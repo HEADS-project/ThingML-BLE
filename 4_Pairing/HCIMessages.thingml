@@ -21,6 +21,9 @@ thing fragment HCIControllerCommandMsgs
 
   message DisconnectionCompleted(Status : Byte, ConnectionHandle : UInt, Reason : BTDisconnectReason);
 
+  /* Encryption */
+  message EncryptionChanged(Status : Byte, ConnectionHandle : UInt, Enabled : Byte);
+
   /* --- LE commands --- */
   /* Controller configuration */
   message SetLEEventMask(Mask : HCIEventMask);
@@ -62,4 +65,10 @@ thing fragment HCIControllerCommandMsgs
   /* Encryption */
   message LERand();
   message LERandCompleted(NumberAllowedCommandPackets : Byte, Status : Byte, Random : BLERandomPart);
+
+  message LEEncrypt(Key : BLERandomNumber, Plaintext : BLERandomNumber);
+  message LEEncryptCompleted(NumberAllowedCommandPackets : Byte, Status : Byte, Encrypted : BLERandomNumber);
+
+  message LEStartEncryption(ConnectionHandle : UInt, Random : BLERandomPart, EDIV : UInt, LTK : BLERandomNumber);
+  message LEStartEncryptionStatus(NumberAllowedCommandPackets : Byte, Status : Byte);
 }

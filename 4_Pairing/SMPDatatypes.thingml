@@ -1,16 +1,4 @@
-datatype SMPRand<8>
-  @c_type "smp_rand_t"
-  @c_header "#ifndef SMP_RAND_T_H"
-  @c_header "#define SMP_RAND_T_H"
-  @c_header "typedef struct { uint8_t bytes[8]; } smp_rand_t;"
-  @c_header "#endif";
-
-datatype SMPKey<16>
-  @c_type "smp_key_t"
-  @c_header "#ifndef SMP_KEY_T_H"
-  @c_header "#define SMP_KEY_T_H"
-  @c_header "typedef struct { uint8_t bytes[16]; } smp_key_t;"
-  @c_header "#endif";
+import "HCIDatatypes.thingml"
 
 datatype SMPPublicKey<32>
   @c_type "smp_public_key_t"

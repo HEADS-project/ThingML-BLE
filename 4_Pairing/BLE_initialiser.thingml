@@ -1,22 +1,32 @@
 import "ModuleMsgs.thingml"
+import "HCIDatatypes.thingml"
 import "HCISocketImpl.thingml"
 
-thing fragment BLEInitialiser includes ModuleMsgs
+thing fragment BLEInitialiserMsgs
+{
+  message DeviceInitialised(Address : BTAddress);
+}
+
+thing fragment BLEInitialiser includes ModuleMsgs, BLEInitialiserMsgs
 {
   required port Initialiser
   {
     sends Start, Stop
     receives Started, Stopped, Failure
+    receives DeviceInitialised
   }
 }
 
-thing BLEInitialiserImpl includes ModuleMsgs, HCISocket
+thing BLEInitialiserImpl includes ModuleMsgs, BLEInitialiserMsgs, HCISocket
 {
   provided port Initialiser
   {
     receives Start, Stop
     sends Started, Stopped, Failure
+    sends DeviceInitialised
   }
+
+  property DeviceAddress : BTAddress
 
   statechart States init Closed
   {
@@ -34,7 +44,9 @@ thing BLEInitialiserImpl includes ModuleMsgs, HCISocket
         Socket!Open()
       end
 
-      transition -> Initialise event Socket?Opened
+      transition -> Initialise event e:Socket?Opened action do
+        DeviceAddress = e.Address
+      end
       transition -> Failure event Socket?Closed
     }
 
@@ -63,6 +75,7 @@ thing BLEInitialiserImpl includes ModuleMsgs, HCISocket
       on entry do
         print "[INFO]: HCI Socket initialised...\n"
         Initialiser!Started()
+        Initialiser!DeviceInitialised(DeviceAddress)
       end
 
       transition -> Failure event Socket?Closed
