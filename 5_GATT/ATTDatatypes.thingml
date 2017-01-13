@@ -1,0 +1,3 @@
+datatype UUID<17>
+  @c_type "uuid_t"
+  @c_header "#include <bluetooth/sdp.h>"

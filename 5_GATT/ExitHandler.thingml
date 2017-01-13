@@ -1,0 +1,46 @@
+datatype ExitCode<2>
+  @c_type "int16_t";
+
+thing fragment ExitHandlerMsgs
+{
+  message Interrupt();
+  message Quit(code : ExitCode);
+}
+
+thing ExitHandler includes ExitHandlerMsgs
+@c_header "#include <stdlib.h>"
+@c_header "#include <signal.h>"
+@c_global "struct ExitHandler_Instance *_handler_instance;"
+{
+  provided port Signals {
+    sends Interrupt
+    receives Quit
+  }
+
+  function catch_sigint()
+  @c_prototype "void catch_sigint(int sig)"
+  @c_instance_var_name "_handler_instance"
+  @SuppressWarnings "Call"
+  do
+    print " Caught SIGINT\n"
+    Signals!Interrupt()
+  end
+
+
+  statechart Handler init Waiting
+  {
+    state Waiting
+    @SuppressWarnings "Sink"
+    {
+      on entry do
+        '_handler_instance = _instance;'
+        'signal(SIGINT, catch_sigint);'
+      end
+
+      internal event e : Signals?Quit action do
+        print "Exiting!\n"
+        'exit('&e.code&');'
+      end
+    }
+  }
+}

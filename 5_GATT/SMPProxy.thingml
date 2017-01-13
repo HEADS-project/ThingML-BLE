@@ -1,0 +1,71 @@
+import "SMPMessages.thingml"
+
+thing fragment SMP includes SMPMsgs
+{
+  required port SMP
+  {
+    receives SMPPairingRequest
+    receives SMPPairingResponse
+    receives SMPPairingConfirm
+    receives SMPPairingRandom
+    receives SMPPairingFailed
+    receives SMPPairingPublicKey
+    receives SMPPairingDHKeyCheck
+    receives SMPKeypressNotification
+    receives SMPEncryptionInformation
+    receives SMPMasterIdentification
+    receives SMPIdentityInformation
+    receives SMPIdentityAddressInformation
+    receives SMPSigningInformation
+    receives SMPSecurityRequest
+    sends SMPPairingRequest
+    sends SMPPairingResponse
+    sends SMPPairingConfirm
+    sends SMPPairingRandom
+    sends SMPPairingFailed
+    sends SMPPairingPublicKey
+    sends SMPPairingDHKeyCheck
+    sends SMPKeypressNotification
+    sends SMPEncryptionInformation
+    sends SMPMasterIdentification
+    sends SMPIdentityInformation
+    sends SMPIdentityAddressInformation
+    sends SMPSigningInformation
+    sends SMPSecurityRequest
+  }
+}
+
+thing fragment SMPProxy includes SMPMsgs
+{
+  provided port SMP
+  {
+    receives SMPPairingRequest
+    receives SMPPairingResponse
+    receives SMPPairingConfirm
+    receives SMPPairingRandom
+    receives SMPPairingFailed
+    receives SMPPairingPublicKey
+    receives SMPPairingDHKeyCheck
+    receives SMPKeypressNotification
+    receives SMPEncryptionInformation
+    receives SMPMasterIdentification
+    receives SMPIdentityInformation
+    receives SMPIdentityAddressInformation
+    receives SMPSigningInformation
+    receives SMPSecurityRequest
+    sends SMPPairingRequest
+    sends SMPPairingResponse
+    sends SMPPairingConfirm
+    sends SMPPairingRandom
+    sends SMPPairingFailed
+    sends SMPPairingPublicKey
+    sends SMPPairingDHKeyCheck
+    sends SMPKeypressNotification
+    sends SMPEncryptionInformation
+    sends SMPMasterIdentification
+    sends SMPIdentityInformation
+    sends SMPIdentityAddressInformation
+    sends SMPSigningInformation
+    sends SMPSecurityRequest
+  }
+}

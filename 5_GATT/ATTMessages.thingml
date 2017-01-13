@@ -1,0 +1,8 @@
+import "ATTDatatypes.thingml"
+
+thing fragment ATTMsgs
+{
+
+  /* Reading Attributes */
+
+}
