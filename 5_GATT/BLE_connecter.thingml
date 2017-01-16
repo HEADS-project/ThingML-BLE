@@ -67,7 +67,7 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
 
       internal event e:HCIEvents?LECreateConnectionStatus guard (e.Status == 0) action do
         print "[INFO]: Requested connection to "
-        print ConnectAddress
+        'printf("%s", '&ConnectAddress&');'
         print "...\n"
       end
       transition -> Failure event e:HCIEvents?LECreateConnectionStatus guard (e.Status > 0)
@@ -102,7 +102,9 @@ thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
 
       internal event Connecter?Connect action Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
 
-      internal event e:Connecter?Encrypt action HCICommands!LEStartEncryption(ConnectedHandle, e.Random, e.EDIV, e.LTK)
+      internal event e:Connecter?Encrypt action do
+        HCICommands!LEStartEncryption(ConnectedHandle, e.Random, e.EDIV, e.LTK)
+      end
       internal event e:HCIEvents?LEStartEncryptionStatus guard (e.Status == 0) action print "[INFO]: Requested encryption...\n"
       transition -> Failure event e:HCIEvents?LEStartEncryptionStatus guard (e.Status > 0) action print "[ERROR]: Start encryption failed!\n"
 

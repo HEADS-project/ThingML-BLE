@@ -1,6 +1,7 @@
 import "Datatypes.thingml"
 import "HCIMessages.thingml"
 import "SMPProxy.thingml"
+import "ATTProxy.thingml"
 
 thing fragment HCISocketMsgs
 {
@@ -11,7 +12,7 @@ thing fragment HCISocketMsgs
   message Closed();
 }
 
-thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs, SMP
+thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs, SMP, ATT
 {
   required port Socket
   {
@@ -62,7 +63,7 @@ thing fragment HCISocket includes HCISocketMsgs, HCIControllerCommandMsgs, SMP
   }
 }
 
-thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
+thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy, ATTProxy
 {
   property Device : String // Device address or name
 
@@ -115,6 +116,7 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
   }
 
   // SMP Ports are included from fragment ...
+  // ATT Ports are included from fragment ...
 
   /* Platform specific functions */
   function OpenSocket() @abstract "true" @SuppressWarnings "Call" do end
@@ -415,9 +417,63 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
     end
   end
 
+
   function OnATTData(Handle : UInt, Length : UInt, Data : DataPointer) do
-    print "!!! GOT ATT DATA !!!\n"
+    var OpCode : Byte = ''&Data&'[0]'
+    if (OpCode == '0x01') do
+      var RequestOpCode : Byte = ''&Data&'[1]'
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[2])'
+      var Error : ATTErrorCode = ''&Data&'[4]'
+      if (RequestOpCode == '0x04') do
+        ATT!ATTFindInformationError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x08') do
+        ATT!ATTReadByTypeError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x10') do
+        ATT!ATTReadByGroupTypeError(Handle, AttributeHandle, Error)
+      end
+    end
+    if (OpCode == '0x04') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      ATT!ATTFindInformationRequest(Handle, StartingHandle, EndingHandle)
+    end
+    if (OpCode == '0x05') do
+      var Format : Byte = ''&Data&'[1]'
+      var InformationData : GATTData
+      ''&InformationData&'.length = '&Length&'-2;'
+      'memcpy(&'&InformationData&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTFindInformationResponse(Handle, Format, InformationData)
+    end
+    if (OpCode == '0x08') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      var AttributeType : UUID = ReadUUID(Length-5, '&'&Data&'[5]')
+      ATT!ATTReadByTypeRequest(Handle, StartingHandle, EndingHandle, AttributeType)
+    end
+    if (OpCode == '0x09') do
+      var ALength : Byte = ''&Data&'[1]'
+      var AttributeDataList : GATTData
+      ''&AttributeDataList&'.length = '&Length&'-2;'
+      'memcpy(&'&AttributeDataList&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTReadByTypeResponse(Handle, ALength, AttributeDataList)
+    end
+    if (OpCode == '0x10') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      var AttributeGroupType : UUID = ReadUUID(Length-5, '&'&Data&'[5]')
+      ATT!ATTReadByGroupTypeRequest(Handle, StartingHandle, EndingHandle, AttributeGroupType)
+    end
+    if (OpCode == '0x11') do
+      var ALength : Byte = ''&Data&'[1]'
+      var AttributeDataList : GATTData
+      ''&AttributeDataList&'.length = '&Length&'-2;'
+      'memcpy(&'&AttributeDataList&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTReadByGroupTypeResponse(Handle, ALength, AttributeDataList)
+    end
   end
+
 
 
   /* Statechart (platform independent) */
@@ -713,6 +769,103 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerCommandMsgs, SMPProxy
           data[1] = '&e.Type&';
         '
         SendACLData(e.Handle, '0x0006', 2, 'data')
+      end
+
+
+      /* ----------- Attribute Protocol ----------- */
+      internal event e:ATT?ATTFindInformationRequest action do
+        '
+          uint8_t data[5];
+          data[0] = 0x04;
+          *((uint16_t*)&data[1]) = '&e.StartingHandle&';
+          *((uint16_t*)&data[3]) = '&e.EndingHandle&';
+        '
+        SendACLData(e.ConnectionHandle, '0x0004',  5, 'data')
+      end
+
+      internal event e:ATT?ATTFindInformationResponse action do
+        '
+          uint8_t data[25];
+          data[0] = 0x05;
+          data[1] = '&e.Format&';
+          memcpy(&data[2], '&e.InformationData&'.bytes, '&e.InformationData&'.length);
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', '2+'&e.InformationData&'.length', 'data')
+      end
+
+      internal event e:ATT?ATTFindInformationError action do
+        '
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x04;
+          *((uint16_t*)&data[2]) = '&e.AttributeHandle&';
+          data[4] = '&e.Error&';
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', 5, 'data')
+      end
+
+      internal event e:ATT?ATTReadByTypeRequest action do
+        '
+          uint8_t data[21];
+          data[0] = 0x08;
+          *((uint16_t*)&data[1]) = '&e.StartingHandle&';
+          *((uint16_t*)&data[3]) = '&e.EndingHandle&';
+          memcpy(&data[5], &'&e.AttributeType&', 16);
+        '
+        SendACLData(e.ConnectionHandle, '0x0004',  21, 'data')
+      end
+
+      internal event e:ATT?ATTReadByTypeResponse action do
+        '
+          uint8_t data[25];
+          data[0] = 0x09;
+          data[1] = '&e.Length&';
+          memcpy(&data[2], '&e.AttributeDataList&'.bytes, '&e.AttributeDataList&'.length);
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', '2+'&e.AttributeDataList&'.length', 'data')
+      end
+
+      internal event e:ATT?ATTReadByTypeError action do
+        '
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x08;
+          *((uint16_t*)&data[2]) = '&e.AttributeHandle&';
+          data[4] = '&e.Error&';
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', 5, 'data')
+      end
+      
+      internal event e:ATT?ATTReadByGroupTypeRequest action do
+        '
+          uint8_t data[21];
+          data[0] = 0x10;
+          *((uint16_t*)&data[1]) = '&e.StartingHandle&';
+          *((uint16_t*)&data[3]) = '&e.EndingHandle&';
+          memcpy(&data[5], &'&e.AttributeGroupType&', 16);
+        '
+        SendACLData(e.ConnectionHandle, '0x0004',  21, 'data')
+      end
+
+      internal event e:ATT?ATTReadByGroupTypeResponse action do
+        '
+          uint8_t data[25];
+          data[0] = 0x11;
+          data[1] = '&e.Length&';
+          memcpy(&data[2], '&e.AttributeDataList&'.bytes, '&e.AttributeDataList&'.length);
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', '2+'&e.AttributeDataList&'.length', 'data')
+      end
+
+      internal event e:ATT?ATTReadByGroupTypeError action do
+        '
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x10;
+          *((uint16_t*)&data[2]) = '&e.AttributeHandle&';
+          data[4] = '&e.Error&';
+        '
+        SendACLData(e.ConnectionHandle, '0x0004', 5, 'data')
       end
     }
   }

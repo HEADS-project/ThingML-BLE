@@ -1,8 +1,21 @@
+import "Datatypes.thingml"
+import "HCIDatatypes.thingml"
 import "ATTDatatypes.thingml"
 
 thing fragment ATTMsgs
 {
+  /* Find Information */
+  message ATTFindInformationRequest(ConnectionHandle : UInt, StartingHandle : UInt, EndingHandle : UInt);
+  message ATTFindInformationResponse(ConnectionHandle : UInt, Format : Byte, InformationData : GATTData);
+  message ATTFindInformationError(ConnectionHandle : UInt, AttributeHandle : UInt, Error : ATTErrorCode);
 
   /* Reading Attributes */
+  message ATTReadByTypeRequest(ConnectionHandle : UInt, StartingHandle : UInt, EndingHandle : UInt, AttributeType : UUID);
+  message ATTReadByTypeResponse(ConnectionHandle : UInt, Length : Byte, AttributeDataList : GATTData);
+  message ATTReadByTypeError(ConnectionHandle : UInt, AttributeHandle : UInt, Error : ATTErrorCode);
+
+  message ATTReadByGroupTypeRequest(ConnectionHandle : UInt, StartingHandle : UInt, EndingHandle : UInt, AttributeGroupType : UUID);
+  message ATTReadByGroupTypeResponse(ConnectionHandle : UInt, Length : Byte, AttributeDataList : GATTData);
+  message ATTReadByGroupTypeError(ConnectionHandle : UInt, AttributeHandle : UInt, Error : ATTErrorCode);
 
 }
