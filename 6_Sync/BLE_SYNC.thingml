@@ -1,0 +1,271 @@
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_connecter.thingml"
+import "ATTProxy.thingml"
+
+thing Main includes BLEInitialiser, BLEConnecter, ATT, ExitHandlerMsgs, UUIDFunctions
+@c_header "#include <math.h>"
+@c_global "
+  float sfloat_to_float(uint8_t *bytes) {
+    if (bytes[1] == 0x07 && bytes[0] == 0xFE) return INFINITY;
+    else if (bytes[1] == 0x07 && bytes[0] == 0xFF) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x00) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x01) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x02) return -INFINITY;
+    else {
+      int8_t exponent = ((int8_t)bytes[1]) >> 4;
+      int16_t mantissa = ((int16_t)(((uint16_t)bytes[1]) << 12) >> 4) | ((uint16_t)bytes[0]);
+      float f_exp = (float)exponent;
+      float f_man = (float)mantissa;
+      return pow(10,f_exp)*f_man;
+    }
+  }
+"
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+
+  /* ---------- Pairing process results ---------- */
+  property PeerLongTermKey : BLERandomNumber = 'g'
+  property PeerEncryptedDiversifier : UInt = 'h'
+  property PeerRandomNumber : BLERandomPart = 'i'
+  property PeerIdentityResolvingKey : BLERandomNumber = 'j'
+  property PeerAddressType : BLEAddressType = 'k'
+  property PeerAddress : BTAddress = 'l'
+  /* --------------------------------------------- */
+
+  property DeviceAddress : BTAddress
+  property ConnectedHandle : UInt
+
+  property BatteryValueHandle : UInt = '0x002B'
+  property BloodPressureHandle : UInt = '0x0012'
+  property BloodPressureConfigurationHandle : UInt = '0x0013'
+
+
+  statechart States init Initialise
+  {
+    // Initialise HCI socket and BLE controller
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> Connect event e:Initialiser?DeviceInitialised action DeviceAddress = e.Address
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Signals?Interrupt
+    }
+
+    // Start connection to device and encrypt connection
+    state Connect
+    {
+      on entry Connecter!Connect()
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+        //Connecter!Encrypt(OwnRandomNumber, OwnEncryptedDiversifier, OwnLongTermKey)
+        Connecter!Encrypt(PeerRandomNumber, PeerEncryptedDiversifier, PeerLongTermKey)
+      end
+
+      transition -> Sync event e:Connecter?Encrypted
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Connecter?Stopped
+      transition -> Disconnect event Signals?Interrupt
+    }
+
+    // Perform the synchronisation
+    state Sync
+    {
+      on entry do
+        print "[INFO]: Requesting indications of Blood Pressure Measurement...\n"
+        var AttributeValue : GATTData
+        ''&AttributeValue&'.length = 2;'
+        ''&AttributeValue&'.bytes[0] = 0x02;'
+        ''&AttributeValue&'.bytes[1] = 0x00;'
+        ATT!ATTWriteRequest(ConnectedHandle, BloodPressureConfigurationHandle, AttributeValue)
+      end
+
+      internal event ATT?ATTWriteResponse action do
+        print "[INFO]: Reading battery percentage...\n"
+        ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+      end
+
+      internal event e:ATT?ATTReadResponse action do
+        '
+          printf("[INFO]: Battery status - %u%%.\n", '&e.AttributeValue&'.bytes[0]);
+        '
+      end
+
+      internal event e:ATT?ATTHandleValueIndication guard (e.AttributeHandle == BloodPressureHandle) action do
+        '
+          uint8_t length = '&e.AttributeValue&'.length;
+          uint8_t *data  = '&e.AttributeValue&'.bytes;
+          uint8_t index = 7;
+        '
+        /* Decode the data */
+        var UnitsKPA : Boolean = 'data[0] & 0x01'
+        var HasTimestamp : Boolean = 'data[0] & 0x02'
+        var HasPulseRate : Boolean = 'data[0] & 0x04'
+        var HasUserID : Boolean = 'data[0] & 0x08'
+        var HasMeasurementStatus : Boolean = 'data[0] & 0x10'
+
+        /* Blood pressure measurement */
+        var Systolic : Float = 'sfloat_to_float(&data[1])'
+        var Diastolic : Float = 'sfloat_to_float(&data[3])'
+        var MeanArterial : Float = 'sfloat_to_float(&data[5])'
+
+        /* Timestamp */
+        var Year : UInt = 0
+        var Month : Byte = 0
+        var Day : Byte = 0
+        var Hour : Byte = 0
+        var Minute : Byte = 0
+        var Second : Byte = 0
+        if (HasTimestamp) do
+          Year = '*(uint16_t*)&data[index+0]'
+          Month = 'data[index+2]'
+          Day = 'data[index+3]'
+          Hour = 'data[index+4]'
+          Minute = 'data[index+5]'
+          Second = 'data[index+6]'
+          'index = index+7;'
+        end
+
+        /* Pulse rate */
+        var Pulse : Float = 0
+        if (HasPulseRate) do
+          Pulse = 'sfloat_to_float(&data[index])'
+          'index = index+2;'
+        end
+
+        /* User ID */
+        var UserID : Byte = 0
+        if (HasUserID) do
+          UserID = 'data[index]'
+          'index = index+1;'
+        end
+
+        /* Measurement Status */
+        var BodyMovement : Boolean = false
+        var CuffFit : Boolean = false
+        var IrregularPulse : Boolean = false
+        var PulseRate : Byte = 0
+        var MeasurementPosition : Boolean = false
+        if (HasMeasurementStatus) do
+          BodyMovement = 'data[index] & 0x01'
+          CuffFit = '(data[index] & 0x02) >> 1'
+          IrregularPulse = '(data[index] & 0x04) >> 2'
+          PulseRate = '(data[index] & 0x18) >> 3'
+          MeasurementPosition = '(data[index] & 0x20) >> 5'
+        end
+
+        // Print the measurement
+        print "[INFO]: Got Blood Pressure measurement - "
+        'printf("%.0f/%.0f (%.0f) ",'&Systolic&', '&Diastolic&', '&MeanArterial&');'
+        if (UnitsKPA) print "kPa "
+        else print "mmHg "
+        if (HasPulseRate) do
+          'printf("%.0fBPM ",'&Pulse&');'
+        end
+        if (HasTimestamp) do
+          'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
+        end
+        if (HasMeasurementStatus) do
+          print "- "
+          if (IrregularPulse) print "Irregular pulse detected "
+          else print "Normal pulse detected "
+        end
+
+        print "\n"
+
+        ATT!ATTHandleValueConfirmation(ConnectedHandle)
+      end
+
+      transition -> Failed event ATT?ATTWriteError action print "[ERROR]: Could not set indications of Blood Presssure Measurement!\n"
+      transition -> Failed event ATT?ATTReadError action print "[ERROR]: Could not read battery percentage!\n"
+
+      transition -> Disconnect event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Initialiser?Stopped
+    }
+
+    // Disconnect
+    state Disconnect
+    {
+      on entry Connecter!Stop()
+
+      internal event Connecter?Stopped action Initialiser!Stop()
+
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Initialiser?Stopped
+      transition -> Failed event Signals?Interrupt
+    }
+
+    // Failed somewhere
+    state Failed
+    {
+      on entry do
+        print "[ERROR]: Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    // Normal QUIT
+    state Quit
+    {
+      on entry do
+        print "[INFO]: Finished, quitting...\n"
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+
+
+configuration BLE_SYNC
+@add_c_libraries "bluetooth"
+@c_header "
+  ble_random_number_t g = { 0x33, 0x46, 0xCC, 0x17, 0x3F, 0x56, 0xBC, 0x52, 0xF4, 0xB2, 0x90, 0xC4, 0x0E, 0xEF, 0x43, 0x05, };
+  uint16_t h = 0xF7B3;
+  ble_random_part_t i = { 0xD0, 0xC4, 0x4A, 0x1F, 0x57, 0x36, 0xF2, 0xBC, };
+  ble_random_number_t j = { 0x50, 0xC5, 0x01, 0xFC, 0xF0, 0x43, 0x93, 0xC4, 0x3D, 0xAC, 0xDF, 0xD2, 0x39, 0x59, 0x3F, 0x51, };
+  uint8_t k = 0x00;
+  bdaddr_t l = { 0x2F, 0x54, 0x03, 0x3E, 0x31, 0x5C, };
+"
+{
+  instance handler      : ExitHandler
+  instance hci          : HCISocketProxyImpl
+
+  instance initialiser  : BLEInitialiserImpl
+  instance connecter    : BLEConnecterImpl
+
+  instance main         : Main
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Connecter => connecter.Connecter
+  connector main.ATT => hci.ATT
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+
+
+
+  set hci.Device = "B8:27:EB:03:FA:CD"
+  //set hci.Device = "B8:27:EB:F1:1D:FF"
+  
+  set connecter.ConnectAddressType = BLEAddressType:PUBLIC
+  set connecter.ConnectAddress = "5C:31:3E:03:54:2F"
+}
