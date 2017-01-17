@@ -1,0 +1,158 @@
+import "Datatypes.thingml"
+import "ATTMessages.thingml"
+import "UUID.thingml"
+
+thing fragment ATT includes ATTMsgs, UUIDFunctions
+{
+  required port ATT
+  {
+    receives ATTFindInformationRequest, ATTFindInformationResponse, ATTFindInformationError
+    receives ATTReadByTypeRequest, ATTReadByTypeResponse, ATTReadByTypeError
+    receives ATTReadRequest, ATTReadResponse, ATTReadError
+    receives ATTReadByGroupTypeRequest, ATTReadByGroupTypeResponse, ATTReadByGroupTypeError
+    receives ATTWriteRequest, ATTWriteResponse, ATTWriteError
+    receives ATTWriteCommand
+    receives ATTHandleValueNotification
+    receives ATTHandleValueIndication, ATTHandleValueConfirmation
+
+    sends ATTFindInformationRequest, ATTFindInformationResponse, ATTFindInformationError
+    sends ATTReadByTypeRequest, ATTReadByTypeResponse, ATTReadByTypeError
+    sends ATTReadRequest, ATTReadResponse, ATTReadError
+    sends ATTReadByGroupTypeRequest, ATTReadByGroupTypeResponse, ATTReadByGroupTypeError
+    sends ATTWriteRequest, ATTWriteResponse, ATTWriteError
+    sends ATTWriteCommand
+    sends ATTHandleValueNotification
+    sends ATTHandleValueIndication, ATTHandleValueConfirmation
+  }
+}
+
+thing fragment ATTProxy includes ATTMsgs, UUIDFunctions
+{
+  provided port ATT
+  {
+    receives ATTFindInformationRequest, ATTFindInformationResponse, ATTFindInformationError
+    receives ATTReadByTypeRequest, ATTReadByTypeResponse, ATTReadByTypeError
+    receives ATTReadRequest, ATTReadResponse, ATTReadError
+    receives ATTReadByGroupTypeRequest, ATTReadByGroupTypeResponse, ATTReadByGroupTypeError
+    receives ATTWriteRequest, ATTWriteResponse, ATTWriteError
+    receives ATTWriteCommand
+    receives ATTHandleValueNotification
+    receives ATTHandleValueIndication, ATTHandleValueConfirmation
+
+    sends ATTFindInformationRequest, ATTFindInformationResponse, ATTFindInformationError
+    sends ATTReadByTypeRequest, ATTReadByTypeResponse, ATTReadByTypeError
+    sends ATTReadRequest, ATTReadResponse, ATTReadError
+    sends ATTReadByGroupTypeRequest, ATTReadByGroupTypeResponse, ATTReadByGroupTypeError
+    sends ATTWriteRequest, ATTWriteResponse, ATTWriteError
+    sends ATTWriteCommand
+    sends ATTHandleValueNotification
+    sends ATTHandleValueIndication, ATTHandleValueConfirmation
+  }
+
+  /* Receive data functions */
+  function OnATTData(Handle : UInt, Length : UInt, Data : DataPointer) do
+    var OpCode : Byte = ''&Data&'[0]'
+    if (OpCode == '0x01') do
+      var RequestOpCode : Byte = ''&Data&'[1]'
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[2])'
+      var Error : ATTErrorCode = ''&Data&'[4]'
+      if (RequestOpCode == '0x04') do
+        ATT!ATTFindInformationError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x08') do
+        ATT!ATTReadByTypeError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x0A') do
+        ATT!ATTReadError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x10') do
+        ATT!ATTReadByGroupTypeError(Handle, AttributeHandle, Error)
+      end
+      if (RequestOpCode == '0x12') do
+        ATT!ATTWriteError(Handle, AttributeHandle, Error)
+      end
+    end
+    if (OpCode == '0x04') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      ATT!ATTFindInformationRequest(Handle, StartingHandle, EndingHandle)
+    end
+    if (OpCode == '0x05') do
+      var Format : Byte = ''&Data&'[1]'
+      var InformationData : GATTData
+      ''&InformationData&'.length = '&Length&'-2;'
+      'memcpy(&'&InformationData&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTFindInformationResponse(Handle, Format, InformationData)
+    end
+    if (OpCode == '0x08') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      var AttributeType : UUID = ReadUUID(Length-5, '&'&Data&'[5]')
+      ATT!ATTReadByTypeRequest(Handle, StartingHandle, EndingHandle, AttributeType)
+    end
+    if (OpCode == '0x09') do
+      var ALength : Byte = ''&Data&'[1]'
+      var AttributeDataList : GATTData
+      ''&AttributeDataList&'.length = '&Length&'-2;'
+      'memcpy(&'&AttributeDataList&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTReadByTypeResponse(Handle, ALength, AttributeDataList)
+    end
+    if (OpCode == '0x0A') do
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      ATT!ATTReadRequest(Handle, AttributeHandle)
+    end
+    if (OpCode == '0x0B') do
+      var AttributeData : GATTData
+      ''&AttributeData&'.length = '&Length&'-1;'
+      'memcpy(&'&AttributeData&'.bytes, &'&Data&'[1], '&Length&'-1);'
+      ATT!ATTReadResponse(Handle, AttributeData)
+    end
+    if (OpCode == '0x10') do
+      var StartingHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var EndingHandle : UInt = '*((uint16_t*)&'&Data&'[3])'
+      var AttributeGroupType : UUID = ReadUUID(Length-5, '&'&Data&'[5]')
+      ATT!ATTReadByGroupTypeRequest(Handle, StartingHandle, EndingHandle, AttributeGroupType)
+    end
+    if (OpCode == '0x11') do
+      var ALength : Byte = ''&Data&'[1]'
+      var AttributeDataList : GATTData
+      ''&AttributeDataList&'.length = '&Length&'-2;'
+      'memcpy(&'&AttributeDataList&'.bytes, &'&Data&'[2], '&Length&'-2);'
+      ATT!ATTReadByGroupTypeResponse(Handle, ALength, AttributeDataList)
+    end
+    if (OpCode == '0x12') do
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var AttributeValue : GATTData
+      ''&AttributeValue&'.length = '&Length&'-3;'
+      'memcpy(&'&AttributeValue&'.bytes, &'&Data&'[3], '&Length&'-3);'
+      ATT!ATTWriteRequest(Handle, AttributeHandle, AttributeValue)
+    end
+    if (OpCode == '0x13') do
+      ATT!ATTWriteResponse(Handle)
+    end
+    if (OpCode == '0x52') do
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var AttributeValue : GATTData
+      ''&AttributeValue&'.length = '&Length&'-3;'
+      'memcpy(&'&AttributeValue&'.bytes, &'&Data&'[3], '&Length&'-3);'
+      ATT!ATTWriteCommand(Handle, AttributeHandle, AttributeValue)
+    end
+    if (OpCode == '0x1B') do
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var AttributeValue : GATTData
+      ''&AttributeValue&'.length = '&Length&'-3;'
+      'memcpy(&'&AttributeValue&'.bytes, &'&Data&'[3], '&Length&'-3);'
+      ATT!ATTHandleValueNotification(Handle, AttributeHandle, AttributeValue)
+    end
+    if (OpCode == '0x1D') do
+      var AttributeHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var AttributeValue : GATTData
+      ''&AttributeValue&'.length = '&Length&'-3;'
+      'memcpy(&'&AttributeValue&'.bytes, &'&Data&'[3], '&Length&'-3);'
+      ATT!ATTHandleValueIndication(Handle, AttributeHandle, AttributeValue)
+    end
+    if (OpCode == '0x1E') do
+      ATT!ATTHandleValueConfirmation(Handle)
+    end
+  end
+}

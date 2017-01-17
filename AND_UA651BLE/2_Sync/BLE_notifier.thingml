@@ -1,0 +1,55 @@
+import "HCIDatatypes.thingml"
+import "ATTProxy.thingml"
+import "BLE_connecter.thingml"
+
+thing fragment BLENotifierMsgs
+{
+  message SetBloodPressureIndicate(ConnectionHandle : UInt);
+}
+
+thing BLENotifier includes BLENotifierMsgs
+{
+}
+
+thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
+{
+  property ConnectedHandle : UInt
+
+  property WriteByteValueHandle : UInt = '0x0025'
+  property ReadByteValueHandle : UInt = '0x0021'
+  property ReadByteConfigurationHandle : UInt = '0x0023'
+
+  statechart States init Waiting
+  {
+    state Waiting
+    {
+      transition -> Connected event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+      end
+    }
+
+    state Connected
+    {
+      on entry do
+        var AttributeValue : GATTData
+        ''&AttributeValue&'.length = 2;'
+        ''&AttributeValue&'.bytes[0] = 0x01;'
+        ''&AttributeValue&'.bytes[1] = 0x00;'
+        ATT!ATTWriteRequest(ConnectedHandle, ReadByteConfigurationHandle, AttributeValue)
+      end
+
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not set notifications of TXD in notifier!\n"
+        Connecter!Stop()
+      end
+
+      internal event e:ATT?ATTHandleValueNotification guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == ReadByteValueHandle) action do
+        print "!!! GOT BYTE :D !!!\n"
+      end
+      //(ConnectionHandle : UInt, AttributeHandle : UInt, AttributeValue : GATTData);
+
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+  }
+}
