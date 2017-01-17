@@ -1,0 +1,5 @@
+@startuml
+component neo
+boundary Timer
+neo .. Timer : clock
+@enduml

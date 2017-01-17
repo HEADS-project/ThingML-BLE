@@ -1,0 +1,99 @@
+import "NeoPixel.thingml"
+
+
+
+thing SerialMsgs {
+	message receive_byte (b : Byte);
+	message write_byte (b : Byte);
+	message print_message (msg : String);
+}
+
+
+thing Serial includes SerialMsgs
+{
+   
+    provided port rx
+	{
+		sends receive_byte
+	}
+	provided port tx 
+	{
+		receives write_byte, print_message
+	}
+
+    statechart SerialImpl init Receiving 
+    {        
+        state Receiving 
+        {
+            on entry 'Serial.begin(9600);'
+            
+            internal guard 'Serial.available()' > 0
+            action do 
+            	rx!receive_byte ('(char)Serial.read()')
+            end
+        }
+    }
+}
+
+thing BLENotifier includes NeoPixelMsgs, SerialMsgs { 
+
+	required port blerx
+	{
+		receives receive_byte
+	}
+	
+	required port bletx
+	@sync_send "true"
+	{
+		sends write_byte, print_message
+	}
+	
+	required port neopixels {
+		sends setColor
+	}
+
+	statechart BLENotifierSC init Ready {
+	
+		state Ready {
+			transition -> ParseCommand event m : blerx?receive_byte guard m.b == '\'!\''
+		}	
+		
+		state ParseCommand {
+			transition -> SetColor event m : blerx?receive_byte guard m.b == '\'C\''
+		}
+		
+		state SetColor {
+			property buf : UInt8[2]
+			property idx : UInt8
+			
+			on entry do
+				idx = 0
+			end
+			
+			internal event m : blerx?receive_byte guard idx < 2 action do
+				buf[idx] = m.b
+				idx = idx + 1
+			end
+			
+			transition -> Ready event m : blerx?receive_byte guard idx == 2 action do
+				neopixels!setColor(buf[0], buf[1], m.b)
+				bletx!print_message("OK\n")
+			end
+		}
+		
+	}
+}
+
+protocol Timer;
+
+configuration BLENotifier
+{
+	instance notifier : BLENotifier
+	instance uart : Serial
+	instance neopixels : NeoPixel
+	
+	connector notifier.neopixels => neopixels.ctrl
+	connector notifier.bletx => uart.tx
+	connector notifier.blerx => uart.rx
+	connector neopixels.clock over Timer
+}

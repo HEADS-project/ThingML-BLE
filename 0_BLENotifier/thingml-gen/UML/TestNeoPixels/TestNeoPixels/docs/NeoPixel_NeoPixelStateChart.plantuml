@@ -1,0 +1,12 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> NeoPixelStateChart
+state NeoPixelStateChart{
+state RUN{
+
+RUN --> RUN : update?clock\naction do \nvar i : UInt8 = 0\nwhile(i < neopixel_count) do\ndo \nif(i == counter) do\nsetPixelColor(icolor)\nend else do\nsetPixelColor(i0)\n\ni = i + 1\nend\nend\nupdateNeopixels()\ncounter = (counter + 1) % neopixel_count\nend\n
+}
+[*] --> RUN
+	NeoPixelStateChart : entry / do \n'strip = Adafruit_NeoPixel(' & neopixel_count & ', ' & neopixel_pin & ', NEO_GRB + NEO_KHZ800);'\ncolor = getColor(255500)\nend\n
+}
+@enduml

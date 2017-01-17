@@ -9,6 +9,8 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, NEOPIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
 
+  Serial.begin(9600);
+  
   pinMode(4, INPUT);
   pinMode(5, INPUT);
   
@@ -19,13 +21,21 @@ void setup() {
   colorWipe(strip.Color(0, 255, 0), 50); // Green
   colorWipe(strip.Color(0, 0, 255), 50); // Blue
 
-  rainbowCycle(10);
+  rainbowCycle(1);
 
   colorWipe(strip.Color(0, 0, 0), 100); // TURN OFF
+  
+   Serial.println("INITIALIZED!");
   
 }
 
 void loop() {
+  
+ 
+  
+  if (Serial.available() > 0) {
+     Serial.print((char)Serial.read()); // Just echo
+  }
   
   if (digitalRead(4) == 0) pump();
   else if (digitalRead(5) == 0) measure();
