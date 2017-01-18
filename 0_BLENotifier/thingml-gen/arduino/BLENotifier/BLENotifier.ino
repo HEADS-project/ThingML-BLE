@@ -42,6 +42,35 @@ void NeoPixel_handle_clock_update(struct NeoPixel_Instance *_instance);
 
 
 /*****************************************************************************
+ * Headers for type : Serial
+ *****************************************************************************/
+
+// Definition of the instance struct:
+struct Serial_Instance {
+
+// Instances of different sessions
+bool active;
+// Variables for the ID of the ports of the instance
+uint16_t id_rx;
+uint16_t id_tx;
+// Variables for the current instance state
+int Serial_SerialImpl_State;
+// Variables for the properties of the instance
+// CEP stream pointers
+
+};
+// Declaration of prototypes outgoing messages:
+void Serial_SerialImpl_OnEntry(int state, struct Serial_Instance *_instance);
+// Declaration of callbacks for incoming messages:
+void register_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
+void register_external_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
+
+// Definition of the states:
+#define SERIAL_SERIALIMPL_STATE 0
+#define SERIAL_SERIALIMPL_RECEIVING_STATE 1
+
+
+/*****************************************************************************
  * Headers for type : BLENotifier
  *****************************************************************************/
 
@@ -79,35 +108,6 @@ void register_external_BLENotifier_send_neopixels_setColor_listener(void (*_list
 #define BLENOTIFIER_BLENOTIFIERSC_READY_STATE 1
 #define BLENOTIFIER_BLENOTIFIERSC_PARSECOMMAND_STATE 2
 #define BLENOTIFIER_BLENOTIFIERSC_SETCOLOR_STATE 3
-
-
-/*****************************************************************************
- * Headers for type : Serial
- *****************************************************************************/
-
-// Definition of the instance struct:
-struct Serial_Instance {
-
-// Instances of different sessions
-bool active;
-// Variables for the ID of the ports of the instance
-uint16_t id_rx;
-uint16_t id_tx;
-// Variables for the current instance state
-int Serial_SerialImpl_State;
-// Variables for the properties of the instance
-// CEP stream pointers
-
-};
-// Declaration of prototypes outgoing messages:
-void Serial_SerialImpl_OnEntry(int state, struct Serial_Instance *_instance);
-// Declaration of callbacks for incoming messages:
-void register_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
-void register_external_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
-
-// Definition of the states:
-#define SERIAL_SERIALIMPL_STATE 0
-#define SERIAL_SERIALIMPL_RECEIVING_STATE 1
 
 
 //timer2
@@ -516,7 +516,7 @@ uint8_t breath[] = {0, 0, 0, 0, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83
 uint8_t pulse[] =  {32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32};
 
 #define ROTATE_LEN 10
-uint8_t rotatep[] =  {0, 25, 255, 25, 0, 0, 25, 255, 25, 0};
+uint8_t rotatep[] =  {0, 0, 255, 0, 0, 0, 0, 255, 0, 0};
 
 //uint8_t rotatep[] =  {0, 0, 0, 0, 255, 0, 0, 0, 0, 0};
 
@@ -632,8 +632,8 @@ NeoPixel_NeoPixelStateChart_OnEntry(_instance->NeoPixel_NeoPixelStateChart_State
 break;
 }
 case NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE:{
-_instance->NeoPixel_NeoPixelStateChart_color_r_var = 150;
-_instance->NeoPixel_NeoPixelStateChart_color_g_var = 130;
+_instance->NeoPixel_NeoPixelStateChart_color_r_var = 255;
+_instance->NeoPixel_NeoPixelStateChart_color_g_var = 20;
 _instance->NeoPixel_NeoPixelStateChart_color_b_var = 0;
 break;
 }
@@ -782,12 +782,32 @@ struct Serial_Instance uart_var;
 struct NeoPixel_Instance neopixels_var;
 // Variables for the sessions of the instance
 
+// Enqueue of messages Serial::rx::receive_byte
+void enqueue_Serial_send_rx_receive_byte(struct Serial_Instance *_instance, uint8_t b){
+if ( fifo_byte_available() > 5 ) {
+
+_fifo_enqueue( (2 >> 8) & 0xFF );
+_fifo_enqueue( 2 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_rx >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_rx & 0xFF );
+
+// parameter b
+union u_b_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_b;
+u_b.p = b;
+_fifo_enqueue(u_b.bytebuffer[0] & 0xFF );
+}
+}
 // Enqueue of messages BLENotifier::neopixels::setColor
 void enqueue_BLENotifier_send_neopixels_setColor(struct BLENotifier_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
 
-_fifo_enqueue( (2 >> 8) & 0xFF );
-_fifo_enqueue( 2 & 0xFF );
+_fifo_enqueue( (3 >> 8) & 0xFF );
+_fifo_enqueue( 3 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
@@ -818,27 +838,19 @@ u_blue.p = blue;
 _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages Serial::rx::receive_byte
-void enqueue_Serial_send_rx_receive_byte(struct Serial_Instance *_instance, uint8_t b){
-if ( fifo_byte_available() > 5 ) {
 
-_fifo_enqueue( (3 >> 8) & 0xFF );
-_fifo_enqueue( 3 & 0xFF );
 
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_rx >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_rx & 0xFF );
+//New dispatcher for messages
+void dispatch_write_byte(uint16_t sender, uint8_t param_b) {
+if (sender == notifier_var.id_bletx) {
 
-// parameter b
-union u_b_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_b;
-u_b.p = b;
-_fifo_enqueue(u_b.bytebuffer[0] & 0xFF );
-}
 }
 
+}
+
+void sync_dispatch_BLENotifier_send_bletx_write_byte(struct BLENotifier_Instance *_instance, uint8_t b){
+dispatch_write_byte(_instance->id_bletx, b);
+}
 
 //New dispatcher for messages
 void dispatch_receive_byte(uint16_t sender, uint8_t param_b) {
@@ -861,15 +873,15 @@ NeoPixel_handle_ctrl_setColor(&neopixels_var, param_red, param_green, param_blue
 
 
 //New dispatcher for messages
-void dispatch_write_byte(uint16_t sender, uint8_t param_b) {
+void dispatch_print_message(uint16_t sender, char * param_msg) {
 if (sender == notifier_var.id_bletx) {
 
 }
 
 }
 
-void sync_dispatch_BLENotifier_send_bletx_write_byte(struct BLENotifier_Instance *_instance, uint8_t b){
-dispatch_write_byte(_instance->id_bletx, b);
+void sync_dispatch_BLENotifier_send_bletx_print_message(struct BLENotifier_Instance *_instance, char * msg){
+dispatch_print_message(_instance->id_bletx, msg);
 }
 
 //New dispatcher for messages
@@ -881,18 +893,6 @@ NeoPixel_handle_clock_update(&neopixels_var);
 
 }
 
-
-//New dispatcher for messages
-void dispatch_print_message(uint16_t sender, char * param_msg) {
-if (sender == notifier_var.id_bletx) {
-
-}
-
-}
-
-void sync_dispatch_BLENotifier_send_bletx_print_message(struct BLENotifier_Instance *_instance, char * msg){
-dispatch_print_message(_instance->id_bletx, msg);
-}
 
 int processMessageQueue() {
 if (fifo_empty()) return 0; // return 0 if there is nothing to do
@@ -906,7 +906,7 @@ code += fifo_dequeue();
 
 // Switch to call the appropriate handler
 switch(code) {
-case 3:{
+case 2:{
 byte mbuf[5 - 2];
 while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_receive_byte = 2;
@@ -920,7 +920,7 @@ dispatch_receive_byte((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_receive_byte_b.p /* b */ );
 break;
 }
-case 2:{
+case 3:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_setColor = 2;
@@ -1006,13 +1006,6 @@ timer2_setup();
 
 // End Network Initilization 
 
-// Init the ID, state variables and properties for instance uart
-uart_var.active = true;
-uart_var.id_rx = add_instance( (void*) &uart_var);
-uart_var.id_tx = add_instance( (void*) &uart_var);
-uart_var.Serial_SerialImpl_State = SERIAL_SERIALIMPL_RECEIVING_STATE;
-
-Serial_SerialImpl_OnEntry(SERIAL_SERIALIMPL_STATE, &uart_var);
 // Init the ID, state variables and properties for instance neopixels
 neopixels_var.active = true;
 neopixels_var.id_ctrl = add_instance( (void*) &neopixels_var);
@@ -1025,13 +1018,20 @@ neopixels_var.NeoPixel_NeoPixelStateChart_color_g_var = 128;
 neopixels_var.NeoPixel_NeoPixelStateChart_color_b_var = 128;
 neopixels_var.NeoPixel_NeoPixelStateChart_ROTATE_angle_var = 0;
 neopixels_var.NeoPixel_NeoPixelStateChart_ROTATE_maxangle_var = 200;
-neopixels_var.NeoPixel_NeoPixelStateChart_ROTATE_delta_var = 3;
+neopixels_var.NeoPixel_NeoPixelStateChart_ROTATE_delta_var =  -6;
 neopixels_var.NeoPixel_NeoPixelStateChart_BREATH_counter_var = 0;
 neopixels_var.NeoPixel_NeoPixelStateChart_BREATH_maxcount_var = 186;
 neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_counter_var = 0;
 neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_maxcount_var = 100;
 
 NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_STATE, &neopixels_var);
+// Init the ID, state variables and properties for instance uart
+uart_var.active = true;
+uart_var.id_rx = add_instance( (void*) &uart_var);
+uart_var.id_tx = add_instance( (void*) &uart_var);
+uart_var.Serial_SerialImpl_State = SERIAL_SERIALIMPL_RECEIVING_STATE;
+
+Serial_SerialImpl_OnEntry(SERIAL_SERIALIMPL_STATE, &uart_var);
 // Init the ID, state variables and properties for instance notifier
 notifier_var.active = true;
 notifier_var.id_blerx = add_instance( (void*) &notifier_var);

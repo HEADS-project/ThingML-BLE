@@ -230,7 +230,7 @@ uint8_t breath[] = {0, 0, 0, 0, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83
 uint8_t pulse[] =  {32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32};
 
 #define ROTATE_LEN 10
-uint8_t rotatep[] =  {0, 25, 255, 25, 0, 0, 25, 255, 25, 0};
+uint8_t rotatep[] =  {0, 0, 255, 0, 0, 0, 0, 255, 0, 0};
 
 //uint8_t rotatep[] =  {0, 0, 0, 0, 255, 0, 0, 0, 0, 0};
 
@@ -346,8 +346,8 @@ NeoPixel_NeoPixelStateChart_OnEntry(_instance->NeoPixel_NeoPixelStateChart_State
 break;
 }
 case NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE:{
-_instance->NeoPixel_NeoPixelStateChart_color_r_var = 150;
-_instance->NeoPixel_NeoPixelStateChart_color_g_var = 130;
+_instance->NeoPixel_NeoPixelStateChart_color_r_var = 255;
+_instance->NeoPixel_NeoPixelStateChart_color_g_var = 20;
 _instance->NeoPixel_NeoPixelStateChart_color_b_var = 0;
 break;
 }
@@ -577,7 +577,7 @@ neo_var.NeoPixel_NeoPixelStateChart_color_g_var = 128;
 neo_var.NeoPixel_NeoPixelStateChart_color_b_var = 128;
 neo_var.NeoPixel_NeoPixelStateChart_ROTATE_angle_var = 0;
 neo_var.NeoPixel_NeoPixelStateChart_ROTATE_maxangle_var = 200;
-neo_var.NeoPixel_NeoPixelStateChart_ROTATE_delta_var = 3;
+neo_var.NeoPixel_NeoPixelStateChart_ROTATE_delta_var =  -6;
 neo_var.NeoPixel_NeoPixelStateChart_BREATH_counter_var = 0;
 neo_var.NeoPixel_NeoPixelStateChart_BREATH_maxcount_var = 186;
 neo_var.NeoPixel_NeoPixelStateChart_PULSE_counter_var = 0;
