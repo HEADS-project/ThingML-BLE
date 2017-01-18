@@ -10,9 +10,7 @@ thing NeoPixel includes NeoPixelMsgs
 Adafruit_NeoPixel strip;
 
 #define BREATH_LEN 31
-//uint8_t breath[] = {0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
-
-uint8_t breath[] = {25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
+uint8_t breath[] = {0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
 
 #define PULSE_LEN 40
 uint8_t pulse[] =  {32, 32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32, 32, 32};
@@ -32,7 +30,6 @@ uint32_t Wheel(byte WheelPos) {
   WheelPos -= 170;
   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
-
 "
 { 
 	property neopixel_pin : UInt8 = 7
@@ -58,8 +55,21 @@ uint32_t Wheel(byte WheelPos) {
 	
 	function updateNeopixels() do
 		'strip.show();'
-		
 	end
+	
+	function breath_brightness(time : UInt8, max : UInt8) : UInt8 do
+		var index : UInt16 = (time * 'BREATH_LEN') / max
+		var prev : UInt16 = (index * max) / 'BREATH_LEN'
+		var next : UInt16 = ((index + 1) * max) / 'BREATH_LEN'
+
+		var nextv : UInt16
+		if (index < 'BREATH_LEN' - 1) nextv = 'breath['&index+1&']'
+		else nextv = 'breath['&index&']'
+
+		return ( (next-time) * 'breath['&index&']' + (time-prev) * nextv ) / (next-prev)
+
+	end 
+	
 	
 	function initializeNeopixels() do
 		'strip = Adafruit_NeoPixel('&neopixel_count&', '&neopixel_pin&', NEO_GRB + NEO_KHZ800);
@@ -68,14 +78,13 @@ uint32_t Wheel(byte WheelPos) {
 		 strip.show();'
 	end
 
-	statechart NeoPixelStateChart init RUN {
+	statechart NeoPixelStateChart init BREATH {
 	
-		property color_r : UInt8 = 255
-		property color_g : UInt8 = 75
-		property color_b : UInt8 = 0
+		property color_r : UInt8 = 110
+		property color_g : UInt8 = 128
+		property color_b : UInt8 = 128
 		
-		property counter : UInt8 = 0
-		property countup : Boolean = true
+		
 	
 		on entry initializeNeopixels()
 		
@@ -85,40 +94,70 @@ uint32_t Wheel(byte WheelPos) {
 			color_b = c.blue
 		end
 	
-		state RUN {
-		/*
-				transition -> RUN event clock?update guard false action do
-					var color : UInt32 = getColor(color_r, color_g, color_b)
+		state ROTATE {
+
+			property counter : UInt8 = 0
+
+			internal event clock?update guard false action do
+				var color : UInt32 = getColor(color_r, color_g, color_b)
+				var i : UInt8 = 0
+				while(i < neopixel_count) do
+					if (i == counter or i == (counter + neopixel_count/2) % neopixel_count) setPixelColor(i, color)
+					else setPixelColor(i, 0)
+					i = i + 1
+				end
+				updateNeopixels()
+				counter = (counter + 1) % neopixel_count
+			end
+		}	
+		
+		state BREATH {
+		
+			property counter : UInt8 = 0
+			property countup : Boolean = true
+	
+			internal event clock?update action do
+					var bright : UInt8 = breath_brightness(counter, 93)
+					var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
 					var i : UInt8 = 0
 					while(i < neopixel_count) do
-						if (i == counter or i == (counter + neopixel_count/2) % neopixel_count) setPixelColor(i, color)
-						else setPixelColor(i, 0)
+						setPixelColor(i, color)
 						i = i + 1
 					end
 					updateNeopixels()
-					counter = (counter + 1) % neopixel_count
-				end
-				*/
-				transition -> RUN event clock?update action do
-					
 					if (countup) do
-						var bright : UInt8 = 'pulse['&counter&']'
-						var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
-						var i : UInt8 = 0
-						while(i < neopixel_count) do
-							setPixelColor(i, color)
-							i = i + 1
-						end
-						updateNeopixels()
-						if (counter < 'PULSE_LEN'-1) counter = counter + 1
-						if (counter == 'PULSE_LEN'-1) countup = false
-					end
-					else do
+						if (counter < 93-1) counter = counter + 1
+						if (counter == 93-1) countup = false
+					end else do
 						if (counter > 0) counter = counter - 1
 						if (counter == 0) countup = true
 					end 
-					
+			end
+		}	
+		
+		state PULSE {
+		
+			property counter : UInt8 = 0
+			property countup : Boolean = true
+	
+			internal event clock?update action do
+				if (countup) do
+					var bright : UInt8 = 'pulse['&counter&']'
+					var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
+					var i : UInt8 = 0
+					while(i < neopixel_count) do
+						setPixelColor(i, color)
+						i = i + 1
+					end
+					updateNeopixels()
+					if (counter < 'PULSE_LEN'-1) counter = counter + 1
+					if (counter == 'PULSE_LEN'-1) countup = false
 				end
+				else do
+					if (counter > 0) counter = counter - 1
+					if (counter == 0) countup = true
+				end 
+			end
 		}	
 	}
 }

@@ -18,8 +18,11 @@ uint8_t NeoPixel_neopixel_count_var;
 uint8_t NeoPixel_NeoPixelStateChart_color_r_var;
 uint8_t NeoPixel_NeoPixelStateChart_color_g_var;
 uint8_t NeoPixel_NeoPixelStateChart_color_b_var;
-uint8_t NeoPixel_NeoPixelStateChart_counter_var;
-uint8_t NeoPixel_NeoPixelStateChart_countup_var;
+uint8_t NeoPixel_NeoPixelStateChart_ROTATE_counter_var;
+uint8_t NeoPixel_NeoPixelStateChart_BREATH_counter_var;
+uint8_t NeoPixel_NeoPixelStateChart_BREATH_countup_var;
+uint8_t NeoPixel_NeoPixelStateChart_PULSE_counter_var;
+uint8_t NeoPixel_NeoPixelStateChart_PULSE_countup_var;
 // CEP stream pointers
 
 };
@@ -31,36 +34,9 @@ void NeoPixel_handle_clock_update(struct NeoPixel_Instance *_instance);
 
 // Definition of the states:
 #define NEOPIXEL_NEOPIXELSTATECHART_STATE 0
-#define NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE 1
-
-
-/*****************************************************************************
- * Headers for type : Serial
- *****************************************************************************/
-
-// Definition of the instance struct:
-struct Serial_Instance {
-
-// Instances of different sessions
-bool active;
-// Variables for the ID of the ports of the instance
-uint16_t id_rx;
-uint16_t id_tx;
-// Variables for the current instance state
-int Serial_SerialImpl_State;
-// Variables for the properties of the instance
-// CEP stream pointers
-
-};
-// Declaration of prototypes outgoing messages:
-void Serial_SerialImpl_OnEntry(int state, struct Serial_Instance *_instance);
-// Declaration of callbacks for incoming messages:
-void register_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
-void register_external_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
-
-// Definition of the states:
-#define SERIAL_SERIALIMPL_STATE 0
-#define SERIAL_SERIALIMPL_RECEIVING_STATE 1
+#define NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE 1
+#define NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE 2
+#define NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE 3
 
 
 /*****************************************************************************
@@ -101,6 +77,35 @@ void register_external_BLENotifier_send_neopixels_setColor_listener(void (*_list
 #define BLENOTIFIER_BLENOTIFIERSC_READY_STATE 1
 #define BLENOTIFIER_BLENOTIFIERSC_PARSECOMMAND_STATE 2
 #define BLENOTIFIER_BLENOTIFIERSC_SETCOLOR_STATE 3
+
+
+/*****************************************************************************
+ * Headers for type : Serial
+ *****************************************************************************/
+
+// Definition of the instance struct:
+struct Serial_Instance {
+
+// Instances of different sessions
+bool active;
+// Variables for the ID of the ports of the instance
+uint16_t id_rx;
+uint16_t id_tx;
+// Variables for the current instance state
+int Serial_SerialImpl_State;
+// Variables for the properties of the instance
+// CEP stream pointers
+
+};
+// Declaration of prototypes outgoing messages:
+void Serial_SerialImpl_OnEntry(int state, struct Serial_Instance *_instance);
+// Declaration of callbacks for incoming messages:
+void register_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
+void register_external_Serial_send_rx_receive_byte_listener(void (*_listener)(struct Serial_Instance *, uint8_t));
+
+// Definition of the states:
+#define SERIAL_SERIALIMPL_STATE 0
+#define SERIAL_SERIALIMPL_RECEIVING_STATE 1
 
 
 //timer2
@@ -502,9 +507,7 @@ if (external_Serial_send_rx_receive_byte_listener != 0x0) external_Serial_send_r
 Adafruit_NeoPixel strip;
 
 #define BREATH_LEN 31
-//uint8_t breath[] = {0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
-
-uint8_t breath[] = {25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
+uint8_t breath[] = {0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
 
 #define PULSE_LEN 40
 uint8_t pulse[] =  {32, 32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32, 32, 32};
@@ -525,7 +528,6 @@ uint32_t Wheel(byte WheelPos) {
   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
-
 // END: Code from the c_global annotation NeoPixel
 
 // Declaration of prototypes:
@@ -536,6 +538,7 @@ void NeoPixel_NeoPixelStateChart_OnExit(int state, struct NeoPixel_Instance *_in
 void f_NeoPixel_setPixelColor(struct NeoPixel_Instance *_instance, uint8_t pixel, uint32_t color);
 uint32_t f_NeoPixel_getColor(struct NeoPixel_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
 void f_NeoPixel_updateNeopixels(struct NeoPixel_Instance *_instance);
+uint8_t f_NeoPixel_breath_brightness(struct NeoPixel_Instance *_instance, uint8_t time, uint8_t max);
 void f_NeoPixel_initializeNeopixels(struct NeoPixel_Instance *_instance);
 // Declaration of functions:
 // Definition of function setPixelColor
@@ -549,6 +552,21 @@ return strip.Color(red, green, blue);
 // Definition of function updateNeopixels
 void f_NeoPixel_updateNeopixels(struct NeoPixel_Instance *_instance) {
 strip.show();
+}
+// Definition of function breath_brightness
+uint8_t f_NeoPixel_breath_brightness(struct NeoPixel_Instance *_instance, uint8_t time, uint8_t max) {
+;uint16_t index = (time * BREATH_LEN) / max;
+;uint16_t prev = (index * max) / BREATH_LEN;
+;uint16_t next = ((index + 1) * max) / BREATH_LEN;
+;uint16_t nextv;
+if(index < BREATH_LEN - 1) {
+nextv = breath[index + 1];
+
+} else {
+nextv = breath[index];
+
+}
+return ((next - time) * breath[index] + (time - prev) * nextv) / (next - prev);
 }
 // Definition of function initializeNeopixels
 void f_NeoPixel_initializeNeopixels(struct NeoPixel_Instance *_instance) {
@@ -565,12 +583,18 @@ strip = Adafruit_NeoPixel(_instance->NeoPixel_neopixel_count_var, _instance->Neo
 void NeoPixel_NeoPixelStateChart_OnEntry(int state, struct NeoPixel_Instance *_instance) {
 switch(state) {
 case NEOPIXEL_NEOPIXELSTATECHART_STATE:{
-_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE;
+_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE;
 f_NeoPixel_initializeNeopixels(_instance);
 NeoPixel_NeoPixelStateChart_OnEntry(_instance->NeoPixel_NeoPixelStateChart_State, _instance);
 break;
 }
-case NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE:{
+case NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE:{
+break;
+}
+case NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE:{
+break;
+}
+case NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE:{
 break;
 }
 default: break;
@@ -583,7 +607,11 @@ switch(state) {
 case NEOPIXEL_NEOPIXELSTATECHART_STATE:{
 NeoPixel_NeoPixelStateChart_OnExit(_instance->NeoPixel_NeoPixelStateChart_State, _instance);
 break;}
-case NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE:{
+case NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE:{
+break;}
+case NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE:{
+break;}
+case NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE:{
 break;}
 default: break;
 }
@@ -608,12 +636,29 @@ void NeoPixel_handle_clock_update(struct NeoPixel_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixel_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE) {
+if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE) {
+if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 0) {
+;uint32_t color = f_NeoPixel_getColor(_instance, _instance->NeoPixel_NeoPixelStateChart_color_r_var, _instance->NeoPixel_NeoPixelStateChart_color_g_var, _instance->NeoPixel_NeoPixelStateChart_color_b_var);
+;uint8_t i = 0;
+while(i < _instance->NeoPixel_neopixel_count_var) {
+if(i == _instance->NeoPixel_NeoPixelStateChart_ROTATE_counter_var || i == (_instance->NeoPixel_NeoPixelStateChart_ROTATE_counter_var + _instance->NeoPixel_neopixel_count_var / 2) % _instance->NeoPixel_neopixel_count_var) {
+f_NeoPixel_setPixelColor(_instance, i, color);
+
+} else {
+f_NeoPixel_setPixelColor(_instance, i, 0);
+
+}
+i = i + 1;
+
+}
+f_NeoPixel_updateNeopixels(_instance);
+_instance->NeoPixel_NeoPixelStateChart_ROTATE_counter_var = (_instance->NeoPixel_NeoPixelStateChart_ROTATE_counter_var + 1) % _instance->NeoPixel_neopixel_count_var;
+NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+else if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE) {
 if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixel_NeoPixelStateChart_OnExit(NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE, _instance);
-_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE;
-if(_instance->NeoPixel_NeoPixelStateChart_countup_var) {
-;uint8_t bright = pulse[_instance->NeoPixel_NeoPixelStateChart_counter_var];
+;uint8_t bright = f_NeoPixel_breath_brightness(_instance, _instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var, 93);
 ;uint32_t color = f_NeoPixel_getColor(_instance, (_instance->NeoPixel_NeoPixelStateChart_color_r_var * bright) / 256, (_instance->NeoPixel_NeoPixelStateChart_color_g_var * bright) / 256, (_instance->NeoPixel_NeoPixelStateChart_color_b_var * bright) / 256);
 ;uint8_t i = 0;
 while(i < _instance->NeoPixel_neopixel_count_var) {
@@ -622,27 +667,62 @@ i = i + 1;
 
 }
 f_NeoPixel_updateNeopixels(_instance);
-if(_instance->NeoPixel_NeoPixelStateChart_counter_var < PULSE_LEN - 1) {
-_instance->NeoPixel_NeoPixelStateChart_counter_var = _instance->NeoPixel_NeoPixelStateChart_counter_var + 1;
+if(_instance->NeoPixel_NeoPixelStateChart_BREATH_countup_var) {
+if(_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var < 93 - 1) {
+_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var = _instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var + 1;
 
 }
-if(_instance->NeoPixel_NeoPixelStateChart_counter_var == PULSE_LEN - 1) {
-_instance->NeoPixel_NeoPixelStateChart_countup_var = 0;
+if(_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var == 93 - 1) {
+_instance->NeoPixel_NeoPixelStateChart_BREATH_countup_var = 0;
 
 }
 
 } else {
-if(_instance->NeoPixel_NeoPixelStateChart_counter_var > 0) {
-_instance->NeoPixel_NeoPixelStateChart_counter_var = _instance->NeoPixel_NeoPixelStateChart_counter_var - 1;
+if(_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var > 0) {
+_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var = _instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var - 1;
 
 }
-if(_instance->NeoPixel_NeoPixelStateChart_counter_var == 0) {
-_instance->NeoPixel_NeoPixelStateChart_countup_var = 1;
+if(_instance->NeoPixel_NeoPixelStateChart_BREATH_counter_var == 0) {
+_instance->NeoPixel_NeoPixelStateChart_BREATH_countup_var = 1;
 
 }
 
 }
-NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE, _instance);
+NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+else if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE) {
+if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+if(_instance->NeoPixel_NeoPixelStateChart_PULSE_countup_var) {
+;uint8_t bright = pulse[_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var];
+;uint32_t color = f_NeoPixel_getColor(_instance, (_instance->NeoPixel_NeoPixelStateChart_color_r_var * bright) / 256, (_instance->NeoPixel_NeoPixelStateChart_color_g_var * bright) / 256, (_instance->NeoPixel_NeoPixelStateChart_color_b_var * bright) / 256);
+;uint8_t i = 0;
+while(i < _instance->NeoPixel_neopixel_count_var) {
+f_NeoPixel_setPixelColor(_instance, i, color);
+i = i + 1;
+
+}
+f_NeoPixel_updateNeopixels(_instance);
+if(_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var < PULSE_LEN - 1) {
+_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var = _instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var + 1;
+
+}
+if(_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var == PULSE_LEN - 1) {
+_instance->NeoPixel_NeoPixelStateChart_PULSE_countup_var = 0;
+
+}
+
+} else {
+if(_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var > 0) {
+_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var = _instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var - 1;
+
+}
+if(_instance->NeoPixel_NeoPixelStateChart_PULSE_counter_var == 0) {
+_instance->NeoPixel_NeoPixelStateChart_PULSE_countup_var = 1;
+
+}
+
+}
 NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -664,10 +744,6 @@ NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
 
 uint8_t array_notifier_BLENotifier_BLENotifierSC_SetColor_buf_var[2];
 //Declaration of instance variables
-//Instance neopixels
-// Variables for the properties of the instance
-struct NeoPixel_Instance neopixels_var;
-// Variables for the sessions of the instance
 //Instance notifier
 // Variables for the properties of the instance
 struct BLENotifier_Instance notifier_var;
@@ -675,6 +751,10 @@ struct BLENotifier_Instance notifier_var;
 //Instance uart
 // Variables for the properties of the instance
 struct Serial_Instance uart_var;
+// Variables for the sessions of the instance
+//Instance neopixels
+// Variables for the properties of the instance
+struct NeoPixel_Instance neopixels_var;
 // Variables for the sessions of the instance
 
 // Enqueue of messages Serial::rx::receive_byte
@@ -736,16 +816,6 @@ _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 
 
 //New dispatcher for messages
-void dispatch_receive_byte(uint16_t sender, uint8_t param_b) {
-if (sender == uart_var.id_rx) {
-BLENotifier_handle_blerx_receive_byte(&notifier_var, param_b);
-
-}
-
-}
-
-
-//New dispatcher for messages
 void dispatch_setColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
 if (sender == notifier_var.id_neopixels) {
 NeoPixel_handle_ctrl_setColor(&neopixels_var, param_red, param_green, param_blue);
@@ -754,18 +824,6 @@ NeoPixel_handle_ctrl_setColor(&neopixels_var, param_red, param_green, param_blue
 
 }
 
-
-//New dispatcher for messages
-void dispatch_print_message(uint16_t sender, char * param_msg) {
-if (sender == notifier_var.id_bletx) {
-
-}
-
-}
-
-void sync_dispatch_BLENotifier_send_bletx_print_message(struct BLENotifier_Instance *_instance, char * msg){
-dispatch_print_message(_instance->id_bletx, msg);
-}
 
 //New dispatcher for messages
 void dispatch_write_byte(uint16_t sender, uint8_t param_b) {
@@ -789,6 +847,28 @@ NeoPixel_handle_clock_update(&neopixels_var);
 }
 
 
+//New dispatcher for messages
+void dispatch_receive_byte(uint16_t sender, uint8_t param_b) {
+if (sender == uart_var.id_rx) {
+BLENotifier_handle_blerx_receive_byte(&notifier_var, param_b);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_print_message(uint16_t sender, char * param_msg) {
+if (sender == notifier_var.id_bletx) {
+
+}
+
+}
+
+void sync_dispatch_BLENotifier_send_bletx_print_message(struct BLENotifier_Instance *_instance, char * msg){
+dispatch_print_message(_instance->id_bletx, msg);
+}
+
 int processMessageQueue() {
 if (fifo_empty()) return 0; // return 0 if there is nothing to do
 
@@ -801,20 +881,6 @@ code += fifo_dequeue();
 
 // Switch to call the appropriate handler
 switch(code) {
-case 2:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_receive_byte = 2;
-union u_receive_byte_b_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_receive_byte_b;
-u_receive_byte_b.bytebuffer[0] = mbuf[mbufi_receive_byte + 0];
-mbufi_receive_byte += 1;
-dispatch_receive_byte((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_receive_byte_b.p /* b */ );
-break;
-}
 case 3:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
@@ -848,6 +914,20 @@ byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_update = 2;
 dispatch_update((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 2:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_receive_byte = 2;
+union u_receive_byte_b_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_receive_byte_b;
+u_receive_byte_b.bytebuffer[0] = mbuf[mbufi_receive_byte + 0];
+mbufi_receive_byte += 1;
+dispatch_receive_byte((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_receive_byte_b.p /* b */ );
 break;
 }
 }
@@ -884,10 +964,10 @@ if ( fifo_byte_available() > (msgSize + 2) ) {
 
 void initialize_configuration_BLENotifier() {
 // Initialize connectors
+register_Serial_send_rx_receive_byte_listener(&enqueue_Serial_send_rx_receive_byte);
 register_BLENotifier_send_bletx_write_byte_listener(&sync_dispatch_BLENotifier_send_bletx_write_byte);
 register_BLENotifier_send_bletx_print_message_listener(&sync_dispatch_BLENotifier_send_bletx_print_message);
 register_BLENotifier_send_neopixels_setColor_listener(&enqueue_BLENotifier_send_neopixels_setColor);
-register_Serial_send_rx_receive_byte_listener(&enqueue_Serial_send_rx_receive_byte);
 
 // Init the ID, state variables and properties for external connector timer2
 
@@ -901,6 +981,23 @@ timer2_setup();
 
 // End Network Initilization 
 
+// Init the ID, state variables and properties for instance neopixels
+neopixels_var.active = true;
+neopixels_var.id_ctrl = add_instance( (void*) &neopixels_var);
+neopixels_var.id_clock = add_instance( (void*) &neopixels_var);
+neopixels_var.NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE;
+neopixels_var.NeoPixel_neopixel_pin_var = 7;
+neopixels_var.NeoPixel_neopixel_count_var = 10;
+neopixels_var.NeoPixel_NeoPixelStateChart_color_r_var = 110;
+neopixels_var.NeoPixel_NeoPixelStateChart_color_g_var = 128;
+neopixels_var.NeoPixel_NeoPixelStateChart_color_b_var = 128;
+neopixels_var.NeoPixel_NeoPixelStateChart_ROTATE_counter_var = 0;
+neopixels_var.NeoPixel_NeoPixelStateChart_BREATH_counter_var = 0;
+neopixels_var.NeoPixel_NeoPixelStateChart_BREATH_countup_var = 1;
+neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_counter_var = 0;
+neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_countup_var = 1;
+
+NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_STATE, &neopixels_var);
 // Init the ID, state variables and properties for instance uart
 uart_var.active = true;
 uart_var.id_rx = add_instance( (void*) &uart_var);
@@ -908,20 +1005,6 @@ uart_var.id_tx = add_instance( (void*) &uart_var);
 uart_var.Serial_SerialImpl_State = SERIAL_SERIALIMPL_RECEIVING_STATE;
 
 Serial_SerialImpl_OnEntry(SERIAL_SERIALIMPL_STATE, &uart_var);
-// Init the ID, state variables and properties for instance neopixels
-neopixels_var.active = true;
-neopixels_var.id_ctrl = add_instance( (void*) &neopixels_var);
-neopixels_var.id_clock = add_instance( (void*) &neopixels_var);
-neopixels_var.NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_RUN_STATE;
-neopixels_var.NeoPixel_neopixel_pin_var = 7;
-neopixels_var.NeoPixel_neopixel_count_var = 10;
-neopixels_var.NeoPixel_NeoPixelStateChart_color_r_var = 255;
-neopixels_var.NeoPixel_NeoPixelStateChart_color_g_var = 75;
-neopixels_var.NeoPixel_NeoPixelStateChart_color_b_var = 0;
-neopixels_var.NeoPixel_NeoPixelStateChart_counter_var = 0;
-neopixels_var.NeoPixel_NeoPixelStateChart_countup_var = 1;
-
-NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_STATE, &neopixels_var);
 // Init the ID, state variables and properties for instance notifier
 notifier_var.active = true;
 notifier_var.id_blerx = add_instance( (void*) &notifier_var);
