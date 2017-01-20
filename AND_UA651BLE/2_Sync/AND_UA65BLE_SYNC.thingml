@@ -5,12 +5,13 @@ import "BLE_bloodpressure.thingml"
 import "BLE_notifier.thingml"
 import "HCISocketImpl.thingml"
 
-protocol MQTT @serializer "PosixJSONSerializerPlugin" @mqtt_broker_address "10.218.149.140" @mqtt_topic "ThingML"
+protocol MQTT @serializer "PosixJSONSerializerPlugin" @mqtt_broker_address "10.218.149.140" @mqtt_topic "ThingML" @trace_level "2" @mqtt_will "{ \"ERROR\": \"Unexpected disconnect\" }"
 
 thing fragment MqttMsgs
 {
   message MqttBloodPressureMeasurement(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
-  message MqttNotification(Status : Byte);
+  message MqttRequestBloodPressureMeasurement();
+  message MqttConfirmBloodPressureMeasurement();
 }
 
 thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMsgs, BLEConnecterMsgs, MqttMsgs
@@ -26,7 +27,7 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
     sends Connect, Stop, Encrypt
     receives Connected, Stopped, Failure, Encrypted
   }
-  required port Notifier
+  required port NotifierDevice
   {
     sends Connect, Stop, Encrypt
     receives Connected, Stopped, Failure, Encrypted
@@ -36,10 +37,10 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
   required port Gateway
   {
     sends MqttBloodPressureMeasurement
-    receives MqttNotification
+    receives MqttRequestBloodPressureMeasurement, MqttConfirmBloodPressureMeasurement
   }
 
-  property SendDataToNotifier : Boolean = false
+  property SendToNotifier : Byte = '0x00'
 
   statechart States init Initialise
   {
@@ -71,27 +72,27 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
 
         state ConnectedBP
         {
-          // TODO Do something usefull with data received here :)
           internal event e:Bloodpressure?BloodPressureMeasurement action do
             Gateway!MqttBloodPressureMeasurement(e.Systolic, e.Diastolic, e.MeanArterial, e.UnitKPA, e.Year, e.Month, e.Day, e.Hour, e.Minute, e.Second, e.Pulse, e.IrregularPulse)
           end
-          //(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
 
-          transition -> ConnectBP event BloodPressureDevice?Stopped guard (not SendDataToNotifier) action do
+          transition -> ConnectBP event BloodPressureDevice?Stopped guard (SendToNotifier == '0x00') action do
             print "[INFO]: Finished syncing with Blood Pressure Monitor.\n"
             // TODO Add a small delay here maybe?
           end
         }
 
-        // TODO What about failures??
-        internal event e:Gateway?MqttNotification action do
-          print "!!! Sending data to notifier !!!\n"
-          SendDataToNotifier = true
+        internal event e:Gateway?MqttRequestBloodPressureMeasurement action do
+          SendToNotifier = '0x01'
           BloodPressureDevice!Stop()
         end
-        //(Status : Byte);
+        
+        internal event e:Gateway?MqttConfirmBloodPressureMeasurement action do
+          SendToNotifier = '0x02'
+          BloodPressureDevice!Stop()
+        end
 
-        transition -> SendToNotifier event BloodPressureDevice?Stopped guard (SendDataToNotifier)
+        transition -> SendToNotifier event BloodPressureDevice?Stopped guard (SendToNotifier != '0x00')
       }
 
       
@@ -101,22 +102,27 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
         {
           on entry do
             print "[INFO]: Connecting to Notifier ...\n"
-            Notifier!Connect()
+            NotifierDevice!Connect()
           end
 
-          transition -> ConnectedN event Notifier?Connected
+          transition -> ConnectedN event Notifications?ReadyForNotificationCommand
         }
 
         state ConnectedN
         {
           on entry do
-            print "!!! TODO: Send some usefull data here !!!\n"
-            SendDataToNotifier = false
+            if (SendToNotifier == '0x01') do
+              Notifications!RequestBloodPressureMeasurement()
+            end
+            if (SendToNotifier == '0x02') do
+              Notifications!ConfirmBloodPressureMeasurement()
+            end
+            SendToNotifier = '0x00'
           end
         }
 
-        transition -> SyncBloodPressure event Notifier?Stopped
-        transition -> SyncBloodPressure event Notifier?Failure
+        transition -> SyncBloodPressure event NotifierDevice?Stopped
+        transition -> SyncBloodPressure event NotifierDevice?Failure
       }
 
       transition -> Deinitialise event Signals?Interrupt
@@ -131,13 +137,13 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
         BloodPressureDevice!Stop()
       end
 
-      internal event BloodPressureDevice?Stopped action Notifier!Stop()
-      internal event Notifier?Stopped action Initialiser!Stop()
+      internal event BloodPressureDevice?Stopped action NotifierDevice!Stop()
+      internal event NotifierDevice?Stopped action Initialiser!Stop()
 
       transition -> Quit event Initialiser?Stopped
 
       transition -> Failed event BloodPressureDevice?Failure
-      transition -> Failed event Notifier?Failure
+      transition -> Failed event NotifierDevice?Failure
       transition -> Failed event Initialiser?Failure
 
       transition -> Failed event Signals?Interrupt
@@ -166,9 +172,19 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
 configuration AND_UA651BLE_SYNC
 @add_c_libraries "bluetooth"
 @c_header "
+  /*
+  // Jakobs device
   ble_random_number_t peer_ltk = { 0x33, 0x46, 0xCC, 0x17, 0x3F, 0x56, 0xBC, 0x52, 0xF4, 0xB2, 0x90, 0xC4, 0x0E, 0xEF, 0x43, 0x05, };
   uint16_t peer_ediv = 0xF7B3;
   ble_random_part_t peer_random = { 0xD0, 0xC4, 0x4A, 0x1F, 0x57, 0x36, 0xF2, 0xBC, };
+  */
+  // Francks device
+  ble_random_number_t peer_ltk = { 0x92, 0x3D, 0xDD, 0x2F, 0xE9, 0x9A, 0x16, 0xCD, 0x95, 0xCC, 0x2D, 0x6C, 0xEA, 0x9E, 0x86, 0x0D, };
+  uint16_t peer_ediv = 0xD820;
+  ble_random_part_t peer_random  = { 0xE9, 0x9A, 0xF6, 0x4D, 0x93, 0xC4, 0xCD, 0xEC, };
+  
+  notifier_cmd_t request_cmd = { 2, '!', 'N' };
+  notifier_cmd_t confirm_cmd = { 2, '!', 'S' };
 "
 {
   instance handler : ExitHandler
@@ -188,7 +204,8 @@ configuration AND_UA651BLE_SYNC
   connector main.Initialiser => initialiser.Initialiser
   connector main.BloodPressureDevice => connecterbloodpressure.Connecter
   connector main.Bloodpressure => bloodpressure.Bloodpressure
-  connector main.Notifier => connecternotifier.Connecter
+  connector main.NotifierDevice => connecternotifier.Connecter
+  connector main.Notifications => notifier.Notifications
   connector main.Gateway over MQTT
 
   connector initialiser.Socket => hci.Socket
@@ -215,11 +232,16 @@ configuration AND_UA651BLE_SYNC
   //set hci.Device = "B8:27:EB:F1:1D:FF"
   
   set connecterbloodpressure.ConnectAddressType = BLEAddressType:PUBLIC
-  set connecterbloodpressure.ConnectAddress = "5C:31:3E:03:54:2F"
+  //set connecterbloodpressure.ConnectAddress = "5C:31:3E:03:54:2F" //Jakob
+  set connecterbloodpressure.ConnectAddress = "5C:31:3E:00:4B:6B" //Franck
   set connecterbloodpressure.LongTermKey = 'peer_ltk'
   set connecterbloodpressure.EncryptedDiversifier = 'peer_ediv'
   set connecterbloodpressure.RandomNumber = 'peer_random'
 
   set connecternotifier.ConnectAddressType = BLEAddressType:RANDOM
-  set connecternotifier.ConnectAddress = "C7:BD:03:2B:88:33"
+  //set connecternotifier.ConnectAddress = "C7:BD:03:2B:88:33"
+  set connecternotifier.ConnectAddress = "F3:48:7F:62:B8:60"
+  
+  set notifier.RequestCommand = 'request_cmd'
+  set notifier.ConfirmCommand = 'confirm_cmd'
 }

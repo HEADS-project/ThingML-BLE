@@ -18,3 +18,10 @@ datatype Boolean<1>
 
 datatype Float<4>
   @c_type "float";
+
+datatype NotifierCommand<8>
+  @c_type "notifier_cmd_t"
+  @c_header "#ifndef NOTIFIER_CMD_T_H"
+  @c_header "#define NOTIFIER_CMD_T_H"
+  @c_header "typedef struct { uint8_t bytes[8]; } notifier_cmd_t;"
+  @c_header "#endif";
