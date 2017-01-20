@@ -1,5 +1,9 @@
 import "_Datatypes.thingml"
 
+thing fragment TimerMsgs {
+	message update() @xms_tic "33";
+}
+
 thing fragment NeoPixelMsgs {
 	message off();
 	message setColor(red : UInt8, green : UInt8, blue : UInt8);
@@ -9,7 +13,7 @@ thing fragment NeoPixelMsgs {
 	message rotate(speed : Int8);
 }
 
-thing NeoPixel includes NeoPixelMsgs
+thing NeoPixel includes NeoPixelMsgs, TimerMsgs
 @c_global "
 #include <Adafruit_NeoPixel.h>
 Adafruit_NeoPixel strip;
@@ -46,7 +50,7 @@ uint32_t Wheel(byte WheelPos) {
 	readonly property neopixel_pin : UInt8 = 7
 	readonly property neopixel_count : UInt8 = 10
 	
-	message update() @xms_tic "33";
+	
 	
 	provided port ctrl {
 		receives setColor, solid, pulse, off, breath, rotate

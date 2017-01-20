@@ -2,11 +2,39 @@
 skinparam defaultTextAlignment left
 [*] --> NeoPixelStateChart
 state NeoPixelStateChart{
-state RUN{
+state OFF{
+	OFF : entry / do \n...\nend\n
 
-RUN --> RUN : update?clock\naction do \nvar i : UInt8 = 0\nwhile(i < neopixel_count) do\ndo \nif(i == counter) do\nsetPixelColor(icolor)\nend else do\nsetPixelColor(i0)\n\ni = i + 1\nend\nend\nupdateNeopixels()\ncounter = (counter + 1) % neopixel_count\nend\n
+OFF --> SOLID : ctrl?solid
+
+OFF --> PULSE : ctrl?pulse
+
+OFF --> BREATH : ctrl?breath
+
+OFF --> ROTATE : m:ctrl?rotate\naction rotate_speed = m.speed\n
 }
-[*] --> RUN
-	NeoPixelStateChart : entry / do \n'strip = Adafruit_NeoPixel(' & neopixel_count & ', ' & neopixel_pin & ', NEO_GRB + NEO_KHZ800);'\ncolor = getColor(255500)\nend\n
+state SOLID{
+
+SOLID --> OFF : ctrl?off
+	SOLID : clock?update / \naction do \n...\nend\n
+}
+state ROTATE{
+
+ROTATE --> OFF : ctrl?off
+	ROTATE : clock?update / \naction do \n...\nend\n
+}
+state BREATH{
+
+BREATH --> OFF : ctrl?off
+	BREATH : clock?update / \naction do \n...\nend\n
+}
+state PULSE{
+
+PULSE --> OFF : ctrl?off
+	PULSE : clock?update / \naction do \n...\nend\n
+}
+[*] --> OFF
+	NeoPixelStateChart : entry / initializeNeopixels()\n
+	NeoPixelStateChart : c:ctrl?setColor / \naction do \n...\nend\n
 }
 @enduml

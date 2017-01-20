@@ -1,7 +1,5 @@
 import "NeoPixel.thingml"
 
-
-
 thing fragment SerialMsgs {
 	message receive_byte (b : Byte);
 	message write_byte (b : Byte);
@@ -15,7 +13,11 @@ thing fragment BPSensorMsgs {
 	message measuring()
 }
 
-thing BPSensor includes BPSensorMsgs {
+thing BPSensor includes BPSensorMsgs, TimerMsgs {
+
+	required port clock {
+		receives update
+	}
 
 	provided port ctrl {
 		sends idle, pumping, measuring
@@ -31,28 +33,32 @@ thing BPSensor includes BPSensorMsgs {
 		state Idle {
 			on entry ctrl!idle()
 			
-			transition -> Pumping guard 'digitalRead(4) == 0'
+			transition -> Pumping  event clock?update
+			guard 'digitalRead(4) == 0'
 		
 		}
 		
 		state Pumping {
 			on entry ctrl!pumping()
 			
-			transition -> Idle guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
+			transition -> Idle event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
 			
-			transition -> Measuring guard 'digitalRead(4) != 0 && digitalRead(5) == 0'
+			transition -> Measuring event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) == 0'
 		}
 		
 		state Measuring {
 			on entry ctrl!measuring()
 			
-			transition -> Idle guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
-			transition -> Pumping guard 'digitalRead(4) == 0'
+			transition -> Idle  event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
+			
+			transition -> Pumping event clock?update
+			guard 'digitalRead(4) == 0'
 			
 		}
-	
 	} 
-
 }
 
 
@@ -190,4 +196,5 @@ configuration BLENotifier
 	connector notifier.blerx => uart.rx
 	connector notifier.sensor => sensor.ctrl
 	connector neopixels.clock over Timer
+	connector sensor.clock over Timer
 }
