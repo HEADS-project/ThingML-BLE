@@ -25,6 +25,11 @@ datatype UInt16<2>
 	@java_type "int"
 	@java_primitive "true";
 	
+datatype Int8<1>	
+	@type_checker "Integer"
+	@c_type "int8_t"
+	@c_byte_size "1";
+	
 datatype Int16<2>	
 	@type_checker "Integer"
 	@c_type "int16_t"

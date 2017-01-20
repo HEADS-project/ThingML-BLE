@@ -1,11 +1,64 @@
 import "NeoPixel.thingml"
 
-
-
-thing SerialMsgs {
+thing fragment SerialMsgs {
 	message receive_byte (b : Byte);
 	message write_byte (b : Byte);
 	message print_message (msg : String);
+}
+
+
+thing fragment BPSensorMsgs {
+	message idle()
+	message pumping()
+	message measuring()
+}
+
+thing BPSensor includes BPSensorMsgs, TimerMsgs {
+
+	required port clock {
+		receives update
+	}
+
+	provided port ctrl {
+		sends idle, pumping, measuring
+	}
+	
+	statechart BPSensorImpl init Idle {
+	
+		on entry do
+			'pinMode(4, INPUT);
+  			 pinMode(5, INPUT);'
+		end
+	
+		state Idle {
+			on entry ctrl!idle()
+			
+			transition -> Pumping  event clock?update
+			guard 'digitalRead(4) == 0'
+		
+		}
+		
+		state Pumping {
+			on entry ctrl!pumping()
+			
+			transition -> Idle event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
+			
+			transition -> Measuring event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) == 0'
+		}
+		
+		state Measuring {
+			on entry ctrl!measuring()
+			
+			transition -> Idle  event clock?update
+			guard 'digitalRead(4) != 0 && digitalRead(5) != 0'
+			
+			transition -> Pumping event clock?update
+			guard 'digitalRead(4) == 0'
+			
+		}
+	} 
 }
 
 
@@ -35,7 +88,7 @@ thing Serial includes SerialMsgs
     }
 }
 
-thing BLENotifier includes NeoPixelMsgs, SerialMsgs { 
+thing BLENotifier includes NeoPixelMsgs, SerialMsgs, BPSensorMsgs { 
 
 	required port blerx
 	{
@@ -48,18 +101,63 @@ thing BLENotifier includes NeoPixelMsgs, SerialMsgs {
 		sends write_byte, print_message
 	}
 	
-	required port neopixels {
-		sends setColor
+	required port sensor
+	{
+		receives idle, pumping, measuring
 	}
+	
+	required port neopixels {
+		sends setColor, off, pulse, rotate, breath, solid
+	}
+	
+	function breath() do
+		neopixels!off()
+		neopixels!setColor(120, 132, 132)
+		neopixels!breath()
+	end
+	
+	function pump() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!rotate(10)
+	end
+	
+	function measure() do
+		neopixels!off()
+		neopixels!setColor(160, 140, 0)
+		neopixels!rotate(-3)
+	end
 
 	statechart BLENotifierSC init Ready {
 	
+		on entry breath()
+		
+		internal event sensor?idle action breath()
+		internal event sensor?pumping action pump()
+		internal event sensor?measuring action measure()
+		
 		state Ready {
 			transition -> ParseCommand event m : blerx?receive_byte guard m.b == '\'!\''
 		}	
 		
 		state ParseCommand {
 			transition -> SetColor event m : blerx?receive_byte guard m.b == '\'C\''
+			
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'P\'' action do
+				neopixels!off()
+				neopixels!setColor(255, 32, 0)
+				neopixels!pulse()
+			end
+			
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'B\'' action breath()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'R\'' action pump()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'r\'' action measure()
+			
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'S\'' action do
+				neopixels!off()
+				neopixels!setColor(0, 200, 32)
+				neopixels!solid()
+			end
 		}
 		
 		state SetColor {
@@ -91,9 +189,12 @@ configuration BLENotifier
 	instance notifier : BLENotifier
 	instance uart : Serial
 	instance neopixels : NeoPixel
+	instance sensor : BPSensor
 	
 	connector notifier.neopixels => neopixels.ctrl
 	connector notifier.bletx => uart.tx
 	connector notifier.blerx => uart.rx
+	connector notifier.sensor => sensor.ctrl
 	connector neopixels.clock over Timer
+	connector sensor.clock over Timer
 }
