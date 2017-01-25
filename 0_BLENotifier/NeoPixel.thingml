@@ -1,9 +1,5 @@
 import "_Datatypes.thingml"
 
-thing fragment TimerMsgs {
-	message update() @xms_tic "33";
-}
-
 thing fragment NeoPixelMsgs {
 	message off();
 	message setColor(red : UInt8, green : UInt8, blue : UInt8);
@@ -57,7 +53,7 @@ uint32_t Wheel(byte WheelPos) {
 	}
 	
 	required port clock {
-		receives update
+		receives fps_clock
 	}
 	
 	function setPixelColor(pixel : UInt8, color: UInt32) do
@@ -151,7 +147,7 @@ uint32_t Wheel(byte WheelPos) {
 	
 		state SOLID {
 			
-			internal event clock?update action do
+			internal event clock?fps_clock action do
 				var i : UInt8 = 0
 				var color : UInt32 = getColor(color_r, color_g, color_b)
 				while(i < neopixel_count) do
@@ -171,7 +167,7 @@ uint32_t Wheel(byte WheelPos) {
 
 			transition -> OFF event ctrl?off
 			
-			internal event clock?update action do
+			internal event clock?fps_clock action do
 			
 				var i : UInt8 = 0
 				while(i < neopixel_count) do
@@ -198,7 +194,7 @@ uint32_t Wheel(byte WheelPos) {
 
 			transition -> OFF event ctrl?off
 
-			internal event clock?update action do
+			internal event clock?fps_clock action do
 					var bright : UInt8 = breath_brightness(counter, maxcount)
 					var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
 					var i : UInt8 = 0
@@ -219,7 +215,7 @@ uint32_t Wheel(byte WheelPos) {
 			
 			transition -> OFF event ctrl?off
 	
-			internal event clock?update action do
+			internal event clock?fps_clock action do
 				var bright : UInt8 = pulse_brightness(counter)
 				var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
 				var i : UInt8 = 0
