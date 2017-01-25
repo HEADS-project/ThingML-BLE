@@ -85,12 +85,15 @@ thing Serial includes SerialMsgs
     }
 }
 
-thing BLENotifier includes NeoPixelMsgs, SerialMsgs, BPSensorMsgs, TimerMsgs { 
+thing fragment GatewayCommandMsgs {
+	message request_measurement();
+	message measurement_received();
+	message bad_measurement();
+	message measurement_stored();
+	message set_base_color(r : UInt8, g : UInt8, b : UInt8);
+}
 
-	 required port clock {
-		receives timer_timeout
-		sends timer_start, timer_cancel
-	}
+thing GatewayCommandParser includes SerialMsgs, GatewayCommandMsgs {
 
 	required port blerx
 	{
@@ -103,77 +106,22 @@ thing BLENotifier includes NeoPixelMsgs, SerialMsgs, BPSensorMsgs, TimerMsgs {
 		sends write_byte, print_message
 	}
 	
-	required port sensor
-	{
-		receives idle, pumping, measuring
+	provided port gateway {
+		sends request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
 	}
 	
-	required port neopixels {
-		sends setColor, off, pulse, rotate, breath, solid
-	}
-	
-	function breath() do
-		neopixels!off()
-		neopixels!setColor(120, 132, 132)
-		neopixels!breath()
-	end
-	
-	function pump() do
-		neopixels!off()
-		neopixels!setColor(255, 32, 0)
-		neopixels!rotate(10)
-	end
-	
-	function measure() do
-		neopixels!off()
-		neopixels!setColor(160, 140, 0)
-		neopixels!rotate(-3)
-	end
-	
-	function solid(r : UInt8, g : UInt8, b : UInt8) do
-		neopixels!off()
-		neopixels!setColor(r, g, b)
-		neopixels!solid()
-	end
-
-	statechart BLENotifierSC init Init {
-	
-		state Init {
-			on entry do
-				solid(0, 128, 32)
-				clock!timer_start(0, 1000)
-			end
-			
-			transition -> Idle event t:clock?timer_timeout guard t.id == 0
-		}
-	
-		composite state Idle init StandBy {
-			state StandBy {
-				on entry breath()
-			
-			}
-			
-			state Notified {
-				on entry breath()
-			}
-		}
-		
-		
-		internal event sensor?idle action breath()
-		internal event sensor?pumping action pump()
-		internal event sensor?measuring action measure()
-		
+	statechart GatewayCommandParserSC init Ready {
 		state Ready {
 			transition -> ParseCommand event m : blerx?receive_byte guard m.b == '\'!\''
 		}	
 		
 		state ParseCommand {
 			transition -> SetColor event m : blerx?receive_byte guard m.b == '\'C\''
-			transition -> Ready event m : blerx?receive_byte guard m.b == '\'P\'' action solid(255, 32, 0)
-			transition -> Ready event m : blerx?receive_byte guard m.b == '\'B\'' action breath()
-			transition -> Ready event m : blerx?receive_byte guard m.b == '\'R\'' action pump()
-			transition -> Ready event m : blerx?receive_byte guard m.b == '\'r\'' action measure()
-			transition -> Ready event m : blerx?receive_byte guard m.b == '\'S\'' action solid(0, 200, 32)
+			
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'R\'' action gateway!request_measurement()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'G\'' action gateway!measurement_received()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'E\'' action gateway!bad_measurement()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'S\'' action gateway!measurement_stored()
 		}
 		
 		state SetColor {
@@ -190,9 +138,124 @@ thing BLENotifier includes NeoPixelMsgs, SerialMsgs, BPSensorMsgs, TimerMsgs {
 			end
 			
 			transition -> Ready event m : blerx?receive_byte guard idx == 2 action do
-				neopixels!setColor(buf[0], buf[1], m.b)
-				bletx!print_message("OK\n")
+				gateway!set_base_color(buf[0], buf[1], m.b)
 			end
+		}
+	}
+}
+
+thing BLENotifier includes NeoPixelMsgs, BPSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
+
+	required port gateway {
+		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
+	}
+	
+	required port sensor {
+		receives idle, pumping, measuring
+	}
+	
+	required port neopixels {
+		sends setColor, off, pulse, rotate, breath, solid
+	}
+	
+	required port clock {
+		receives timer_timeout
+		sends timer_start, timer_cancel
+	}
+	
+	function breath() do
+		neopixels!off()
+		neopixels!setColor(120, 132, 132)
+		neopixels!breath()
+	end
+	
+	function pulse() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!pulse()
+	end
+	
+	function pump() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!rotate(12)
+	end
+	
+	function measure() do
+		neopixels!off()
+		neopixels!setColor(160, 140, 0)
+		neopixels!rotate(-2)
+	end
+	
+	function solid(r : UInt8, g : UInt8, b : UInt8) do
+		neopixels!off()
+		neopixels!setColor(r, g, b)
+		neopixels!solid()
+	end
+
+	statechart BLENotifierSC init Init {
+	
+		internal event c:gateway?set_base_color action neopixels!setColor(c.r, c.g, c.b)
+	
+		state Init {
+			on entry do
+				solid(0, 128, 32)
+				clock!timer_start(0, 1000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
+		}
+	
+		state Ready {
+			internal event gateway?request_measurement action pulse()
+			transition -> Measuring event sensor?pumping action pump()
+		}
+		
+		state Measuring {
+			internal event sensor?measuring action measure()
+			internal event sensor?pumping action pump()
+			transition -> WaitGatewayAck event sensor?idle
+		}
+		
+		state WaitGatewayAck {
+			on entry do
+				solid(128, 128, 0)
+				clock!timer_start(0, 5000)
+			end
+			
+			transition -> GatewayError event t:clock?timer_timeout guard t.id == 0
+			transition -> GatewayError event gateway?bad_measurement
+			transition -> WaitServerAck event gateway?measurement_received
+		}
+		
+		state GatewayError {
+			on entry do
+				solid(255, 0, 0)
+				clock!timer_start(0, 2000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action pulse()
+		}
+		
+		state WaitServerAck {
+			on entry do
+				neopixels!off()
+				neopixels!setColor(0, 255, 32)
+				neopixels!rotate(25)
+				clock!timer_start(0, 5000)
+			end
+			
+			transition -> ServerError event t:clock?timer_timeout guard t.id == 0
+			transition -> Ready event gateway?measurement_stored action breath()
+		}
+		
+		state ServerError {
+			on entry do
+				neopixels!setColor(255, 32, 0)
+				clock!timer_start(0, 2000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
 		}
 		
 	}
@@ -206,10 +269,12 @@ configuration BLENotifier
 	instance uart : Serial
 	instance neopixels : NeoPixel
 	instance sensor : BPSensor
+	instance gwcmd : GatewayCommandParser
 	
 	connector notifier.neopixels => neopixels.ctrl
-	connector notifier.bletx => uart.tx
-	connector notifier.blerx => uart.rx
+	connector gwcmd.bletx => uart.tx
+	connector gwcmd.blerx => uart.rx
+	connector notifier.gateway => gwcmd.gateway
 	connector notifier.sensor => sensor.ctrl
 	connector neopixels.clock over Timer
 	connector sensor.clock over Timer

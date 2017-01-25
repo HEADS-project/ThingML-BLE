@@ -1,0 +1,27 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> BPSensorImpl
+state BPSensorImpl{
+state Idle{
+	Idle : entry / ctrl!idle()\n
+
+Idle --> Pumping : clock?ui_clock['digitalRead(4) == 0']
+}
+state Pumping{
+	Pumping : entry / ctrl!pumping()\n
+
+Pumping --> Idle : clock?ui_clock['digitalRead(4) != 0 && digitalRead(5) != 0']
+
+Pumping --> Measuring : clock?ui_clock['digitalRead(4) != 0 && digitalRead(5) == 0']
+}
+state Measuring{
+	Measuring : entry / ctrl!measuring()\n
+
+Measuring --> Idle : clock?ui_clock['digitalRead(4) != 0 && digitalRead(5) != 0']
+
+Measuring --> Pumping : clock?ui_clock['digitalRead(4) == 0']
+}
+[*] --> Idle
+	BPSensorImpl : entry / 'pinMode(4, INPUT);\n  \t\t\t pinMode(5, INPUT);'\n
+}
+@enduml
