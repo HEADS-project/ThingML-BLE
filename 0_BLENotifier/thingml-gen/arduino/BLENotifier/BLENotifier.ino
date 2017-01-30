@@ -1,55 +1,4 @@
 /*****************************************************************************
- * Headers for type : NeoPixel
- *****************************************************************************/
-
-// Definition of the instance struct:
-struct NeoPixel_Instance {
-
-// Instances of different sessions
-bool active;
-// Variables for the ID of the ports of the instance
-uint16_t id_ctrl;
-uint16_t id_clock;
-// Variables for the current instance state
-int NeoPixel_NeoPixelStateChart_State;
-// Variables for the properties of the instance
-uint8_t NeoPixel_neopixel_pin_var;
-uint8_t NeoPixel_neopixel_count_var;
-uint8_t NeoPixel_NeoPixelStateChart_color_r_var;
-uint8_t NeoPixel_NeoPixelStateChart_color_g_var;
-uint8_t NeoPixel_NeoPixelStateChart_color_b_var;
-int8_t NeoPixel_NeoPixelStateChart_rotate_speed_var;
-uint8_t NeoPixel_NeoPixelStateChart_breath_speed_var;
-int16_t NeoPixel_NeoPixelStateChart_ROTATE_angle_var;
-uint8_t NeoPixel_NeoPixelStateChart_ROTATE_maxangle_var;
-uint8_t NeoPixel_NeoPixelStateChart_BREATH_counter_var;
-uint8_t NeoPixel_NeoPixelStateChart_BREATH_maxcount_var;
-uint8_t NeoPixel_NeoPixelStateChart_PULSE_counter_var;
-uint8_t NeoPixel_NeoPixelStateChart_PULSE_maxcount_var;
-// CEP stream pointers
-
-};
-// Declaration of prototypes outgoing messages:
-void NeoPixel_NeoPixelStateChart_OnEntry(int state, struct NeoPixel_Instance *_instance);
-void NeoPixel_handle_ctrl_breath(struct NeoPixel_Instance *_instance);
-void NeoPixel_handle_ctrl_pulse(struct NeoPixel_Instance *_instance);
-void NeoPixel_handle_ctrl_off(struct NeoPixel_Instance *_instance);
-void NeoPixel_handle_ctrl_solid(struct NeoPixel_Instance *_instance);
-void NeoPixel_handle_ctrl_setColor(struct NeoPixel_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
-void NeoPixel_handle_ctrl_rotate(struct NeoPixel_Instance *_instance, int8_t speed);
-void NeoPixel_handle_clock_fps_clock(struct NeoPixel_Instance *_instance);
-// Declaration of callbacks for incoming messages:
-
-// Definition of the states:
-#define NEOPIXEL_NEOPIXELSTATECHART_STATE 0
-#define NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE 1
-#define NEOPIXEL_NEOPIXELSTATECHART_SOLID_STATE 2
-#define NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE 3
-#define NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE 4
-#define NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE 5
-
-
-/*****************************************************************************
  * Headers for type : BPSensor
  *****************************************************************************/
 
@@ -86,6 +35,57 @@ void register_external_BPSensor_send_ctrl_measuring_listener(void (*_listener)(s
 
 
 /*****************************************************************************
+ * Headers for type : NeoPixel
+ *****************************************************************************/
+
+// Definition of the instance struct:
+struct NeoPixel_Instance {
+
+// Instances of different sessions
+bool active;
+// Variables for the ID of the ports of the instance
+uint16_t id_ctrl;
+uint16_t id_clock;
+// Variables for the current instance state
+int NeoPixel_NeoPixelStateChart_State;
+// Variables for the properties of the instance
+uint8_t NeoPixel_neopixel_pin_var;
+uint8_t NeoPixel_neopixel_count_var;
+uint8_t NeoPixel_NeoPixelStateChart_color_r_var;
+uint8_t NeoPixel_NeoPixelStateChart_color_g_var;
+uint8_t NeoPixel_NeoPixelStateChart_color_b_var;
+int8_t NeoPixel_NeoPixelStateChart_rotate_speed_var;
+uint8_t NeoPixel_NeoPixelStateChart_breath_speed_var;
+int16_t NeoPixel_NeoPixelStateChart_ROTATE_angle_var;
+uint8_t NeoPixel_NeoPixelStateChart_ROTATE_maxangle_var;
+uint8_t NeoPixel_NeoPixelStateChart_BREATH_counter_var;
+uint8_t NeoPixel_NeoPixelStateChart_BREATH_maxcount_var;
+uint8_t NeoPixel_NeoPixelStateChart_PULSE_counter_var;
+uint8_t NeoPixel_NeoPixelStateChart_PULSE_maxcount_var;
+// CEP stream pointers
+
+};
+// Declaration of prototypes outgoing messages:
+void NeoPixel_NeoPixelStateChart_OnEntry(int state, struct NeoPixel_Instance *_instance);
+void NeoPixel_handle_ctrl_setColor(struct NeoPixel_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
+void NeoPixel_handle_ctrl_pulse(struct NeoPixel_Instance *_instance);
+void NeoPixel_handle_ctrl_off(struct NeoPixel_Instance *_instance);
+void NeoPixel_handle_ctrl_rotate(struct NeoPixel_Instance *_instance, int8_t speed);
+void NeoPixel_handle_ctrl_solid(struct NeoPixel_Instance *_instance);
+void NeoPixel_handle_ctrl_breath(struct NeoPixel_Instance *_instance);
+void NeoPixel_handle_clock_fps_clock(struct NeoPixel_Instance *_instance);
+// Declaration of callbacks for incoming messages:
+
+// Definition of the states:
+#define NEOPIXEL_NEOPIXELSTATECHART_STATE 0
+#define NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE 1
+#define NEOPIXEL_NEOPIXELSTATECHART_SOLID_STATE 2
+#define NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE 3
+#define NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE 4
+#define NEOPIXEL_NEOPIXELSTATECHART_PULSE_STATE 5
+
+
+/*****************************************************************************
  * Headers for type : BLENotifier
  *****************************************************************************/
 
@@ -107,15 +107,15 @@ int BLENotifier_BLENotifierSC_State;
 };
 // Declaration of prototypes outgoing messages:
 void BLENotifier_BLENotifierSC_OnEntry(int state, struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_sensor_measuring(struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_sensor_idle(struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_sensor_pumping(struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_clock_timer_timeout(struct BLENotifier_Instance *_instance, uint8_t id);
-void BLENotifier_handle_gateway_bad_measurement(struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_gateway_request_measurement(struct BLENotifier_Instance *_instance);
-void BLENotifier_handle_gateway_measurement_received(struct BLENotifier_Instance *_instance);
 void BLENotifier_handle_gateway_measurement_stored(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_gateway_request_measurement(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_gateway_bad_measurement(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_gateway_measurement_received(struct BLENotifier_Instance *_instance);
 void BLENotifier_handle_gateway_set_base_color(struct BLENotifier_Instance *_instance, uint8_t r, uint8_t g, uint8_t b);
+void BLENotifier_handle_sensor_measuring(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_sensor_pumping(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_sensor_idle(struct BLENotifier_Instance *_instance);
+void BLENotifier_handle_clock_timer_timeout(struct BLENotifier_Instance *_instance, uint8_t id);
 // Declaration of callbacks for incoming messages:
 void register_BLENotifier_send_neopixels_setColor_listener(void (*_listener)(struct BLENotifier_Instance *, uint8_t, uint8_t, uint8_t));
 void register_external_BLENotifier_send_neopixels_setColor_listener(void (*_listener)(struct BLENotifier_Instance *, uint8_t, uint8_t, uint8_t));
@@ -272,7 +272,7 @@ void f_BLENotifier_solid(struct BLENotifier_Instance *_instance, uint8_t r, uint
 // Definition of function breath
 void f_BLENotifier_breath(struct BLENotifier_Instance *_instance) {
 BLENotifier_send_neopixels_off(_instance);
-BLENotifier_send_neopixels_setColor(_instance, 120, 132, 132);
+BLENotifier_send_neopixels_setColor(_instance, 0, 50, 255);
 BLENotifier_send_neopixels_breath(_instance);
 }
 // Definition of function pulse
@@ -373,13 +373,16 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void BLENotifier_handle_sensor_measuring(struct BLENotifier_Instance *_instance) {
+void BLENotifier_handle_gateway_measurement_stored(struct BLENotifier_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region BLENotifierSC
 uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE) {
+if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE) {
 if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-f_BLENotifier_measure(_instance);
+BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE, _instance);
+_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_READY_STATE;
+f_BLENotifier_breath(_instance);
+BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_READY_STATE, _instance);
 BLENotifier_BLENotifierSC_State_event_consumed = 1;
 }
 }
@@ -387,15 +390,71 @@ BLENotifier_BLENotifierSC_State_event_consumed = 1;
 //End dsregion BLENotifierSC
 //Session list: 
 }
-void BLENotifier_handle_sensor_idle(struct BLENotifier_Instance *_instance) {
+void BLENotifier_handle_gateway_request_measurement(struct BLENotifier_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region BLENotifierSC
+uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
+if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_READY_STATE) {
+if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
+f_BLENotifier_pulse(_instance);
+BLENotifier_BLENotifierSC_State_event_consumed = 1;
+}
+}
+//End Region BLENotifierSC
+//End dsregion BLENotifierSC
+//Session list: 
+}
+void BLENotifier_handle_gateway_bad_measurement(struct BLENotifier_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region BLENotifierSC
+uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
+if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE) {
+if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
+BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
+_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_GATEWAYERROR_STATE;
+BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_GATEWAYERROR_STATE, _instance);
+BLENotifier_BLENotifierSC_State_event_consumed = 1;
+}
+}
+//End Region BLENotifierSC
+//End dsregion BLENotifierSC
+//Session list: 
+}
+void BLENotifier_handle_gateway_measurement_received(struct BLENotifier_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region BLENotifierSC
+uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
+if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE) {
+if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
+BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
+_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE;
+BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE, _instance);
+BLENotifier_BLENotifierSC_State_event_consumed = 1;
+}
+}
+//End Region BLENotifierSC
+//End dsregion BLENotifierSC
+//Session list: 
+}
+void BLENotifier_handle_gateway_set_base_color(struct BLENotifier_Instance *_instance, uint8_t r, uint8_t g, uint8_t b) {
+if(!(_instance->active)) return;
+//Region BLENotifierSC
+uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
+//End Region BLENotifierSC
+//End dsregion BLENotifierSC
+//Session list: 
+if (1) {
+BLENotifier_send_neopixels_setColor(_instance, r, g, b);
+BLENotifier_BLENotifierSC_State_event_consumed = 1;
+}
+}
+void BLENotifier_handle_sensor_measuring(struct BLENotifier_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region BLENotifierSC
 uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
 if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE) {
 if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE, _instance);
-_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE;
-BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
+f_BLENotifier_measure(_instance);
 BLENotifier_BLENotifierSC_State_event_consumed = 1;
 }
 }
@@ -419,6 +478,22 @@ BLENotifier_BLENotifierSC_State_event_consumed = 1;
 else if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE) {
 if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
 f_BLENotifier_pump(_instance);
+BLENotifier_BLENotifierSC_State_event_consumed = 1;
+}
+}
+//End Region BLENotifierSC
+//End dsregion BLENotifierSC
+//Session list: 
+}
+void BLENotifier_handle_sensor_idle(struct BLENotifier_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region BLENotifierSC
+uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
+if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE) {
+if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
+BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_MEASURING_STATE, _instance);
+_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE;
+BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
 BLENotifier_BLENotifierSC_State_event_consumed = 1;
 }
 }
@@ -476,81 +551,6 @@ BLENotifier_BLENotifierSC_State_event_consumed = 1;
 //End Region BLENotifierSC
 //End dsregion BLENotifierSC
 //Session list: 
-}
-void BLENotifier_handle_gateway_bad_measurement(struct BLENotifier_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region BLENotifierSC
-uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE) {
-if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
-_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_GATEWAYERROR_STATE;
-BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_GATEWAYERROR_STATE, _instance);
-BLENotifier_BLENotifierSC_State_event_consumed = 1;
-}
-}
-//End Region BLENotifierSC
-//End dsregion BLENotifierSC
-//Session list: 
-}
-void BLENotifier_handle_gateway_request_measurement(struct BLENotifier_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region BLENotifierSC
-uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_READY_STATE) {
-if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-f_BLENotifier_pulse(_instance);
-BLENotifier_BLENotifierSC_State_event_consumed = 1;
-}
-}
-//End Region BLENotifierSC
-//End dsregion BLENotifierSC
-//Session list: 
-}
-void BLENotifier_handle_gateway_measurement_received(struct BLENotifier_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region BLENotifierSC
-uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE) {
-if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITGATEWAYACK_STATE, _instance);
-_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE;
-BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE, _instance);
-BLENotifier_BLENotifierSC_State_event_consumed = 1;
-}
-}
-//End Region BLENotifierSC
-//End dsregion BLENotifierSC
-//Session list: 
-}
-void BLENotifier_handle_gateway_measurement_stored(struct BLENotifier_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region BLENotifierSC
-uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-if (_instance->BLENotifier_BLENotifierSC_State == BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE) {
-if (BLENotifier_BLENotifierSC_State_event_consumed == 0 && 1) {
-BLENotifier_BLENotifierSC_OnExit(BLENOTIFIER_BLENOTIFIERSC_WAITSERVERACK_STATE, _instance);
-_instance->BLENotifier_BLENotifierSC_State = BLENOTIFIER_BLENOTIFIERSC_READY_STATE;
-f_BLENotifier_breath(_instance);
-BLENotifier_BLENotifierSC_OnEntry(BLENOTIFIER_BLENOTIFIERSC_READY_STATE, _instance);
-BLENotifier_BLENotifierSC_State_event_consumed = 1;
-}
-}
-//End Region BLENotifierSC
-//End dsregion BLENotifierSC
-//Session list: 
-}
-void BLENotifier_handle_gateway_set_base_color(struct BLENotifier_Instance *_instance, uint8_t r, uint8_t g, uint8_t b) {
-if(!(_instance->active)) return;
-//Region BLENotifierSC
-uint8_t BLENotifier_BLENotifierSC_State_event_consumed = 0;
-//End Region BLENotifierSC
-//End dsregion BLENotifierSC
-//Session list: 
-if (1) {
-BLENotifier_send_neopixels_setColor(_instance, r, g, b);
-BLENotifier_BLENotifierSC_State_event_consumed = 1;
-}
 }
 
 // Observers for outgoing messages:
@@ -1066,21 +1066,19 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void NeoPixel_handle_ctrl_breath(struct NeoPixel_Instance *_instance) {
+void NeoPixel_handle_ctrl_setColor(struct NeoPixel_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixel_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixel_NeoPixelStateChart_OnExit(NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE;
-NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE, _instance);
-NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
 //End Region NeoPixelStateChart
 //End dsregion NeoPixelStateChart
 //Session list: 
+if (1) {
+_instance->NeoPixel_NeoPixelStateChart_color_r_var = red;
+_instance->NeoPixel_NeoPixelStateChart_color_g_var = green;
+_instance->NeoPixel_NeoPixelStateChart_color_b_var = blue;
+NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
+}
 }
 void NeoPixel_handle_ctrl_pulse(struct NeoPixel_Instance *_instance) {
 if(!(_instance->active)) return;
@@ -1138,6 +1136,23 @@ NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
+void NeoPixel_handle_ctrl_rotate(struct NeoPixel_Instance *_instance, int8_t speed) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixel_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixel_NeoPixelStateChart_OnExit(NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE;
+_instance->NeoPixel_NeoPixelStateChart_rotate_speed_var = speed;
+NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE, _instance);
+NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
 void NeoPixel_handle_ctrl_solid(struct NeoPixel_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
@@ -1154,30 +1169,15 @@ NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixel_handle_ctrl_setColor(struct NeoPixel_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixel_NeoPixelStateChart_State_event_consumed = 0;
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-if (1) {
-_instance->NeoPixel_NeoPixelStateChart_color_r_var = red;
-_instance->NeoPixel_NeoPixelStateChart_color_g_var = green;
-_instance->NeoPixel_NeoPixelStateChart_color_b_var = blue;
-NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-void NeoPixel_handle_ctrl_rotate(struct NeoPixel_Instance *_instance, int8_t speed) {
+void NeoPixel_handle_ctrl_breath(struct NeoPixel_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixel_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixel_NeoPixelStateChart_State == NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixel_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixel_NeoPixelStateChart_OnExit(NEOPIXEL_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE;
-_instance->NeoPixel_NeoPixelStateChart_rotate_speed_var = speed;
-NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_ROTATE_STATE, _instance);
+_instance->NeoPixel_NeoPixelStateChart_State = NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE;
+NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_BREATH_STATE, _instance);
 NeoPixel_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -1705,6 +1705,14 @@ if (external_Serial_send_rx_receive_byte_listener != 0x0) external_Serial_send_r
 
 uint8_t array_gwcmd_GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var[2];
 //Declaration of instance variables
+//Instance notifier
+// Variables for the properties of the instance
+struct BLENotifier_Instance notifier_var;
+// Variables for the sessions of the instance
+//Instance gwcmd
+// Variables for the properties of the instance
+struct GatewayCommandParser_Instance gwcmd_var;
+// Variables for the sessions of the instance
 //Instance neopixels
 // Variables for the properties of the instance
 struct NeoPixel_Instance neopixels_var;
@@ -1713,22 +1721,14 @@ struct NeoPixel_Instance neopixels_var;
 // Variables for the properties of the instance
 struct Serial_Instance uart_var;
 // Variables for the sessions of the instance
-//Instance gwcmd
-// Variables for the properties of the instance
-struct GatewayCommandParser_Instance gwcmd_var;
-// Variables for the sessions of the instance
-//Instance notifier
-// Variables for the properties of the instance
-struct BLENotifier_Instance notifier_var;
-// Variables for the sessions of the instance
 //Instance sensor
 // Variables for the properties of the instance
 struct BPSensor_Instance sensor_var;
 // Variables for the sessions of the instance
 
 
-// Enqueue of messages GatewayCommandParser::gateway::bad_measurement
-void enqueue_GatewayCommandParser_send_gateway_bad_measurement(struct GatewayCommandParser_Instance *_instance){
+// Enqueue of messages GatewayCommandParser::gateway::measurement_stored
+void enqueue_GatewayCommandParser_send_gateway_measurement_stored(struct GatewayCommandParser_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (4 >> 8) & 0xFF );
@@ -1751,8 +1751,8 @@ _fifo_enqueue( (_instance->id_gateway >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_gateway & 0xFF );
 }
 }
-// Enqueue of messages GatewayCommandParser::gateway::measurement_received
-void enqueue_GatewayCommandParser_send_gateway_measurement_received(struct GatewayCommandParser_Instance *_instance){
+// Enqueue of messages GatewayCommandParser::gateway::bad_measurement
+void enqueue_GatewayCommandParser_send_gateway_bad_measurement(struct GatewayCommandParser_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (6 >> 8) & 0xFF );
@@ -1763,8 +1763,8 @@ _fifo_enqueue( (_instance->id_gateway >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_gateway & 0xFF );
 }
 }
-// Enqueue of messages GatewayCommandParser::gateway::measurement_stored
-void enqueue_GatewayCommandParser_send_gateway_measurement_stored(struct GatewayCommandParser_Instance *_instance){
+// Enqueue of messages GatewayCommandParser::gateway::measurement_received
+void enqueue_GatewayCommandParser_send_gateway_measurement_received(struct GatewayCommandParser_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (7 >> 8) & 0xFF );
@@ -1811,60 +1811,12 @@ u_b.p = b;
 _fifo_enqueue(u_b.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages BLENotifier::neopixels::breath
-void enqueue_BLENotifier_send_neopixels_breath(struct BLENotifier_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (9 >> 8) & 0xFF );
-_fifo_enqueue( 9 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages BLENotifier::neopixels::pulse
-void enqueue_BLENotifier_send_neopixels_pulse(struct BLENotifier_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (10 >> 8) & 0xFF );
-_fifo_enqueue( 10 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages BLENotifier::neopixels::off
-void enqueue_BLENotifier_send_neopixels_off(struct BLENotifier_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (11 >> 8) & 0xFF );
-_fifo_enqueue( 11 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages BLENotifier::neopixels::solid
-void enqueue_BLENotifier_send_neopixels_solid(struct BLENotifier_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (12 >> 8) & 0xFF );
-_fifo_enqueue( 12 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
 // Enqueue of messages BLENotifier::neopixels::setColor
 void enqueue_BLENotifier_send_neopixels_setColor(struct BLENotifier_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
 
-_fifo_enqueue( (13 >> 8) & 0xFF );
-_fifo_enqueue( 13 & 0xFF );
+_fifo_enqueue( (9 >> 8) & 0xFF );
+_fifo_enqueue( 9 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
@@ -1895,12 +1847,36 @@ u_blue.p = blue;
 _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 }
 }
+// Enqueue of messages BLENotifier::neopixels::pulse
+void enqueue_BLENotifier_send_neopixels_pulse(struct BLENotifier_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (10 >> 8) & 0xFF );
+_fifo_enqueue( 10 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
+// Enqueue of messages BLENotifier::neopixels::off
+void enqueue_BLENotifier_send_neopixels_off(struct BLENotifier_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (11 >> 8) & 0xFF );
+_fifo_enqueue( 11 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
 // Enqueue of messages BLENotifier::neopixels::rotate
 void enqueue_BLENotifier_send_neopixels_rotate(struct BLENotifier_Instance *_instance, int8_t speed){
 if ( fifo_byte_available() > 5 ) {
 
-_fifo_enqueue( (14 >> 8) & 0xFF );
-_fifo_enqueue( 14 & 0xFF );
+_fifo_enqueue( (12 >> 8) & 0xFF );
+_fifo_enqueue( 12 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
@@ -1913,6 +1889,30 @@ byte bytebuffer[1];
 } u_speed;
 u_speed.p = speed;
 _fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages BLENotifier::neopixels::solid
+void enqueue_BLENotifier_send_neopixels_solid(struct BLENotifier_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (13 >> 8) & 0xFF );
+_fifo_enqueue( 13 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
+// Enqueue of messages BLENotifier::neopixels::breath
+void enqueue_BLENotifier_send_neopixels_breath(struct BLENotifier_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (14 >> 8) & 0xFF );
+_fifo_enqueue( 14 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
 }
 }
 // Enqueue of messages Serial::rx::receive_byte
@@ -1947,8 +1947,8 @@ _fifo_enqueue( (_instance->id_ctrl >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_ctrl & 0xFF );
 }
 }
-// Enqueue of messages BPSensor::ctrl::idle
-void enqueue_BPSensor_send_ctrl_idle(struct BPSensor_Instance *_instance){
+// Enqueue of messages BPSensor::ctrl::pumping
+void enqueue_BPSensor_send_ctrl_pumping(struct BPSensor_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (17 >> 8) & 0xFF );
@@ -1959,8 +1959,8 @@ _fifo_enqueue( (_instance->id_ctrl >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_ctrl & 0xFF );
 }
 }
-// Enqueue of messages BPSensor::ctrl::pumping
-void enqueue_BPSensor_send_ctrl_pumping(struct BPSensor_Instance *_instance){
+// Enqueue of messages BPSensor::ctrl::idle
+void enqueue_BPSensor_send_ctrl_idle(struct BPSensor_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (18 >> 8) & 0xFF );
@@ -1970,76 +1970,6 @@ _fifo_enqueue( 18 & 0xFF );
 _fifo_enqueue( (_instance->id_ctrl >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_ctrl & 0xFF );
 }
-}
-
-
-//New dispatcher for messages
-void dispatch_breath(uint16_t sender) {
-if (sender == notifier_var.id_neopixels) {
-NeoPixel_handle_ctrl_breath(&neopixels_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_request_measurement(uint16_t sender) {
-if (sender == gwcmd_var.id_gateway) {
-BLENotifier_handle_gateway_request_measurement(&notifier_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_idle(uint16_t sender) {
-if (sender == sensor_var.id_ctrl) {
-BLENotifier_handle_sensor_idle(&notifier_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_off(uint16_t sender) {
-if (sender == notifier_var.id_neopixels) {
-NeoPixel_handle_ctrl_off(&neopixels_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_measurement_received(uint16_t sender) {
-if (sender == gwcmd_var.id_gateway) {
-BLENotifier_handle_gateway_measurement_received(&notifier_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_solid(uint16_t sender) {
-if (sender == notifier_var.id_neopixels) {
-NeoPixel_handle_ctrl_solid(&neopixels_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_receive_byte(uint16_t sender, uint8_t param_b) {
-if (sender == uart_var.id_rx) {
-GatewayCommandParser_handle_blerx_receive_byte(&gwcmd_var, param_b);
-
-}
-
 }
 
 
@@ -2054,9 +1984,9 @@ BPSensor_handle_clock_ui_clock(&sensor_var);
 
 
 //New dispatcher for messages
-void dispatch_set_base_color(uint16_t sender, uint8_t param_r, uint8_t param_g, uint8_t param_b) {
+void dispatch_measurement_stored(uint16_t sender) {
 if (sender == gwcmd_var.id_gateway) {
-BLENotifier_handle_gateway_set_base_color(&notifier_var, param_r, param_g, param_b);
+BLENotifier_handle_gateway_measurement_stored(&notifier_var);
 
 }
 
@@ -2074,9 +2004,39 @@ NeoPixel_handle_ctrl_setColor(&neopixels_var, param_red, param_green, param_blue
 
 
 //New dispatcher for messages
-void dispatch_bad_measurement(uint16_t sender) {
+void dispatch_pulse(uint16_t sender) {
+if (sender == notifier_var.id_neopixels) {
+NeoPixel_handle_ctrl_pulse(&neopixels_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_measurement_received(uint16_t sender) {
 if (sender == gwcmd_var.id_gateway) {
-BLENotifier_handle_gateway_bad_measurement(&notifier_var);
+BLENotifier_handle_gateway_measurement_received(&notifier_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_receive_byte(uint16_t sender, uint8_t param_b) {
+if (sender == uart_var.id_rx) {
+GatewayCommandParser_handle_blerx_receive_byte(&gwcmd_var, param_b);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_fps_clock(uint16_t sender) {
+if (sender == timer2_instance.listener_id) {
+NeoPixel_handle_clock_fps_clock(&neopixels_var);
 
 }
 
@@ -2094,9 +2054,9 @@ BLENotifier_handle_sensor_measuring(&notifier_var);
 
 
 //New dispatcher for messages
-void dispatch_pulse(uint16_t sender) {
-if (sender == notifier_var.id_neopixels) {
-NeoPixel_handle_ctrl_pulse(&neopixels_var);
+void dispatch_request_measurement(uint16_t sender) {
+if (sender == gwcmd_var.id_gateway) {
+BLENotifier_handle_gateway_request_measurement(&notifier_var);
 
 }
 
@@ -2104,9 +2064,49 @@ NeoPixel_handle_ctrl_pulse(&neopixels_var);
 
 
 //New dispatcher for messages
-void dispatch_timer_timeout(uint16_t sender, uint8_t param_id) {
-if (sender == timer2_instance.listener_id) {
-BLENotifier_handle_clock_timer_timeout(&notifier_var, param_id);
+void dispatch_bad_measurement(uint16_t sender) {
+if (sender == gwcmd_var.id_gateway) {
+BLENotifier_handle_gateway_bad_measurement(&notifier_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_off(uint16_t sender) {
+if (sender == notifier_var.id_neopixels) {
+NeoPixel_handle_ctrl_off(&neopixels_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_pumping(uint16_t sender) {
+if (sender == sensor_var.id_ctrl) {
+BLENotifier_handle_sensor_pumping(&notifier_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_rotate(uint16_t sender, int8_t param_speed) {
+if (sender == notifier_var.id_neopixels) {
+NeoPixel_handle_ctrl_rotate(&neopixels_var, param_speed);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_solid(uint16_t sender) {
+if (sender == notifier_var.id_neopixels) {
+NeoPixel_handle_ctrl_solid(&neopixels_var);
 
 }
 
@@ -2126,36 +2126,6 @@ dispatch_write_byte(_instance->id_bletx, b);
 }
 
 //New dispatcher for messages
-void dispatch_measurement_stored(uint16_t sender) {
-if (sender == gwcmd_var.id_gateway) {
-BLENotifier_handle_gateway_measurement_stored(&notifier_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_fps_clock(uint16_t sender) {
-if (sender == timer2_instance.listener_id) {
-NeoPixel_handle_clock_fps_clock(&neopixels_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_pumping(uint16_t sender) {
-if (sender == sensor_var.id_ctrl) {
-BLENotifier_handle_sensor_pumping(&notifier_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
 void dispatch_print_message(uint16_t sender, char * param_msg) {
 if (sender == gwcmd_var.id_bletx) {
 
@@ -2168,9 +2138,39 @@ dispatch_print_message(_instance->id_bletx, msg);
 }
 
 //New dispatcher for messages
-void dispatch_rotate(uint16_t sender, int8_t param_speed) {
+void dispatch_breath(uint16_t sender) {
 if (sender == notifier_var.id_neopixels) {
-NeoPixel_handle_ctrl_rotate(&neopixels_var, param_speed);
+NeoPixel_handle_ctrl_breath(&neopixels_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_set_base_color(uint16_t sender, uint8_t param_r, uint8_t param_g, uint8_t param_b) {
+if (sender == gwcmd_var.id_gateway) {
+BLENotifier_handle_gateway_set_base_color(&notifier_var, param_r, param_g, param_b);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_idle(uint16_t sender) {
+if (sender == sensor_var.id_ctrl) {
+BLENotifier_handle_sensor_idle(&notifier_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_timer_timeout(uint16_t sender, uint8_t param_id) {
+if (sender == timer2_instance.listener_id) {
+BLENotifier_handle_clock_timer_timeout(&notifier_var, param_id);
 
 }
 
@@ -2189,46 +2189,60 @@ code += fifo_dequeue();
 
 // Switch to call the appropriate handler
 switch(code) {
+case 3:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_ui_clock = 2;
+dispatch_ui_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 4:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_measurement_stored = 2;
+dispatch_measurement_stored((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
 case 9:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_breath = 2;
-dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+byte mbuf[7 - 2];
+while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_setColor = 2;
+union u_setColor_red_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_red;
+u_setColor_red.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+union u_setColor_green_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_green;
+u_setColor_green.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+union u_setColor_blue_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_blue;
+u_setColor_blue.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+dispatch_setColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_setColor_red.p /* red */ ,
+ u_setColor_green.p /* green */ ,
+ u_setColor_blue.p /* blue */ );
 break;
 }
-case 5:{
+case 10:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_request_measurement = 2;
-dispatch_request_measurement((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_pulse = 2;
+dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
-case 17:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_idle = 2;
-dispatch_idle((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 11:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_off = 2;
-dispatch_off((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 6:{
+case 7:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_measurement_received = 2;
 dispatch_measurement_received((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 12:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_solid = 2;
-dispatch_solid((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
 case 15:{
@@ -2245,11 +2259,74 @@ dispatch_receive_byte((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_receive_byte_b.p /* b */ );
 break;
 }
-case 3:{
+case 2:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_ui_clock = 2;
-dispatch_ui_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_fps_clock = 2;
+dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 16:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_measuring = 2;
+dispatch_measuring((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 5:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_request_measurement = 2;
+dispatch_request_measurement((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 6:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_bad_measurement = 2;
+dispatch_bad_measurement((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 11:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_off = 2;
+dispatch_off((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 17:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_pumping = 2;
+dispatch_pumping((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 12:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_rotate = 2;
+union u_rotate_speed_t {
+int8_t p;
+byte bytebuffer[1];
+} u_rotate_speed;
+u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
+mbufi_rotate += 1;
+dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_rotate_speed.p /* speed */ );
+break;
+}
+case 13:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_solid = 2;
+dispatch_solid((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 14:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_breath = 2;
+dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
 case 8:{
@@ -2280,53 +2357,11 @@ dispatch_set_base_color((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_set_base_color_b.p /* b */ );
 break;
 }
-case 13:{
-byte mbuf[7 - 2];
-while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_setColor = 2;
-union u_setColor_red_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_red;
-u_setColor_red.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-union u_setColor_green_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_green;
-u_setColor_green.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-union u_setColor_blue_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_blue;
-u_setColor_blue.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-dispatch_setColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_setColor_red.p /* red */ ,
- u_setColor_green.p /* green */ ,
- u_setColor_blue.p /* blue */ );
-break;
-}
-case 4:{
+case 18:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_bad_measurement = 2;
-dispatch_bad_measurement((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 16:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_measuring = 2;
-dispatch_measuring((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 10:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_pulse = 2;
-dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_idle = 2;
+dispatch_idle((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
 case 1:{
@@ -2341,41 +2376,6 @@ u_timer_timeout_id.bytebuffer[0] = mbuf[mbufi_timer_timeout + 0];
 mbufi_timer_timeout += 1;
 dispatch_timer_timeout((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_timer_timeout_id.p /* id */ );
-break;
-}
-case 7:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_measurement_stored = 2;
-dispatch_measurement_stored((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 2:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_fps_clock = 2;
-dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 18:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_pumping = 2;
-dispatch_pumping((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 14:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_rotate = 2;
-union u_rotate_speed_t {
-int8_t p;
-byte bytebuffer[1];
-} u_rotate_speed;
-u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
-mbufi_rotate += 1;
-dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_rotate_speed.p /* speed */ );
 break;
 }
 }
@@ -2398,16 +2398,16 @@ void externalMessageEnqueue(uint8_t * msg, uint8_t msgSize, uint16_t listener_id
 if ((msgSize >= 2) && (msg != NULL)) {
 uint8_t msgSizeOK = 0;
 switch(msg[0] * 256 + msg[1]) {
-case 1:
-if(msgSize == 3) {
+case 3:
+if(msgSize == 2) {
 msgSizeOK = 1;}
 break;
 case 2:
 if(msgSize == 2) {
 msgSizeOK = 1;}
 break;
-case 3:
-if(msgSize == 2) {
+case 1:
+if(msgSize == 3) {
 msgSizeOK = 1;}
 break;
 }
@@ -2432,6 +2432,10 @@ void initialize_configuration_BLENotifier() {
 // Initialize connectors
 register_external_BLENotifier_send_clock_timer_start_listener(&forward_BLENotifier_send_clock_timer_start);
 register_external_BLENotifier_send_clock_timer_cancel_listener(&forward_BLENotifier_send_clock_timer_cancel);
+register_Serial_send_rx_receive_byte_listener(&enqueue_Serial_send_rx_receive_byte);
+register_BPSensor_send_ctrl_idle_listener(&enqueue_BPSensor_send_ctrl_idle);
+register_BPSensor_send_ctrl_pumping_listener(&enqueue_BPSensor_send_ctrl_pumping);
+register_BPSensor_send_ctrl_measuring_listener(&enqueue_BPSensor_send_ctrl_measuring);
 register_GatewayCommandParser_send_bletx_write_byte_listener(&sync_dispatch_GatewayCommandParser_send_bletx_write_byte);
 register_GatewayCommandParser_send_bletx_print_message_listener(&sync_dispatch_GatewayCommandParser_send_bletx_print_message);
 register_GatewayCommandParser_send_gateway_request_measurement_listener(&enqueue_GatewayCommandParser_send_gateway_request_measurement);
@@ -2445,10 +2449,6 @@ register_BLENotifier_send_neopixels_pulse_listener(&enqueue_BLENotifier_send_neo
 register_BLENotifier_send_neopixels_rotate_listener(&enqueue_BLENotifier_send_neopixels_rotate);
 register_BLENotifier_send_neopixels_breath_listener(&enqueue_BLENotifier_send_neopixels_breath);
 register_BLENotifier_send_neopixels_solid_listener(&enqueue_BLENotifier_send_neopixels_solid);
-register_BPSensor_send_ctrl_idle_listener(&enqueue_BPSensor_send_ctrl_idle);
-register_BPSensor_send_ctrl_pumping_listener(&enqueue_BPSensor_send_ctrl_pumping);
-register_BPSensor_send_ctrl_measuring_listener(&enqueue_BPSensor_send_ctrl_measuring);
-register_Serial_send_rx_receive_byte_listener(&enqueue_Serial_send_rx_receive_byte);
 
 // Init the ID, state variables and properties for external connector timer2
 // Init the ID, state variables and properties for external connector timer2
@@ -2462,23 +2462,6 @@ timer2_setup();
 
 // End Network Initialization
 
-// Init the ID, state variables and properties for instance uart
-uart_var.active = true;
-uart_var.id_rx = add_instance( (void*) &uart_var);
-uart_var.id_tx = add_instance( (void*) &uart_var);
-uart_var.Serial_SerialImpl_State = SERIAL_SERIALIMPL_RECEIVING_STATE;
-
-Serial_SerialImpl_OnEntry(SERIAL_SERIALIMPL_STATE, &uart_var);
-// Init the ID, state variables and properties for instance gwcmd
-gwcmd_var.active = true;
-gwcmd_var.id_blerx = add_instance( (void*) &gwcmd_var);
-gwcmd_var.id_bletx = add_instance( (void*) &gwcmd_var);
-gwcmd_var.id_gateway = add_instance( (void*) &gwcmd_var);
-gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_State = GATEWAYCOMMANDPARSER_GATEWAYCOMMANDPARSERSC_READY_STATE;
-gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var = array_gwcmd_GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var;
-gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var_size = 2;
-
-GatewayCommandParser_GatewayCommandParserSC_OnEntry(GATEWAYCOMMANDPARSER_GATEWAYCOMMANDPARSERSC_STATE, &gwcmd_var);
 // Init the ID, state variables and properties for instance neopixels
 neopixels_var.active = true;
 neopixels_var.id_ctrl = add_instance( (void*) &neopixels_var);
@@ -2499,6 +2482,23 @@ neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_counter_var = 0;
 neopixels_var.NeoPixel_NeoPixelStateChart_PULSE_maxcount_var = 100;
 
 NeoPixel_NeoPixelStateChart_OnEntry(NEOPIXEL_NEOPIXELSTATECHART_STATE, &neopixels_var);
+// Init the ID, state variables and properties for instance uart
+uart_var.active = true;
+uart_var.id_rx = add_instance( (void*) &uart_var);
+uart_var.id_tx = add_instance( (void*) &uart_var);
+uart_var.Serial_SerialImpl_State = SERIAL_SERIALIMPL_RECEIVING_STATE;
+
+Serial_SerialImpl_OnEntry(SERIAL_SERIALIMPL_STATE, &uart_var);
+// Init the ID, state variables and properties for instance gwcmd
+gwcmd_var.active = true;
+gwcmd_var.id_blerx = add_instance( (void*) &gwcmd_var);
+gwcmd_var.id_bletx = add_instance( (void*) &gwcmd_var);
+gwcmd_var.id_gateway = add_instance( (void*) &gwcmd_var);
+gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_State = GATEWAYCOMMANDPARSER_GATEWAYCOMMANDPARSERSC_READY_STATE;
+gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var = array_gwcmd_GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var;
+gwcmd_var.GatewayCommandParser_GatewayCommandParserSC_SetColor_buf_var_size = 2;
+
+GatewayCommandParser_GatewayCommandParserSC_OnEntry(GATEWAYCOMMANDPARSER_GATEWAYCOMMANDPARSERSC_STATE, &gwcmd_var);
 // Init the ID, state variables and properties for instance sensor
 sensor_var.active = true;
 sensor_var.id_clock = add_instance( (void*) &sensor_var);

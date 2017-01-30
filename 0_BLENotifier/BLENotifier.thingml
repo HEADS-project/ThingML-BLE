@@ -165,7 +165,7 @@ thing BLENotifier includes NeoPixelMsgs, BPSensorMsgs, TimerMsgs, GatewayCommand
 	
 	function breath() do
 		neopixels!off()
-		neopixels!setColor(120, 132, 132)
+		neopixels!setColor(0, 50, 255)
 		neopixels!breath()
 	end
 	
