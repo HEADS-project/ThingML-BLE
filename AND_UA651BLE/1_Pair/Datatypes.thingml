@@ -1,0 +1,30 @@
+datatype Byte<1>
+  @c_type "uint8_t";
+
+datatype Int<2>
+  @c_type "int16_t";
+
+datatype UInt<2>
+  @c_type "uint16_t";
+
+object String
+  @c_type "const char *";
+
+object DataPointer
+  @c_type "uint8_t *";
+
+datatype Boolean<1>
+  @c_type "uint8_t";
+
+datatype Float<4>
+  @c_type "float";
+  
+datatype DateTime<4>
+  @c_type "time_t";
+
+datatype NotifierCommand<8>
+  @c_type "notifier_cmd_t"
+  @c_header "#ifndef NOTIFIER_CMD_T_H"
+  @c_header "#define NOTIFIER_CMD_T_H"
+  @c_header "typedef struct { uint8_t bytes[8]; } notifier_cmd_t;"
+  @c_header "#endif";
