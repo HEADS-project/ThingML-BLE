@@ -1,8 +1,8 @@
 CC = cc
 LIBS = -lpthread -l bluetooth -l mosquitto
 CFLAGS = -O2 -w
-SRCS = ExitHandler.c BLEConnecterImpl.c HCISocketProxyImpl.c BLEInitialiserImpl.c Main.c BLEBloodpressureImpl.c BLENotifierImpl.c AND_UA651BLE_SYNC_cfg.c MQTT.c runtime.c
-OBJS = ExitHandler.o BLEConnecterImpl.o HCISocketProxyImpl.o BLEInitialiserImpl.o Main.o BLEBloodpressureImpl.o BLENotifierImpl.o AND_UA651BLE_SYNC_cfg.o MQTT.o runtime.o
+SRCS = BLEConnecterImpl.c BLEBloodpressureImpl.c ExitHandler.c BLENotifierImpl.c HCISocketProxyImpl.c BLEInitialiserImpl.c Main.c AND_UA651BLE_SYNC_cfg.c MQTT1.c runtime.c
+OBJS = BLEConnecterImpl.o BLEBloodpressureImpl.o ExitHandler.o BLENotifierImpl.o HCISocketProxyImpl.o BLEInitialiserImpl.o Main.o AND_UA651BLE_SYNC_cfg.o MQTT1.o runtime.o
 
 all : AND_UA651BLE_SYNC
 

@@ -18,6 +18,9 @@ datatype Boolean<1>
 
 datatype Float<4>
   @c_type "float";
+  
+datatype DateTime<4>
+  @c_type "time_t";
 
 datatype NotifierCommand<8>
   @c_type "notifier_cmd_t"

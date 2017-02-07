@@ -20,6 +20,11 @@ extern "C" {
 
 #include "runtime.h"
 
+// BEGIN: Code from the c_header annotation Main
+#include <time.h>
+// END: Code from the c_header annotation Main
+
+
 // BEGIN: Code from the c_header annotation for type BTAddress
 #include <bluetooth/bluetooth.h>
 // END: Code from the c_header annotation for type BTAddress
@@ -34,7 +39,7 @@ bool alive;
 uint16_t id_Signals;
 uint16_t id_BloodPressureDevice;
 uint16_t id_NotifierDevice;
-uint16_t id_Gateway;
+uint16_t id_BloodPressureCloud;
 uint16_t id_Initialiser;
 uint16_t id_Bloodpressure;
 uint16_t id_Notifications;
@@ -61,8 +66,8 @@ void enqueue_Main_BloodPressureDevice_Failure(struct Main_Instance * inst);
 void enqueue_Main_BloodPressureDevice_Encrypted(struct Main_Instance * inst);
 void enqueue_Main_NotifierDevice_Stopped(struct Main_Instance * inst);
 void enqueue_Main_NotifierDevice_Failure(struct Main_Instance * inst);
-void enqueue_Main_Gateway_MqttRequestBloodPressureMeasurement(struct Main_Instance * inst);
-void enqueue_Main_Gateway_MqttConfirmBloodPressureMeasurement(struct Main_Instance * inst);
+void enqueue_Main_BloodPressureCloud_MqttRequestBloodPressureMeasurement(struct Main_Instance * inst);
+void enqueue_Main_BloodPressureCloud_MqttConfirmBloodPressureMeasurement(struct Main_Instance * inst);
 void enqueue_Main_Initialiser_Stopped(struct Main_Instance * inst);
 void enqueue_Main_Initialiser_Failure(struct Main_Instance * inst);
 void enqueue_Main_Initialiser_DeviceInitialised(struct Main_Instance * inst, bdaddr_t Address);
@@ -92,8 +97,8 @@ void register_Main_send_NotifierDevice_Stop_listener(void (*_listener)(struct Ma
 void register_external_Main_send_NotifierDevice_Stop_listener(void (*_listener)(struct Main_Instance *));
 void register_Main_send_NotifierDevice_Encrypt_listener(void (*_listener)(struct Main_Instance *));
 void register_external_Main_send_NotifierDevice_Encrypt_listener(void (*_listener)(struct Main_Instance *));
-void register_Main_send_Gateway_MqttBloodPressureMeasurement_listener(void (*_listener)(struct Main_Instance *, float, float, float, uint8_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, float, uint8_t));
-void register_external_Main_send_Gateway_MqttBloodPressureMeasurement_listener(void (*_listener)(struct Main_Instance *, float, float, float, uint8_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, float, uint8_t));
+void register_Main_send_BloodPressureCloud_TelluCloudBloodPressure_listener(void (*_listener)(struct Main_Instance *, time_t, int16_t, int16_t, int16_t, int16_t));
+void register_external_Main_send_BloodPressureCloud_TelluCloudBloodPressure_listener(void (*_listener)(struct Main_Instance *, time_t, int16_t, int16_t, int16_t, int16_t));
 void register_Main_send_Initialiser_Start_listener(void (*_listener)(struct Main_Instance *));
 void register_external_Main_send_Initialiser_Start_listener(void (*_listener)(struct Main_Instance *));
 void register_Main_send_Initialiser_Stop_listener(void (*_listener)(struct Main_Instance *));

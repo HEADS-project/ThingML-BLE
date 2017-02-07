@@ -6,7 +6,9 @@ thing fragment BLENotifierMsgs
 {
   message ReadyForNotificationCommand();
   message RequestBloodPressureMeasurement();
-  message ConfirmBloodPressureMeasurement();
+  message ReceivedBloodPressureMeasurement();
+  message BadBloodPressureMeasurement();
+  message StoredBloodPressureMeasurement();
 }
 
 thing BLENotifier includes BLENotifierMsgs
@@ -14,7 +16,7 @@ thing BLENotifier includes BLENotifierMsgs
   required port Notifications
   {
     receives ReadyForNotificationCommand
-    sends RequestBloodPressureMeasurement, ConfirmBloodPressureMeasurement
+    sends RequestBloodPressureMeasurement, ReceivedBloodPressureMeasurement, BadBloodPressureMeasurement, StoredBloodPressureMeasurement
   }
 }
 
@@ -26,8 +28,10 @@ thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
   property ReadByteValueHandle : UInt = '0x0021'
   property ReadByteConfigurationHandle : UInt = '0x0023'
   
-  property RequestCommand : NotifierCommand
-  property ConfirmCommand : NotifierCommand
+  property RequestCommand  : NotifierCommand
+  property ReceivedCommand : NotifierCommand
+  property ErrorCommand    : NotifierCommand
+  property StoredCommand   : NotifierCommand
   
   property CommandToSend : NotifierCommand
   property BytesToSend : Byte
@@ -36,7 +40,7 @@ thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
   provided port Notifications
   {
     sends ReadyForNotificationCommand
-    receives RequestBloodPressureMeasurement, ConfirmBloodPressureMeasurement
+    receives RequestBloodPressureMeasurement, ReceivedBloodPressureMeasurement, BadBloodPressureMeasurement, StoredBloodPressureMeasurement
   }
 
   statechart States init Waiting
@@ -73,8 +77,16 @@ thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
           CommandToSend = RequestCommand
         end
         
-        transition -> SendCommand event Notifications?ConfirmBloodPressureMeasurement action do
-          CommandToSend = ConfirmCommand
+        transition -> SendCommand event Notifications?ReceivedBloodPressureMeasurement action do
+          CommandToSend = ReceivedCommand
+        end
+        
+        transition -> SendCommand event Notifications?BadBloodPressureMeasurement action do
+          CommandToSend = ErrorCommand
+        end
+        
+        transition -> SendCommand event Notifications?StoredBloodPressureMeasurement action do
+          CommandToSend = StoredCommand
         end
       }
       
@@ -113,7 +125,7 @@ thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
       end
 
       internal event e:ATT?ATTHandleValueNotification guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == ReadByteValueHandle) action do
-        print "!!! GOT BYTE :D !!!\n"
+        // TODO: Do something with bytes received?
       end
       //(ConnectionHandle : UInt, AttributeHandle : UInt, AttributeValue : GATTData);
 

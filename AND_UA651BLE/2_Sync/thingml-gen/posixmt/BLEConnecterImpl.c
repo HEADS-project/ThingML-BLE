@@ -256,6 +256,25 @@ BLEConnecterImpl_States_State_event_consumed = 1;
 //End dsregion States
 //Session list: 
 }
+void BLEConnecterImpl_handle_Connecter_Encrypt(struct BLEConnecterImpl_Instance *_instance) {
+//Region States
+uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
+if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTED_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && 1) {
+BLEConnecterImpl_send_HCICommands_LEStartEncryption(_instance, _instance->BLEConnecterImpl_ConnectedHandle_var, _instance->BLEConnecterImpl_RandomNumber_var, _instance->BLEConnecterImpl_EncryptedDiversifier_var, _instance->BLEConnecterImpl_LongTermKey_var);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+else if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_ENCRYPTED_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && 1) {
+BLEConnecterImpl_send_Connecter_Encrypted(_instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
 void BLEConnecterImpl_handle_Connecter_Stop(struct BLEConnecterImpl_Instance *_instance) {
 //Region States
 uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
@@ -299,18 +318,36 @@ BLEConnecterImpl_States_State_event_consumed = 1;
 //End dsregion States
 //Session list: 
 }
-void BLEConnecterImpl_handle_Connecter_Encrypt(struct BLEConnecterImpl_Instance *_instance) {
+void BLEConnecterImpl_handle_HCIEvents_EncryptionChanged(struct BLEConnecterImpl_Instance *_instance, uint8_t Status, uint16_t ConnectionHandle, uint8_t Enabled) {
 //Region States
 uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
 if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTED_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && 1) {
-BLEConnecterImpl_send_HCICommands_LEStartEncryption(_instance, _instance->BLEConnecterImpl_ConnectedHandle_var, _instance->BLEConnecterImpl_RandomNumber_var, _instance->BLEConnecterImpl_EncryptedDiversifier_var, _instance->BLEConnecterImpl_LongTermKey_var);
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0 && Enabled)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_ENCRYPTED_STATE;
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
+fprintf(stdout, "[ERROR]: Encryption failed!\n");
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 }
 else if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_ENCRYPTED_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && 1) {
-BLEConnecterImpl_send_Connecter_Encrypted(_instance);
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0 &&  !(Enabled))) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_CONNECTED_STATE;
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
+fprintf(stdout, "[ERROR]: Encryption failed!\n");
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 }
@@ -318,19 +355,65 @@ BLEConnecterImpl_States_State_event_consumed = 1;
 //End dsregion States
 //Session list: 
 }
-void BLEConnecterImpl_handle_HCIEvents_LEStartEncryptionStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
+void BLEConnecterImpl_handle_HCIEvents_DisconnectStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
 //Region States
 uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
-if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTED_STATE) {
+if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_DISCONNECTING_STATE) {
 if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_DISCONNECTING_STATE, _instance);
 _instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-fprintf(stdout, "[ERROR]: Start encryption failed!\n");
 BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
-fprintf(stdout, "[INFO]: Requested encryption...\n");
+fprintf(stdout, "[INFO]: Closing connection...\n");
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void BLEConnecterImpl_handle_HCIEvents_LEEnhancedConnectionComplete(struct BLEConnecterImpl_Instance *_instance, uint8_t Status, uint16_t ConnectionHandle, uint8_t Role, uint8_t PeerAddressType, bdaddr_t PeerAddress, bdaddr_t LocalResolvablePrivateAddress, bdaddr_t PeerResolvablePrivateAddress, uint16_t ConnInterval, uint16_t ConnLatency, uint16_t SupervisionTimeout, uint8_t MasterClockAccuracy) {
+//Region States
+uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
+if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTING_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_CONNECTED_STATE;
+_instance->BLEConnecterImpl_ConnectedHandle_var = ConnectionHandle;
+fprintf(stdout, "[INFO]: Enhanced connection complete\n");
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+else if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0x02)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE;
+BLEConnecterImpl_send_Connecter_Stopped(_instance);
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void BLEConnecterImpl_handle_HCIEvents_LECreateConnectionCancelCompleted(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
+//Region States
+uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
+if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 }
@@ -365,6 +448,27 @@ BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE, _
 _instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE;
 BLEConnecterImpl_send_Connecter_Stopped(_instance);
 BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void BLEConnecterImpl_handle_HCIEvents_LECreateConnectionStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
+//Region States
+uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
+if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTING_STATE) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
+_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
+BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
+BLEConnecterImpl_States_State_event_consumed = 1;
+}
+else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
+fprintf(stdout, "[INFO]: Requested connection to ");
+printf("%s", _instance->BLEConnecterImpl_ConnectAddress_var);
+fprintf(stdout, "...\n");
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 }
@@ -426,123 +530,19 @@ BLEConnecterImpl_States_State_event_consumed = 1;
 //End dsregion States
 //Session list: 
 }
-void BLEConnecterImpl_handle_HCIEvents_DisconnectStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
-//Region States
-uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
-if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_DISCONNECTING_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_DISCONNECTING_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
-fprintf(stdout, "[INFO]: Closing connection...\n");
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void BLEConnecterImpl_handle_HCIEvents_LECreateConnectionStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
-//Region States
-uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
-if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTING_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
-fprintf(stdout, "[INFO]: Requested connection to ");
-printf("%s", _instance->BLEConnecterImpl_ConnectAddress_var);
-fprintf(stdout, "...\n");
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void BLEConnecterImpl_handle_HCIEvents_LEEnhancedConnectionComplete(struct BLEConnecterImpl_Instance *_instance, uint8_t Status, uint16_t ConnectionHandle, uint8_t Role, uint8_t PeerAddressType, bdaddr_t PeerAddress, bdaddr_t LocalResolvablePrivateAddress, bdaddr_t PeerResolvablePrivateAddress, uint16_t ConnInterval, uint16_t ConnLatency, uint16_t SupervisionTimeout, uint8_t MasterClockAccuracy) {
-//Region States
-uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
-if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTING_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_CONNECTED_STATE;
-_instance->BLEConnecterImpl_ConnectedHandle_var = ConnectionHandle;
-fprintf(stdout, "[INFO]: Enhanced connection complete\n");
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTING_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-}
-else if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0x02)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE;
-BLEConnecterImpl_send_Connecter_Stopped(_instance);
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_NOTCONNECTED_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void BLEConnecterImpl_handle_HCIEvents_LECreateConnectionCancelCompleted(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
-//Region States
-uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
-if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CANCELCONNECTION_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void BLEConnecterImpl_handle_HCIEvents_EncryptionChanged(struct BLEConnecterImpl_Instance *_instance, uint8_t Status, uint16_t ConnectionHandle, uint8_t Enabled) {
+void BLEConnecterImpl_handle_HCIEvents_LEStartEncryptionStatus(struct BLEConnecterImpl_Instance *_instance, uint8_t NumberAllowedCommandPackets, uint8_t Status) {
 //Region States
 uint8_t BLEConnecterImpl_States_State_event_consumed = 0;
 if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_CONNECTED_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0 && Enabled)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_ENCRYPTED_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
+if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
 BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
 _instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-fprintf(stdout, "[ERROR]: Encryption failed!\n");
+fprintf(stdout, "[ERROR]: Start encryption failed!\n");
 BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
-}
-else if (_instance->BLEConnecterImpl_States_State == BLECONNECTERIMPL_STATES_ENCRYPTED_STATE) {
-if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0 &&  !(Enabled))) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_CONNECTED_STATE;
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_CONNECTED_STATE, _instance);
-BLEConnecterImpl_States_State_event_consumed = 1;
-}
-else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status > 0)) {
-BLEConnecterImpl_States_OnExit(BLECONNECTERIMPL_STATES_ENCRYPTED_STATE, _instance);
-_instance->BLEConnecterImpl_States_State = BLECONNECTERIMPL_STATES_FAILURE_STATE;
-fprintf(stdout, "[ERROR]: Encryption failed!\n");
-BLEConnecterImpl_States_OnEntry(BLECONNECTERIMPL_STATES_FAILURE_STATE, _instance);
+else if (BLEConnecterImpl_States_State_event_consumed == 0 && (Status == 0)) {
+fprintf(stdout, "[INFO]: Requested encryption...\n");
 BLEConnecterImpl_States_State_event_consumed = 1;
 }
 }
@@ -1301,8 +1301,8 @@ void enqueue_BLEConnecterImpl_Connecter_Connect(struct BLEConnecterImpl_Instance
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 1 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (54 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 54 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -1314,8 +1314,8 @@ void enqueue_BLEConnecterImpl_Connecter_Stop(struct BLEConnecterImpl_Instance * 
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 2 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (55 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 55 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -1327,8 +1327,8 @@ void enqueue_BLEConnecterImpl_Connecter_Encrypt(struct BLEConnecterImpl_Instance
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 3 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (56 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 56 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -1340,8 +1340,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_DisconnectStatus(struct BLEConnecterImpl
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (4 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 4 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (57 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 57 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1369,8 +1369,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_DisconnectionCompleted(struct BLEConnect
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 8 ) {
 
-        _fifo_enqueue(&(inst->fifo), (5 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 5 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (58 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 58 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1407,8 +1407,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_LECreateConnectionStatus(struct BLEConne
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (6 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 6 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (59 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 59 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1436,8 +1436,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_LECreateConnectionCancelCompleted(struct
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (7 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 7 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (60 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 60 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1465,8 +1465,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_LEConnectionComplete(struct BLEConnecter
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (8 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 8 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (61 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 61 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1559,8 +1559,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_LEEnhancedConnectionComplete(struct BLEC
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 34 ) {
 
-        _fifo_enqueue(&(inst->fifo), (9 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 9 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (62 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 62 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1679,8 +1679,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_EncryptionChanged(struct BLEConnecterImp
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 8 ) {
 
-        _fifo_enqueue(&(inst->fifo), (10 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 10 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (63 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 63 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1717,8 +1717,8 @@ void enqueue_BLEConnecterImpl_HCIEvents_LEStartEncryptionStatus(struct BLEConnec
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (11 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 11 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (64 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 64 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -1758,7 +1758,7 @@ code += fifo_dequeue(&(_instance->fifo));
 
 // Switch to call the appropriate handler
 switch(code) {
-case 1:{
+case 54:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1773,7 +1773,7 @@ break;
 }
 break;
 }
-case 2:{
+case 55:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1788,7 +1788,7 @@ break;
 }
 break;
 }
-case 3:{
+case 56:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1803,7 +1803,7 @@ break;
 }
 break;
 }
-case 12:{
+case 65:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1824,7 +1824,7 @@ switch(portID) {
 }
 break;
 }
-case 13:{
+case 66:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1834,7 +1834,7 @@ switch(portID) {
 }
 break;
 }
-case 14:{
+case 67:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1856,7 +1856,7 @@ switch(portID) {
 }
 break;
 }
-case 15:{
+case 68:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1878,7 +1878,7 @@ switch(portID) {
 }
 break;
 }
-case 16:{
+case 69:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1900,7 +1900,7 @@ switch(portID) {
 }
 break;
 }
-case 4:{
+case 57:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1929,7 +1929,7 @@ break;
 }
 break;
 }
-case 5:{
+case 58:{
 byte mbuf[8 - 2];
 while (mbufi < (8 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1966,7 +1966,7 @@ break;
 }
 break;
 }
-case 17:{
+case 70:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1988,7 +1988,7 @@ switch(portID) {
 }
 break;
 }
-case 18:{
+case 71:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2010,7 +2010,7 @@ switch(portID) {
 }
 break;
 }
-case 19:{
+case 72:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2032,7 +2032,7 @@ switch(portID) {
 }
 break;
 }
-case 20:{
+case 73:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2054,7 +2054,7 @@ switch(portID) {
 }
 break;
 }
-case 21:{
+case 74:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2076,7 +2076,7 @@ switch(portID) {
 }
 break;
 }
-case 22:{
+case 75:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2098,7 +2098,7 @@ switch(portID) {
 }
 break;
 }
-case 23:{
+case 76:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2120,7 +2120,7 @@ switch(portID) {
 }
 break;
 }
-case 24:{
+case 77:{
 byte mbuf[44 - 2];
 while (mbufi < (44 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2195,7 +2195,7 @@ switch(portID) {
 }
 break;
 }
-case 6:{
+case 59:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2224,7 +2224,7 @@ break;
 }
 break;
 }
-case 7:{
+case 60:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2253,7 +2253,7 @@ break;
 }
 break;
 }
-case 8:{
+case 61:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2340,7 +2340,7 @@ break;
 }
 break;
 }
-case 9:{
+case 62:{
 byte mbuf[34 - 2];
 while (mbufi < (34 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2451,7 +2451,7 @@ break;
 }
 break;
 }
-case 25:{
+case 78:{
 byte mbuf[14 - 2];
 while (mbufi < (14 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2486,7 +2486,7 @@ switch(portID) {
 }
 break;
 }
-case 26:{
+case 79:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2529,7 +2529,7 @@ switch(portID) {
 }
 break;
 }
-case 10:{
+case 63:{
 byte mbuf[8 - 2];
 while (mbufi < (8 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2566,7 +2566,7 @@ break;
 }
 break;
 }
-case 11:{
+case 64:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2595,7 +2595,7 @@ break;
 }
 break;
 }
-case 27:{
+case 20:{
 byte mbuf[15 - 2];
 while (mbufi < (15 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2666,7 +2666,7 @@ switch(portID) {
 }
 break;
 }
-case 28:{
+case 21:{
 byte mbuf[15 - 2];
 while (mbufi < (15 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2737,7 +2737,7 @@ switch(portID) {
 }
 break;
 }
-case 29:{
+case 22:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2775,7 +2775,7 @@ switch(portID) {
 }
 break;
 }
-case 30:{
+case 23:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2813,7 +2813,7 @@ switch(portID) {
 }
 break;
 }
-case 31:{
+case 24:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2836,7 +2836,7 @@ switch(portID) {
 }
 break;
 }
-case 32:{
+case 25:{
 byte mbuf[70 - 2];
 while (mbufi < (70 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2927,7 +2927,7 @@ switch(portID) {
 }
 break;
 }
-case 33:{
+case 26:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2965,7 +2965,7 @@ switch(portID) {
 }
 break;
 }
-case 34:{
+case 27:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -2988,7 +2988,7 @@ switch(portID) {
 }
 break;
 }
-case 35:{
+case 28:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3026,7 +3026,7 @@ switch(portID) {
 }
 break;
 }
-case 36:{
+case 29:{
 byte mbuf[16 - 2];
 while (mbufi < (16 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3063,7 +3063,7 @@ switch(portID) {
 }
 break;
 }
-case 37:{
+case 30:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3101,7 +3101,7 @@ switch(portID) {
 }
 break;
 }
-case 38:{
+case 31:{
 byte mbuf[13 - 2];
 while (mbufi < (13 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3135,7 +3135,7 @@ switch(portID) {
 }
 break;
 }
-case 39:{
+case 32:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3173,7 +3173,7 @@ switch(portID) {
 }
 break;
 }
-case 40:{
+case 33:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3214,7 +3214,7 @@ switch(portID) {
 }
 break;
 }
-case 41:{
+case 34:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3245,7 +3245,7 @@ switch(portID) {
 }
 break;
 }
-case 42:{
+case 35:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3297,7 +3297,7 @@ switch(portID) {
 }
 break;
 }
-case 43:{
+case 36:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3327,7 +3327,7 @@ switch(portID) {
 }
 break;
 }
-case 44:{
+case 37:{
 byte mbuf[26 - 2];
 while (mbufi < (26 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3379,7 +3379,7 @@ switch(portID) {
 }
 break;
 }
-case 45:{
+case 38:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3431,7 +3431,7 @@ switch(portID) {
 }
 break;
 }
-case 46:{
+case 39:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3461,7 +3461,7 @@ switch(portID) {
 }
 break;
 }
-case 47:{
+case 40:{
 byte mbuf[8 - 2];
 while (mbufi < (8 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3485,7 +3485,7 @@ switch(portID) {
 }
 break;
 }
-case 48:{
+case 41:{
 byte mbuf[30 - 2];
 while (mbufi < (30 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3531,7 +3531,7 @@ switch(portID) {
 }
 break;
 }
-case 49:{
+case 42:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3561,7 +3561,7 @@ switch(portID) {
 }
 break;
 }
-case 50:{
+case 43:{
 byte mbuf[26 - 2];
 while (mbufi < (26 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3613,7 +3613,7 @@ switch(portID) {
 }
 break;
 }
-case 51:{
+case 44:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3665,7 +3665,7 @@ switch(portID) {
 }
 break;
 }
-case 52:{
+case 45:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3695,7 +3695,7 @@ switch(portID) {
 }
 break;
 }
-case 53:{
+case 46:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3748,7 +3748,7 @@ switch(portID) {
 }
 break;
 }
-case 54:{
+case 47:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3765,7 +3765,7 @@ switch(portID) {
 }
 break;
 }
-case 55:{
+case 48:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3795,7 +3795,7 @@ switch(portID) {
 }
 break;
 }
-case 56:{
+case 49:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3848,7 +3848,7 @@ switch(portID) {
 }
 break;
 }
-case 57:{
+case 50:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3901,7 +3901,7 @@ switch(portID) {
 }
 break;
 }
-case 58:{
+case 51:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -3954,7 +3954,7 @@ switch(portID) {
 }
 break;
 }
-case 59:{
+case 52:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));

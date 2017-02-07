@@ -1,3 +1,4 @@
+import "Datatypes.thingml"
 import "ExitHandler.thingml"
 import "BLE_initialiser.thingml"
 import "BLE_connecter.thingml"
@@ -5,18 +6,19 @@ import "BLE_bloodpressure.thingml"
 import "BLE_notifier.thingml"
 import "HCISocketImpl.thingml"
 
-protocol MQTT @serializer "PosixJSONSerializerPlugin" @mqtt_broker_address "10.218.149.140" @mqtt_topic "ThingML" @trace_level "2" @mqtt_will "{ \"ERROR\": \"Unexpected disconnect\" }"
 
 thing fragment MqttMsgs
 {
-  message MqttBloodPressureMeasurement(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
+  message TelluCloudBloodPressure(observationTime : DateTime, health_pressure_diastolic : Int, health_pressure_mean : Int, health_pressure_systolic : Int, health_pulseRate : Int) @tellucloud_type "observation";
   message MqttRequestBloodPressureMeasurement();
   message MqttConfirmBloodPressureMeasurement();
 }
 
 thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMsgs, BLEConnecterMsgs, MqttMsgs
+@c_header "#include <time.h>"
 {
-  required port Signals {
+  required port Signals
+  {
     receives Interrupt
     sends Quit
   }
@@ -34,9 +36,9 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
   }
 
   /* MQTT messages */
-  required port Gateway
+  required port BloodPressureCloud
   {
-    sends MqttBloodPressureMeasurement
+    sends TelluCloudBloodPressure
     receives MqttRequestBloodPressureMeasurement, MqttConfirmBloodPressureMeasurement
   }
 
@@ -68,29 +70,72 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
           end
 
           transition -> ConnectedBP event BloodPressureDevice?Encrypted
+          
+          internal event e:BloodPressureCloud?MqttRequestBloodPressureMeasurement action do
+            SendToNotifier = '0x01'
+            BloodPressureDevice!Stop()
+          end
+          internal event e:BloodPressureCloud?MqttConfirmBloodPressureMeasurement action do
+            SendToNotifier = '0x02'
+            BloodPressureDevice!Stop()
+          end
         }
 
         state ConnectedBP
         {
-          internal event e:Bloodpressure?BloodPressureMeasurement action do
-            Gateway!MqttBloodPressureMeasurement(e.Systolic, e.Diastolic, e.MeanArterial, e.UnitKPA, e.Year, e.Month, e.Day, e.Hour, e.Minute, e.Second, e.Pulse, e.IrregularPulse)
+          property GotMeasurements : Boolean
+          property MeasurementOK : Boolean
+          
+          on entry do
+            GotMeasurements = false
+            MeasurementOK = false
           end
+          
+          internal event e:Bloodpressure?BloodPressureMeasurement action do
+            GotMeasurements = true
+            MeasurementOK = '!isnan('&e.Systolic&')'
+            
+            if (MeasurementOK) do
+              var ObservationTime : DateTime = 0
+              var HealthPressureDiastolic : Int = e.Diastolic
+              var HealthPressureMean : Int = e.MeanArterial
+              var HealthPressureSystolic : Int = e.Systolic
+              var HealthPulseRate : Int = e.Pulse
+              '
+                printf("%i.%i.%i ", '&e.Year&', '&e.Month&', '&e.Day&');
+                printf("%i:%i:%i\n", '&e.Hour&', '&e.Minute&', '&e.Second&');
+              '
+              // Convert date time
+              '
+                struct tm timebuf;
+                timebuf.tm_year = '&e.Year&'-1900;
+                timebuf.tm_mon = '&e.Month&'-1;
+                timebuf.tm_mday = '&e.Day&';
+                timebuf.tm_hour = '&e.Hour&';
+                timebuf.tm_min = '&e.Minute&';
+                timebuf.tm_sec = '&e.Second&';
+              '
+              ObservationTime = 'timegm(&timebuf)'
+            
+              BloodPressureCloud!TelluCloudBloodPressure(ObservationTime, HealthPressureDiastolic, HealthPressureMean, HealthPressureSystolic, HealthPulseRate)
+            end
+          end
+          //message BloodPressureMeasurement(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
 
-          transition -> ConnectBP event BloodPressureDevice?Stopped guard (SendToNotifier == '0x00') action do
+          transition -> ConnectBP event BloodPressureDevice?Stopped guard (not GotMeasurements) action do
+            print "[WARNING]: Finished syncing with Blood Pressure Monitor but got no measurements!\n"
+          end
+          
+          internal event BloodPressureDevice?Stopped guard (GotMeasurements and SendToNotifier == '0x00') action do
             print "[INFO]: Finished syncing with Blood Pressure Monitor.\n"
-            // TODO Add a small delay here maybe?
+            if (MeasurementOK) do
+              SendToNotifier = '0x04'
+            end else do
+              SendToNotifier = '0x03'
+            end
+            BloodPressureDevice!Stop()
           end
         }
-
-        internal event e:Gateway?MqttRequestBloodPressureMeasurement action do
-          SendToNotifier = '0x01'
-          BloodPressureDevice!Stop()
-        end
-        
-        internal event e:Gateway?MqttConfirmBloodPressureMeasurement action do
-          SendToNotifier = '0x02'
-          BloodPressureDevice!Stop()
-        end
 
         transition -> SendToNotifier event BloodPressureDevice?Stopped guard (SendToNotifier != '0x00')
       }
@@ -112,10 +157,20 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
         {
           on entry do
             if (SendToNotifier == '0x01') do
+              print "[INFO]: NOTIFIER - request\n"
               Notifications!RequestBloodPressureMeasurement()
             end
             if (SendToNotifier == '0x02') do
-              Notifications!ConfirmBloodPressureMeasurement()
+              print "[INFO]: NOTIFIER - stored\n"
+              Notifications!StoredBloodPressureMeasurement()
+            end
+            if (SendToNotifier == '0x03') do
+              print "[INFO]: NOTIFIER - bad\n"
+              Notifications!BadBloodPressureMeasurement()
+            end
+            if (SendToNotifier == '0x04') do
+              print "[INFO]: NOTIFIER - received\n"
+              Notifications!ReceivedBloodPressureMeasurement()
             end
             SendToNotifier = '0x00'
           end
@@ -169,23 +224,23 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
   }
 }
 
+protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_publish_topic "5C:31:3E:03:54:2F/smarttracker/health.pressure"
+  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttRequestBloodPressureMeasurement";
+
 configuration AND_UA651BLE_SYNC
 @add_c_libraries "bluetooth"
 @c_header "
-  /*
-  // Jakobs device
-  ble_random_number_t peer_ltk = { 0x33, 0x46, 0xCC, 0x17, 0x3F, 0x56, 0xBC, 0x52, 0xF4, 0xB2, 0x90, 0xC4, 0x0E, 0xEF, 0x43, 0x05, };
-  uint16_t peer_ediv = 0xF7B3;
-  ble_random_part_t peer_random = { 0xD0, 0xC4, 0x4A, 0x1F, 0x57, 0x36, 0xF2, 0xBC, };
-  */
-  // Francks device
-  ble_random_number_t peer_ltk = { 0x92, 0x3D, 0xDD, 0x2F, 0xE9, 0x9A, 0x16, 0xCD, 0x95, 0xCC, 0x2D, 0x6C, 0xEA, 0x9E, 0x86, 0x0D, };
-  uint16_t peer_ediv = 0xD820;
-  ble_random_part_t peer_random  = { 0xE9, 0x9A, 0xF6, 0x4D, 0x93, 0xC4, 0xCD, 0xEC, };
+  ble_random_number_t peer_ltk = { 0x4D, 0xED, 0x37, 0xB5, 0x6C, 0x94, 0x4D, 0xEE, 0xD7, 0x35, 0x5A, 0xDC, 0x52, 0x3A, 0x82, 0xFC, };
+  uint16_t peer_ediv = 0x9B20;
+  ble_random_part_t peer_random = { 0xDE, 0x29, 0x2A, 0x99, 0x19, 0xDE, 0x56, 0xCA, };
   
-  notifier_cmd_t request_cmd = { 2, '!', 'N' };
-  notifier_cmd_t confirm_cmd = { 2, '!', 'S' };
-"
+  notifier_cmd_t request_cmd  = { 2, '!', 'R' };
+  notifier_cmd_t received_cmd = { 2, '!', 'G' };
+  notifier_cmd_t error_cmd    = { 2, '!', 'E' };
+  notifier_cmd_t stored_cmd   = { 2, '!', 'S' };
+"  
 {
   instance handler : ExitHandler
   instance hci     : HCISocketProxyImpl
@@ -206,7 +261,6 @@ configuration AND_UA651BLE_SYNC
   connector main.Bloodpressure => bloodpressure.Bloodpressure
   connector main.NotifierDevice => connecternotifier.Connecter
   connector main.Notifications => notifier.Notifications
-  connector main.Gateway over MQTT
 
   connector initialiser.Socket => hci.Socket
   connector initialiser.HCICommands => hci.Commands
@@ -225,23 +279,23 @@ configuration AND_UA651BLE_SYNC
 
   connector notifier.ATT => hci.ATT
   connector notifier.Connecter => connecternotifier.Connecter
-
-
-
-  set hci.Device = "B8:27:EB:03:FA:CD"
-  //set hci.Device = "B8:27:EB:F1:1D:FF"
   
+  set notifier.RequestCommand  = 'request_cmd'
+  set notifier.ReceivedCommand = 'received_cmd'
+  set notifier.ErrorCommand    = 'error_cmd'
+  set notifier.StoredCommand   = 'stored_cmd'
+  
+  /* ----- BLE CONNECTION PARAMETERS ----- */
+  set hci.Device = "B8:27:EB:03:FA:CD"
+
   set connecterbloodpressure.ConnectAddressType = BLEAddressType:PUBLIC
-  //set connecterbloodpressure.ConnectAddress = "5C:31:3E:03:54:2F" //Jakob
-  set connecterbloodpressure.ConnectAddress = "5C:31:3E:00:4B:6B" //Franck
+  set connecterbloodpressure.ConnectAddress = "5C:31:3E:03:54:2F"
+  connector main.BloodPressureCloud over MQTT1 @tellucloud_deviceid "5C:31:3E:03:54:2F"
+
   set connecterbloodpressure.LongTermKey = 'peer_ltk'
   set connecterbloodpressure.EncryptedDiversifier = 'peer_ediv'
   set connecterbloodpressure.RandomNumber = 'peer_random'
 
   set connecternotifier.ConnectAddressType = BLEAddressType:RANDOM
-  //set connecternotifier.ConnectAddress = "C7:BD:03:2B:88:33"
-  set connecternotifier.ConnectAddress = "F3:48:7F:62:B8:60"
-  
-  set notifier.RequestCommand = 'request_cmd'
-  set notifier.ConfirmCommand = 'confirm_cmd'
+  set connecternotifier.ConnectAddress = "D8:1A:59:61:FC:67"  
 }
