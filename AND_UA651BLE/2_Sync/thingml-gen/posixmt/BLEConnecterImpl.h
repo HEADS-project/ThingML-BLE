@@ -20,28 +20,12 @@ extern "C" {
 
 #include "runtime.h"
 
-// BEGIN: Code from the c_header annotation for type SMPPublicKey
-#ifndef SMP_PUBLIC_KEY_T_H
-#define SMP_PUBLIC_KEY_T_H
-typedef struct { uint8_t bytes[32]; } smp_public_key_t;
+// BEGIN: Code from the c_header annotation for type BLEAdvertiseData
+#ifndef BLE_ADV_DATA_T_H
+#define BLE_ADV_DATA_T_H
+typedef struct { uint8_t bytes[31]; } ble_adv_data_t;
 #endif
-// END: Code from the c_header annotation for type SMPPublicKey
-
-
-// BEGIN: Code from the c_header annotation for type UUID
-#ifndef BLE_UUID_T_H
-#define BLE_UUID_T_H
-typedef struct { uint8_t bytes[16]; } ble_uuid_t;
-#endif
-// END: Code from the c_header annotation for type UUID
-
-
-// BEGIN: Code from the c_header annotation for type BLERandomPart
-#ifndef BLE_RANDOM_PART_T_H
-#define BLE_RANDOM_PART_T_H
-typedef struct { uint8_t bytes[8]; } ble_random_part_t;
-#endif
-// END: Code from the c_header annotation for type BLERandomPart
+// END: Code from the c_header annotation for type BLEAdvertiseData
 
 
 // BEGIN: Code from the c_header annotation for type BLERandomNumber
@@ -52,9 +36,20 @@ typedef struct { uint8_t bytes[16]; } ble_random_number_t;
 // END: Code from the c_header annotation for type BLERandomNumber
 
 
-// BEGIN: Code from the c_header annotation for type BTAddress
-#include <bluetooth/bluetooth.h>
-// END: Code from the c_header annotation for type BTAddress
+// BEGIN: Code from the c_header annotation for type SMPPublicKey
+#ifndef SMP_PUBLIC_KEY_T_H
+#define SMP_PUBLIC_KEY_T_H
+typedef struct { uint8_t bytes[32]; } smp_public_key_t;
+#endif
+// END: Code from the c_header annotation for type SMPPublicKey
+
+
+// BEGIN: Code from the c_header annotation for type BLERandomPart
+#ifndef BLE_RANDOM_PART_T_H
+#define BLE_RANDOM_PART_T_H
+typedef struct { uint8_t bytes[8]; } ble_random_part_t;
+#endif
+// END: Code from the c_header annotation for type BLERandomPart
 
 
 // BEGIN: Code from the c_header annotation for type HCIEventMask
@@ -71,12 +66,17 @@ typedef struct { uint8_t length; uint8_t bytes[23]; } ble_gatt_data_t;
 // END: Code from the c_header annotation for type GATTData
 
 
-// BEGIN: Code from the c_header annotation for type BLEAdvertiseData
-#ifndef BLE_ADV_DATA_T_H
-#define BLE_ADV_DATA_T_H
-typedef struct { uint8_t bytes[31]; } ble_adv_data_t;
+// BEGIN: Code from the c_header annotation for type UUID
+#ifndef BLE_UUID_T_H
+#define BLE_UUID_T_H
+typedef struct { uint8_t bytes[16]; } ble_uuid_t;
 #endif
-// END: Code from the c_header annotation for type BLEAdvertiseData
+// END: Code from the c_header annotation for type UUID
+
+
+// BEGIN: Code from the c_header annotation for type BTAddress
+#include <bluetooth/bluetooth.h>
+// END: Code from the c_header annotation for type BTAddress
 
 
 // BEGIN: Code from the c_header annotation for type BTLocalName

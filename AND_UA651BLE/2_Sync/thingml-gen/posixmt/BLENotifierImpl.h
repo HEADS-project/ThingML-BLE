@@ -20,19 +20,6 @@ extern "C" {
 
 #include "runtime.h"
 
-// BEGIN: Code from the c_header annotation for type NotifierCommand
-#ifndef NOTIFIER_CMD_T_H
-#define NOTIFIER_CMD_T_H
-typedef struct { uint8_t bytes[8]; } notifier_cmd_t;
-#endif
-// END: Code from the c_header annotation for type NotifierCommand
-
-
-// BEGIN: Code from the c_header annotation for type BTAddress
-#include <bluetooth/bluetooth.h>
-// END: Code from the c_header annotation for type BTAddress
-
-
 // BEGIN: Code from the c_header annotation for type GATTData
 #ifndef BLE_GATT_DATA_T_H
 #define BLE_GATT_DATA_T_H
@@ -47,6 +34,19 @@ typedef struct { uint8_t length; uint8_t bytes[23]; } ble_gatt_data_t;
 typedef struct { uint8_t bytes[16]; } ble_uuid_t;
 #endif
 // END: Code from the c_header annotation for type UUID
+
+
+// BEGIN: Code from the c_header annotation for type BTAddress
+#include <bluetooth/bluetooth.h>
+// END: Code from the c_header annotation for type BTAddress
+
+
+// BEGIN: Code from the c_header annotation for type NotifierCommand
+#ifndef NOTIFIER_CMD_T_H
+#define NOTIFIER_CMD_T_H
+typedef struct { uint8_t bytes[8]; } notifier_cmd_t;
+#endif
+// END: Code from the c_header annotation for type NotifierCommand
 
 // Definition of the sessions stuct:
 

@@ -89,27 +89,36 @@ Main_send_NotifierDevice_Connect(_instance);
 break;
 }
 case MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE:{
-if(_instance->Main_SendToNotifier_var == 0x01) {
+if(_instance->Main_SendToNotifier_var & 0x01) {
+_instance->Main_SendToNotifier_var &= ~0x01;
+fprintf(stdout, "[INFO]: NOTIFIER - bad\n");
+Main_send_Notifications_BadBloodPressureMeasurement(_instance);
+
+} else {
+if(_instance->Main_SendToNotifier_var & 0x02) {
+_instance->Main_SendToNotifier_var &= ~0x02;
+fprintf(stdout, "[INFO]: NOTIFIER - received\n");
+Main_send_Notifications_ReceivedBloodPressureMeasurement(_instance);
+
+} else {
+if(_instance->Main_SendToNotifier_var & 0x04) {
+_instance->Main_SendToNotifier_var &= ~0x04;
+fprintf(stdout, "[INFO]: NOTIFIER - stored\n");
+Main_send_Notifications_StoredBloodPressureMeasurement(_instance);
+
+} else {
+if(_instance->Main_SendToNotifier_var & 0x08) {
+_instance->Main_SendToNotifier_var &= ~0x08;
 fprintf(stdout, "[INFO]: NOTIFIER - request\n");
 Main_send_Notifications_RequestBloodPressureMeasurement(_instance);
 
 }
-if(_instance->Main_SendToNotifier_var == 0x02) {
-fprintf(stdout, "[INFO]: NOTIFIER - stored\n");
-Main_send_Notifications_StoredBloodPressureMeasurement(_instance);
 
 }
-if(_instance->Main_SendToNotifier_var == 0x03) {
-fprintf(stdout, "[INFO]: NOTIFIER - bad\n");
-Main_send_Notifications_BadBloodPressureMeasurement(_instance);
 
 }
-if(_instance->Main_SendToNotifier_var == 0x04) {
-fprintf(stdout, "[INFO]: NOTIFIER - received\n");
-Main_send_Notifications_ReceivedBloodPressureMeasurement(_instance);
 
 }
-_instance->Main_SendToNotifier_var = 0x00;
 break;
 }
 default: break;
@@ -152,35 +161,6 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void Main_handle_BloodPressureDevice_Encrypted(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
-//Region Standby
-uint8_t Main_States_Standby_State_event_consumed = 0;
-if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
-//Region SyncBloodPressure
-uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
-if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
-if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE, _instance);
-_instance->Main_States_Standby_SyncBloodPressure_State = MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTEDBP_STATE;
-Main_States_OnEntry(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTEDBP_STATE, _instance);
-Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
-}
-}
-//End Region SyncBloodPressure
-Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
-//End dsregion SyncBloodPressure
-}
-//End Region Standby
-Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
-//End dsregion Standby
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
 void Main_handle_BloodPressureDevice_Failure(struct Main_Instance *_instance) {
 //Region States
 uint8_t Main_States_State_event_consumed = 0;
@@ -213,13 +193,13 @@ fprintf(stdout, "[WARNING]: Finished syncing with Blood Pressure Monitor but got
 Main_States_OnEntry(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE, _instance);
 Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
 }
-else if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && (_instance->Main_States_Standby_SyncBloodPressure_ConnectedBP_GotMeasurements_var && _instance->Main_SendToNotifier_var == 0x00)) {
+else if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && (_instance->Main_States_Standby_SyncBloodPressure_ConnectedBP_GotMeasurements_var && !(_instance->Main_SendToNotifier_var & 0x03))) {
 fprintf(stdout, "[INFO]: Finished syncing with Blood Pressure Monitor.\n");
 if(_instance->Main_States_Standby_SyncBloodPressure_ConnectedBP_MeasurementOK_var) {
-_instance->Main_SendToNotifier_var = 0x04;
+_instance->Main_SendToNotifier_var |= 0x02;
 
 } else {
-_instance->Main_SendToNotifier_var = 0x03;
+_instance->Main_SendToNotifier_var |= 0x01;
 
 }
 Main_send_BloodPressureDevice_Stop(_instance);
@@ -250,67 +230,30 @@ Main_States_State_event_consumed = 1;
 //End dsregion States
 //Session list: 
 }
-void Main_handle_Initialiser_DeviceInitialised(struct Main_Instance *_instance, bdaddr_t Address) {
+void Main_handle_BloodPressureDevice_Encrypted(struct Main_Instance *_instance) {
 //Region States
 uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_INITIALISE_STATE) {
-if (Main_States_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_INITIALISE_STATE, _instance);
-_instance->Main_States_State = MAIN_STATES_STANDBY_STATE;
-Main_States_OnEntry(MAIN_STATES_STANDBY_STATE, _instance);
-Main_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void Main_handle_Initialiser_Failure(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_INITIALISE_STATE) {
-if (Main_States_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_INITIALISE_STATE, _instance);
-_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
-Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
-Main_States_State_event_consumed = 1;
-}
-}
-else if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
+if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
 //Region Standby
 uint8_t Main_States_Standby_State_event_consumed = 0;
+if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
+//Region SyncBloodPressure
+uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
+if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
+if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE, _instance);
+_instance->Main_States_Standby_SyncBloodPressure_State = MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTEDBP_STATE;
+Main_States_OnEntry(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTEDBP_STATE, _instance);
+Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
+}
+}
+//End Region SyncBloodPressure
+Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
+//End dsregion SyncBloodPressure
+}
 //End Region Standby
 Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
 //End dsregion Standby
-if (Main_States_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_STANDBY_STATE, _instance);
-_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
-Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
-Main_States_State_event_consumed = 1;
-}
-}
-else if (_instance->Main_States_State == MAIN_STATES_DEINITIALISE_STATE) {
-if (Main_States_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_DEINITIALISE_STATE, _instance);
-_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
-Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
-Main_States_State_event_consumed = 1;
-}
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void Main_handle_Initialiser_Stopped(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_DEINITIALISE_STATE) {
-if (Main_States_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_DEINITIALISE_STATE, _instance);
-_instance->Main_States_State = MAIN_STATES_QUIT_STATE;
-Main_States_OnEntry(MAIN_STATES_QUIT_STATE, _instance);
-Main_States_State_event_consumed = 1;
-}
 }
 //End Region States
 //End dsregion States
@@ -396,10 +339,18 @@ uint8_t Main_States_Standby_State_event_consumed = 0;
 if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_STATE) {
 //Region SendToNotifier
 uint8_t Main_States_Standby_SendToNotifier_State_event_consumed = 0;
+if (_instance->Main_States_Standby_SendToNotifier_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE) {
+if (Main_States_Standby_SendToNotifier_State_event_consumed == 0 && (_instance->Main_SendToNotifier_var != 0x00)) {
+Main_States_OnExit(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE, _instance);
+_instance->Main_States_Standby_SendToNotifier_State = MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE;
+Main_States_OnEntry(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE, _instance);
+Main_States_Standby_SendToNotifier_State_event_consumed = 1;
+}
+}
 //End Region SendToNotifier
 Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SendToNotifier_State_event_consumed ;
 //End dsregion SendToNotifier
-if (Main_States_Standby_State_event_consumed == 0 && 1) {
+if (Main_States_Standby_State_event_consumed == 0 && (_instance->Main_SendToNotifier_var == 0x00)) {
 Main_States_OnExit(MAIN_STATES_STANDBY_SENDTONOTIFIER_STATE, _instance);
 _instance->Main_States_Standby_State = MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE;
 Main_States_OnEntry(MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE, _instance);
@@ -415,6 +366,165 @@ if (Main_States_State_event_consumed == 0 && 1) {
 Main_send_Initialiser_Stop(_instance);
 Main_States_State_event_consumed = 1;
 }
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_Initialiser_DeviceInitialised(struct Main_Instance *_instance, bdaddr_t Address) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_INITIALISE_STATE) {
+if (Main_States_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_INITIALISE_STATE, _instance);
+_instance->Main_States_State = MAIN_STATES_STANDBY_STATE;
+Main_States_OnEntry(MAIN_STATES_STANDBY_STATE, _instance);
+Main_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_Initialiser_Failure(struct Main_Instance *_instance) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_INITIALISE_STATE) {
+if (Main_States_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_INITIALISE_STATE, _instance);
+_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
+Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
+Main_States_State_event_consumed = 1;
+}
+}
+else if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
+//Region Standby
+uint8_t Main_States_Standby_State_event_consumed = 0;
+//End Region Standby
+Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
+//End dsregion Standby
+if (Main_States_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_STANDBY_STATE, _instance);
+_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
+Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
+Main_States_State_event_consumed = 1;
+}
+}
+else if (_instance->Main_States_State == MAIN_STATES_DEINITIALISE_STATE) {
+if (Main_States_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_DEINITIALISE_STATE, _instance);
+_instance->Main_States_State = MAIN_STATES_FAILED_STATE;
+Main_States_OnEntry(MAIN_STATES_FAILED_STATE, _instance);
+Main_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_Initialiser_Stopped(struct Main_Instance *_instance) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_DEINITIALISE_STATE) {
+if (Main_States_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_DEINITIALISE_STATE, _instance);
+_instance->Main_States_State = MAIN_STATES_QUIT_STATE;
+Main_States_OnEntry(MAIN_STATES_QUIT_STATE, _instance);
+Main_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_BloodPressureCloud_MqttRequestBloodPressureMeasurement(struct Main_Instance *_instance) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
+//Region Standby
+uint8_t Main_States_Standby_State_event_consumed = 0;
+if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
+//Region SyncBloodPressure
+uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
+if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
+if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
+_instance->Main_SendToNotifier_var |= 0x08;
+Main_send_BloodPressureDevice_Stop(_instance);
+Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
+}
+}
+//End Region SyncBloodPressure
+Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
+//End dsregion SyncBloodPressure
+}
+//End Region Standby
+Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
+//End dsregion Standby
+if (Main_States_State_event_consumed == 0 && 1) {
+_instance->Main_SendToNotifier_var |= 0x08;
+Main_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_BloodPressureCloud_MqttConfirmBloodPressureMeasurement(struct Main_Instance *_instance) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
+//Region Standby
+uint8_t Main_States_Standby_State_event_consumed = 0;
+if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
+//Region SyncBloodPressure
+uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
+if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
+if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
+_instance->Main_SendToNotifier_var |= 0x04;
+Main_send_BloodPressureDevice_Stop(_instance);
+Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
+}
+}
+//End Region SyncBloodPressure
+Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
+//End dsregion SyncBloodPressure
+}
+//End Region Standby
+Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
+//End dsregion Standby
+if (Main_States_State_event_consumed == 0 && 1) {
+_instance->Main_SendToNotifier_var |= 0x04;
+Main_States_State_event_consumed = 1;
+}
+}
+//End Region States
+//End dsregion States
+//Session list: 
+}
+void Main_handle_Notifications_ReadyForNotificationCommand(struct Main_Instance *_instance) {
+//Region States
+uint8_t Main_States_State_event_consumed = 0;
+if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
+//Region Standby
+uint8_t Main_States_Standby_State_event_consumed = 0;
+if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_STATE) {
+//Region SendToNotifier
+uint8_t Main_States_Standby_SendToNotifier_State_event_consumed = 0;
+if (_instance->Main_States_Standby_SendToNotifier_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE) {
+if (Main_States_Standby_SendToNotifier_State_event_consumed == 0 && 1) {
+Main_States_OnExit(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE, _instance);
+_instance->Main_States_Standby_SendToNotifier_State = MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE;
+Main_States_OnEntry(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE, _instance);
+Main_States_Standby_SendToNotifier_State_event_consumed = 1;
+}
+}
+//End Region SendToNotifier
+Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SendToNotifier_State_event_consumed ;
+//End dsregion SendToNotifier
+}
+//End Region Standby
+Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
+//End dsregion Standby
 }
 //End Region States
 //End dsregion States
@@ -462,91 +572,6 @@ Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
 //End Region SyncBloodPressure
 Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
 //End dsregion SyncBloodPressure
-}
-//End Region Standby
-Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
-//End dsregion Standby
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void Main_handle_BloodPressureCloud_MqttRequestBloodPressureMeasurement(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
-//Region Standby
-uint8_t Main_States_Standby_State_event_consumed = 0;
-if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
-//Region SyncBloodPressure
-uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
-if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
-if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
-_instance->Main_SendToNotifier_var = 0x01;
-Main_send_BloodPressureDevice_Stop(_instance);
-Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
-}
-}
-//End Region SyncBloodPressure
-Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
-//End dsregion SyncBloodPressure
-}
-//End Region Standby
-Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
-//End dsregion Standby
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void Main_handle_BloodPressureCloud_MqttConfirmBloodPressureMeasurement(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
-//Region Standby
-uint8_t Main_States_Standby_State_event_consumed = 0;
-if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_STATE) {
-//Region SyncBloodPressure
-uint8_t Main_States_Standby_SyncBloodPressure_State_event_consumed = 0;
-if (_instance->Main_States_Standby_SyncBloodPressure_State == MAIN_STATES_STANDBY_SYNCBLOODPRESSURE_CONNECTBP_STATE) {
-if (Main_States_Standby_SyncBloodPressure_State_event_consumed == 0 && 1) {
-_instance->Main_SendToNotifier_var = 0x02;
-Main_send_BloodPressureDevice_Stop(_instance);
-Main_States_Standby_SyncBloodPressure_State_event_consumed = 1;
-}
-}
-//End Region SyncBloodPressure
-Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SyncBloodPressure_State_event_consumed ;
-//End dsregion SyncBloodPressure
-}
-//End Region Standby
-Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
-//End dsregion Standby
-}
-//End Region States
-//End dsregion States
-//Session list: 
-}
-void Main_handle_Notifications_ReadyForNotificationCommand(struct Main_Instance *_instance) {
-//Region States
-uint8_t Main_States_State_event_consumed = 0;
-if (_instance->Main_States_State == MAIN_STATES_STANDBY_STATE) {
-//Region Standby
-uint8_t Main_States_Standby_State_event_consumed = 0;
-if (_instance->Main_States_Standby_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_STATE) {
-//Region SendToNotifier
-uint8_t Main_States_Standby_SendToNotifier_State_event_consumed = 0;
-if (_instance->Main_States_Standby_SendToNotifier_State == MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE) {
-if (Main_States_Standby_SendToNotifier_State_event_consumed == 0 && 1) {
-Main_States_OnExit(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTN_STATE, _instance);
-_instance->Main_States_Standby_SendToNotifier_State = MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE;
-Main_States_OnEntry(MAIN_STATES_STANDBY_SENDTONOTIFIER_CONNECTEDN_STATE, _instance);
-Main_States_Standby_SendToNotifier_State_event_consumed = 1;
-}
-}
-//End Region SendToNotifier
-Main_States_Standby_State_event_consumed = 0 | Main_States_Standby_SendToNotifier_State_event_consumed ;
-//End dsregion SendToNotifier
 }
 //End Region Standby
 Main_States_State_event_consumed = 0 | Main_States_Standby_State_event_consumed ;
@@ -748,8 +773,8 @@ void enqueue_Main_Signals_Interrupt(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (82 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 82 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (62 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 62 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -761,8 +786,8 @@ void enqueue_Main_BloodPressureDevice_Stopped(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (83 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 83 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (63 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 63 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -774,8 +799,8 @@ void enqueue_Main_BloodPressureDevice_Failure(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (84 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 84 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (64 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 64 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -787,8 +812,8 @@ void enqueue_Main_BloodPressureDevice_Encrypted(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (85 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 85 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (65 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 65 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -800,8 +825,8 @@ void enqueue_Main_NotifierDevice_Stopped(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (83 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 83 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (63 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 63 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -813,8 +838,8 @@ void enqueue_Main_NotifierDevice_Failure(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (84 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 84 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (64 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 64 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -826,8 +851,8 @@ void enqueue_Main_BloodPressureCloud_MqttRequestBloodPressureMeasurement(struct 
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (86 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 86 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (66 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 66 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -839,8 +864,8 @@ void enqueue_Main_BloodPressureCloud_MqttConfirmBloodPressureMeasurement(struct 
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (87 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 87 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (67 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 67 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -852,8 +877,8 @@ void enqueue_Main_Initialiser_Stopped(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (83 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 83 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (63 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 63 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (4 >> 8) & 0xFF );
@@ -865,8 +890,8 @@ void enqueue_Main_Initialiser_Failure(struct Main_Instance * inst) {
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (84 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 84 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (64 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 64 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (4 >> 8) & 0xFF );
@@ -878,8 +903,8 @@ void enqueue_Main_Initialiser_DeviceInitialised(struct Main_Instance * inst, bda
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 10 ) {
 
-        _fifo_enqueue(&(inst->fifo), (88 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 88 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (68 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 68 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (4 >> 8) & 0xFF );
@@ -904,8 +929,8 @@ void enqueue_Main_Bloodpressure_BloodPressureMeasurement(struct Main_Instance * 
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 29 ) {
 
-        _fifo_enqueue(&(inst->fifo), (89 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 89 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (69 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 69 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (5 >> 8) & 0xFF );
@@ -1026,8 +1051,8 @@ void enqueue_Main_Notifications_ReadyForNotificationCommand(struct Main_Instance
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (90 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 90 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (70 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 70 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (6 >> 8) & 0xFF );
@@ -1051,7 +1076,7 @@ code += fifo_dequeue(&(_instance->fifo));
 
 // Switch to call the appropriate handler
 switch(code) {
-case 82:{
+case 62:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1066,7 +1091,7 @@ break;
 }
 break;
 }
-case 91:{
+case 71:{
 byte mbuf[13 - 2];
 while (mbufi < (13 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1100,7 +1125,7 @@ switch(portID) {
 }
 break;
 }
-case 83:{
+case 63:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1125,7 +1150,7 @@ break;
 }
 break;
 }
-case 84:{
+case 64:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1150,7 +1175,7 @@ break;
 }
 break;
 }
-case 85:{
+case 65:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1165,7 +1190,7 @@ break;
 }
 break;
 }
-case 86:{
+case 66:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1180,7 +1205,7 @@ break;
 }
 break;
 }
-case 87:{
+case 67:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1195,7 +1220,7 @@ break;
 }
 break;
 }
-case 92:{
+case 72:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1205,7 +1230,7 @@ switch(portID) {
 }
 break;
 }
-case 88:{
+case 68:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1232,7 +1257,7 @@ break;
 }
 break;
 }
-case 93:{
+case 73:{
 byte mbuf[5 - 2];
 while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1248,7 +1273,7 @@ switch(portID) {
 }
 break;
 }
-case 89:{
+case 69:{
 byte mbuf[29 - 2];
 while (mbufi < (29 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -1360,7 +1385,7 @@ break;
 }
 break;
 }
-case 90:{
+case 70:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));

@@ -845,17 +845,15 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void HCISocketProxyImpl_handle_SMP_SMPPairingDHKeyCheck(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t DHKeyCheck) {
+void HCISocketProxyImpl_handle_Socket_Close(struct HCISocketProxyImpl_Instance *_instance) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x0D;
-          *((ble_random_number_t*)&data[1]) = DHKeyCheck;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_OnExit(HCISOCKETPROXY_SOCKET_OPEN_STATE, _instance);
+_instance->HCISocketProxy_Socket_State = HCISOCKETPROXY_SOCKET_CLOSED_STATE;
+HCISocketProxyImpl_send_Socket_Closed(_instance);
+HCISocketProxy_Socket_OnEntry(HCISOCKETPROXY_SOCKET_CLOSED_STATE, _instance);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -863,608 +861,14 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_SMP_SMPIdentityInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t IdentityResolvingKey) {
+void HCISocketProxyImpl_handle_Socket_Open(struct HCISocketProxyImpl_Instance *_instance) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_CLOSED_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x08;
-          *((ble_random_number_t*)&data[1]) = IdentityResolvingKey;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingConfirm(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t ConfirmValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x03;
-          *((ble_random_number_t*)&data[1]) = ConfirmValue;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingFailed(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Reason) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[2];
-          data[0] = 0x05;
-          data[1] = Reason;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPSigningInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t SignatureKey) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x0A;
-          *((ble_random_number_t*)&data[1]) = SignatureKey;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t IOCapability, uint8_t OOBDataPresent, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress, uint8_t MaximumEncryptionKeySize, uint8_t InitiatorKeyDistribution, uint8_t ResponderKeyDistribution) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[7];
-          data[0] = 0x01;
-          data[1] = IOCapability;
-          data[2] = (OOBDataPresent) ? 0x01 : 0x00;
-          data[3] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
-          data[4] = MaximumEncryptionKeySize;
-          data[5] = InitiatorKeyDistribution;
-          data[6] = ResponderKeyDistribution;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 7, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPSecurityRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[2];
-          data[0] = 0x0B;
-          data[1] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPEncryptionInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t LongTermKey) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x06;
-          *((ble_random_number_t*)&data[1]) = LongTermKey;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPKeypressNotification(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Type) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[2];
-          data[0] = 0x0E;
-          data[1] = Type;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t IOCapability, uint8_t OOBDataPresent, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress, uint8_t MaximumEncryptionKeySize, uint8_t InitiatorKeyDistribution, uint8_t ResponderKeyDistribution) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[7];
-          data[0] = 0x02;
-          data[1] = IOCapability;
-          data[2] = (OOBDataPresent) ? 0x01 : 0x00;
-          data[3] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
-          data[4] = MaximumEncryptionKeySize;
-          data[5] = InitiatorKeyDistribution;
-          data[6] = ResponderKeyDistribution;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 7, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingPublicKey(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, smp_public_key_t KeyX, smp_public_key_t KeyY) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[65];
-          data[0] = 0x0C;
-          *((smp_public_key_t*)&data[1]) = KeyX;
-          *((smp_public_key_t*)&data[33]) = KeyY;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 65, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPMasterIdentification(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint16_t EDIV, ble_random_part_t Rand) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[11];
-          data[0] = 0x07;
-          *((uint16_t*)&data[1]) = EDIV;
-          *((ble_random_part_t*)&data[3]) = Rand;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 11, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPIdentityAddressInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t AddressType, bdaddr_t Address) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[8];
-          data[0] = 0x09;
-          data[1] = AddressType;
-          *((bdaddr_t*)&data[2]) = Address;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 8, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_SMP_SMPPairingRandom(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t RandomValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[17];
-          data[0] = 0x04;
-          *((ble_random_number_t*)&data[1]) = RandomValue;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x01;
-          data[1] = 0x10;
-          *((uint16_t*)&data[2]) = AttributeHandle;
-          data[4] = Error;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTWriteRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[26];
-          data[0] = 0x12;
-          *((uint16_t*)&data[1]) = AttributeHandle;
-          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByTypeResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Length, ble_gatt_data_t AttributeDataList) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[25];
-          data[0] = 0x09;
-          data[1] = Length;
-          memcpy(&data[2], AttributeDataList.bytes, AttributeDataList.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+AttributeDataList.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x01;
-          data[1] = 0x0A;
-          *((uint16_t*)&data[2]) = AttributeHandle;
-          data[4] = Error;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTWriteError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x01;
-          data[1] = 0x12;
-          *((uint16_t*)&data[2]) = AttributeHandle;
-          data[4] = Error;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Length, ble_gatt_data_t AttributeDataList) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[25];
-          data[0] = 0x11;
-          data[1] = Length;
-          memcpy(&data[2], AttributeDataList.bytes, AttributeDataList.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+AttributeDataList.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle, ble_uuid_t AttributeGroupType) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[21];
-          data[0] = 0x10;
-          *((uint16_t*)&data[1]) = StartingHandle;
-          *((uint16_t*)&data[3]) = EndingHandle;
-          memcpy(&data[5], &AttributeGroupType, 16);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 21, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[3];
-          data[0] = 0x0A;
-          *((uint16_t*)&data[1]) = AttributeHandle;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTHandleValueConfirmation(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[1];
-          data[0] = 0x1E;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTFindInformationResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Format, ble_gatt_data_t InformationData) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[25];
-          data[0] = 0x05;
-          data[1] = Format;
-          memcpy(&data[2], InformationData.bytes, InformationData.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+InformationData.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTFindInformationError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x01;
-          data[1] = 0x04;
-          *((uint16_t*)&data[2]) = AttributeHandle;
-          data[4] = Error;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTWriteResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[1];
-          data[0] = 0x13;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTHandleValueIndication(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[26];
-          data[0] = 0x1D;
-          *((uint16_t*)&data[1]) = AttributeHandle;
-          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByTypeRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle, ble_uuid_t AttributeType) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[21];
-          data[0] = 0x08;
-          *((uint16_t*)&data[1]) = StartingHandle;
-          *((uint16_t*)&data[3]) = EndingHandle;
-          memcpy(&data[5], &AttributeType, 16);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 21, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, ble_gatt_data_t AttributeValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[24];
-          data[0] = 0x0B;
-          memcpy(&data[1], AttributeValue.bytes, AttributeValue.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1+AttributeValue.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTHandleValueNotification(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[26];
-          data[0] = 0x1B;
-          *((uint16_t*)&data[1]) = AttributeHandle;
-          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTFindInformationRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x04;
-          *((uint16_t*)&data[1]) = StartingHandle;
-          *((uint16_t*)&data[3]) = EndingHandle;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTWriteCommand(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[26];
-          data[0] = 0x52;
-          *((uint16_t*)&data[1]) = AttributeHandle;
-          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_ATT_ATTReadByTypeError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          uint8_t data[5];
-          data[0] = 0x01;
-          data[1] = 0x08;
-          *((uint16_t*)&data[2]) = AttributeHandle;
-          data[4] = Error;
-        
-f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_OnExit(HCISOCKETPROXY_SOCKET_CLOSED_STATE, _instance);
+_instance->HCISocketProxy_Socket_State = HCISOCKETPROXY_SOCKET_OPENING_STATE;
+HCISocketProxy_Socket_OnEntry(HCISOCKETPROXY_SOCKET_OPENING_STATE, _instance);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1483,6 +887,61 @@ if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
           data.reason = Reason;
         
 f_HCISocketProxyImpl_SendCommand(_instance, 0x01, 0x0006, 3, (uint8_t*)&data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_Commands_SetLEAdvertisingData(struct HCISocketProxyImpl_Instance *_instance, uint8_t Length, ble_adv_data_t Data) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          le_set_advertising_data_cp data;
+          data.length = Length;
+          memcpy(data.data, Data.bytes, 31);
+        
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0008, 32, (uint8_t*)&data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_Commands_Reset(struct HCISocketProxyImpl_Instance *_instance) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+f_HCISocketProxyImpl_SendCommand(_instance, 0x03, 0x0003, 0, NULL);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_Commands_SetLEAdvertisementParameters(struct HCISocketProxyImpl_Instance *_instance, uint16_t MinInterval, uint16_t MaxInterval, uint8_t Type, uint8_t OwnAddressType, uint8_t PeerAddressType, bdaddr_t PeerAddress, uint8_t Channel, uint8_t FilterPolicy) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          le_set_advertising_parameters_cp data;
+          data.min_interval = MinInterval;
+          data.max_interval = MaxInterval;
+          data.advtype = Type;
+          data.own_bdaddr_type = OwnAddressType;
+          data.direct_bdaddr_type = PeerAddressType;
+          data.direct_bdaddr = PeerAddress;
+          data.chan_map = Channel;
+          data.filter = FilterPolicy;
+        
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0006, 15, (uint8_t*)&data);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1531,12 +990,12 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Commands_LECreateConnectionCancel(struct HCISocketProxyImpl_Instance *_instance) {
+void HCISocketProxyImpl_handle_Commands_SetLEAdvertiseEnable(struct HCISocketProxyImpl_Instance *_instance, uint8_t Enable) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000E, 0, NULL);
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000A, 1, (uint8_t*)&Enable);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1544,72 +1003,30 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Commands_SetLEScanEnable(struct HCISocketProxyImpl_Instance *_instance, uint8_t Enable, uint8_t FilterDuplicates) {
+void HCISocketProxyImpl_handle_Commands_SetLEEventMask(struct HCISocketProxyImpl_Instance *_instance, set_event_mask_cp Mask) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0001, 8, (uint8_t*)&Mask);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_Commands_SetLEScanResponseData(struct HCISocketProxyImpl_Instance *_instance, uint8_t Length, ble_adv_data_t Data) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
 
-          le_set_scan_enable_cp data;
-          data.enable = Enable;
-          data.filter_dup = FilterDuplicates;
+          le_set_scan_response_data_cp data;
+          data.length = Length;
+          memcpy(data.data, Data.bytes, 31);
         
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000C, 2, (uint8_t*)&data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_SetLEAdvertisementParameters(struct HCISocketProxyImpl_Instance *_instance, uint16_t MinInterval, uint16_t MaxInterval, uint8_t Type, uint8_t OwnAddressType, uint8_t PeerAddressType, bdaddr_t PeerAddress, uint8_t Channel, uint8_t FilterPolicy) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          le_set_advertising_parameters_cp data;
-          data.min_interval = MinInterval;
-          data.max_interval = MaxInterval;
-          data.advtype = Type;
-          data.own_bdaddr_type = OwnAddressType;
-          data.direct_bdaddr_type = PeerAddressType;
-          data.direct_bdaddr = PeerAddress;
-          data.chan_map = Channel;
-          data.filter = FilterPolicy;
-        
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0006, 15, (uint8_t*)&data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_Reset(struct HCISocketProxyImpl_Instance *_instance) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-f_HCISocketProxyImpl_SendCommand(_instance, 0x03, 0x0003, 0, NULL);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_LEEncrypt(struct HCISocketProxyImpl_Instance *_instance, ble_random_number_t Key, ble_random_number_t Plaintext) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          ble_random_number_t data[2];
-          data[0] = Key;
-          data[1] = Plaintext;
-        
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0017, 32, data);
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0009, 32, (uint8_t*)&data);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1630,6 +1047,19 @@ if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
           *((ble_random_number_t*)&data[12]) = LTK;
         
 f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0019, 28, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_Commands_SetEventMask(struct HCISocketProxyImpl_Instance *_instance, set_event_mask_cp Mask) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+f_HCISocketProxyImpl_SendCommand(_instance, 0x03, 0x0001, 8, (uint8_t*)&Mask);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1665,12 +1095,12 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Commands_SetEventMask(struct HCISocketProxyImpl_Instance *_instance, set_event_mask_cp Mask) {
+void HCISocketProxyImpl_handle_Commands_LECreateConnectionCancel(struct HCISocketProxyImpl_Instance *_instance) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-f_HCISocketProxyImpl_SendCommand(_instance, 0x03, 0x0001, 8, (uint8_t*)&Mask);
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000E, 0, NULL);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1678,61 +1108,17 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Commands_SetLEScanResponseData(struct HCISocketProxyImpl_Instance *_instance, uint8_t Length, ble_adv_data_t Data) {
+void HCISocketProxyImpl_handle_Commands_SetLEScanEnable(struct HCISocketProxyImpl_Instance *_instance, uint8_t Enable, uint8_t FilterDuplicates) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
 
-          le_set_scan_response_data_cp data;
-          data.length = Length;
-          memcpy(data.data, Data.bytes, 31);
+          le_set_scan_enable_cp data;
+          data.enable = Enable;
+          data.filter_dup = FilterDuplicates;
         
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0009, 32, (uint8_t*)&data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_SetLEAdvertisingData(struct HCISocketProxyImpl_Instance *_instance, uint8_t Length, ble_adv_data_t Data) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-
-          le_set_advertising_data_cp data;
-          data.length = Length;
-          memcpy(data.data, Data.bytes, 31);
-        
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0008, 32, (uint8_t*)&data);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_SetLEAdvertiseEnable(struct HCISocketProxyImpl_Instance *_instance, uint8_t Enable) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000A, 1, (uint8_t*)&Enable);
-HCISocketProxy_Socket_State_event_consumed = 1;
-}
-}
-//End Region Socket
-//End dsregion Socket
-//Session list: 
-}
-void HCISocketProxyImpl_handle_Commands_SetLEEventMask(struct HCISocketProxyImpl_Instance *_instance, set_event_mask_cp Mask) {
-//Region Socket
-uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
-if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0001, 8, (uint8_t*)&Mask);
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x000C, 2, (uint8_t*)&data);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1761,14 +1147,17 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Socket_Open(struct HCISocketProxyImpl_Instance *_instance) {
+void HCISocketProxyImpl_handle_Commands_LEEncrypt(struct HCISocketProxyImpl_Instance *_instance, ble_random_number_t Key, ble_random_number_t Plaintext) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
-if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_CLOSED_STATE) {
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-HCISocketProxy_Socket_OnExit(HCISOCKETPROXY_SOCKET_CLOSED_STATE, _instance);
-_instance->HCISocketProxy_Socket_State = HCISOCKETPROXY_SOCKET_OPENING_STATE;
-HCISocketProxy_Socket_OnEntry(HCISOCKETPROXY_SOCKET_OPENING_STATE, _instance);
+
+          ble_random_number_t data[2];
+          data[0] = Key;
+          data[1] = Plaintext;
+        
+f_HCISocketProxyImpl_SendCommand(_instance, 0x08, 0x0017, 32, data);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -1776,15 +1165,626 @@ HCISocketProxy_Socket_State_event_consumed = 1;
 //End dsregion Socket
 //Session list: 
 }
-void HCISocketProxyImpl_handle_Socket_Close(struct HCISocketProxyImpl_Instance *_instance) {
+void HCISocketProxyImpl_handle_ATT_ATTFindInformationRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle) {
 //Region Socket
 uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
 if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
 if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
-HCISocketProxy_Socket_OnExit(HCISOCKETPROXY_SOCKET_OPEN_STATE, _instance);
-_instance->HCISocketProxy_Socket_State = HCISOCKETPROXY_SOCKET_CLOSED_STATE;
-HCISocketProxyImpl_send_Socket_Closed(_instance);
-HCISocketProxy_Socket_OnEntry(HCISOCKETPROXY_SOCKET_CLOSED_STATE, _instance);
+
+          uint8_t data[5];
+          data[0] = 0x04;
+          *((uint16_t*)&data[1]) = StartingHandle;
+          *((uint16_t*)&data[3]) = EndingHandle;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[3];
+          data[0] = 0x0A;
+          *((uint16_t*)&data[1]) = AttributeHandle;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x10;
+          *((uint16_t*)&data[2]) = AttributeHandle;
+          data[4] = Error;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTWriteRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[26];
+          data[0] = 0x12;
+          *((uint16_t*)&data[1]) = AttributeHandle;
+          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTHandleValueConfirmation(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[1];
+          data[0] = 0x1E;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Length, ble_gatt_data_t AttributeDataList) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[25];
+          data[0] = 0x11;
+          data[1] = Length;
+          memcpy(&data[2], AttributeDataList.bytes, AttributeDataList.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+AttributeDataList.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTHandleValueIndication(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[26];
+          data[0] = 0x1D;
+          *((uint16_t*)&data[1]) = AttributeHandle;
+          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTFindInformationError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x04;
+          *((uint16_t*)&data[2]) = AttributeHandle;
+          data[4] = Error;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTFindInformationResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Format, ble_gatt_data_t InformationData) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[25];
+          data[0] = 0x05;
+          data[1] = Format;
+          memcpy(&data[2], InformationData.bytes, InformationData.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+InformationData.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTWriteError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x12;
+          *((uint16_t*)&data[2]) = AttributeHandle;
+          data[4] = Error;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByTypeRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle, ble_uuid_t AttributeType) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[21];
+          data[0] = 0x08;
+          *((uint16_t*)&data[1]) = StartingHandle;
+          *((uint16_t*)&data[3]) = EndingHandle;
+          memcpy(&data[5], &AttributeType, 16);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 21, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x0A;
+          *((uint16_t*)&data[2]) = AttributeHandle;
+          data[4] = Error;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTHandleValueNotification(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[26];
+          data[0] = 0x1B;
+          *((uint16_t*)&data[1]) = AttributeHandle;
+          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByTypeResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint8_t Length, ble_gatt_data_t AttributeDataList) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[25];
+          data[0] = 0x09;
+          data[1] = Length;
+          memcpy(&data[2], AttributeDataList.bytes, AttributeDataList.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 2+AttributeDataList.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByTypeError(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, uint8_t Error) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[5];
+          data[0] = 0x01;
+          data[1] = 0x08;
+          *((uint16_t*)&data[2]) = AttributeHandle;
+          data[4] = Error;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 5, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadByGroupTypeRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t StartingHandle, uint16_t EndingHandle, ble_uuid_t AttributeGroupType) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[21];
+          data[0] = 0x10;
+          *((uint16_t*)&data[1]) = StartingHandle;
+          *((uint16_t*)&data[3]) = EndingHandle;
+          memcpy(&data[5], &AttributeGroupType, 16);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 21, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTWriteResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[1];
+          data[0] = 0x13;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTWriteCommand(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, uint16_t AttributeHandle, ble_gatt_data_t AttributeValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[26];
+          data[0] = 0x52;
+          *((uint16_t*)&data[1]) = AttributeHandle;
+          memcpy(&data[3], AttributeValue.bytes, AttributeValue.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 3+AttributeValue.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_ATT_ATTReadResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t ConnectionHandle, ble_gatt_data_t AttributeValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[24];
+          data[0] = 0x0B;
+          memcpy(&data[1], AttributeValue.bytes, AttributeValue.length);
+        
+f_HCISocketProxyImpl_SendACLData(_instance, ConnectionHandle, 0x0004, 1+AttributeValue.length, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPEncryptionInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t LongTermKey) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x06;
+          *((ble_random_number_t*)&data[1]) = LongTermKey;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingDHKeyCheck(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t DHKeyCheck) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x0D;
+          *((ble_random_number_t*)&data[1]) = DHKeyCheck;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingPublicKey(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, smp_public_key_t KeyX, smp_public_key_t KeyY) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[65];
+          data[0] = 0x0C;
+          *((smp_public_key_t*)&data[1]) = KeyX;
+          *((smp_public_key_t*)&data[33]) = KeyY;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 65, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingRandom(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t RandomValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x04;
+          *((ble_random_number_t*)&data[1]) = RandomValue;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPMasterIdentification(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint16_t EDIV, ble_random_part_t Rand) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[11];
+          data[0] = 0x07;
+          *((uint16_t*)&data[1]) = EDIV;
+          *((ble_random_part_t*)&data[3]) = Rand;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 11, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingResponse(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t IOCapability, uint8_t OOBDataPresent, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress, uint8_t MaximumEncryptionKeySize, uint8_t InitiatorKeyDistribution, uint8_t ResponderKeyDistribution) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[7];
+          data[0] = 0x02;
+          data[1] = IOCapability;
+          data[2] = (OOBDataPresent) ? 0x01 : 0x00;
+          data[3] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
+          data[4] = MaximumEncryptionKeySize;
+          data[5] = InitiatorKeyDistribution;
+          data[6] = ResponderKeyDistribution;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 7, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingFailed(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Reason) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[2];
+          data[0] = 0x05;
+          data[1] = Reason;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPIdentityAddressInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t AddressType, bdaddr_t Address) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[8];
+          data[0] = 0x09;
+          data[1] = AddressType;
+          *((bdaddr_t*)&data[2]) = Address;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 8, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPKeypressNotification(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Type) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[2];
+          data[0] = 0x0E;
+          data[1] = Type;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t IOCapability, uint8_t OOBDataPresent, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress, uint8_t MaximumEncryptionKeySize, uint8_t InitiatorKeyDistribution, uint8_t ResponderKeyDistribution) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[7];
+          data[0] = 0x01;
+          data[1] = IOCapability;
+          data[2] = (OOBDataPresent) ? 0x01 : 0x00;
+          data[3] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
+          data[4] = MaximumEncryptionKeySize;
+          data[5] = InitiatorKeyDistribution;
+          data[6] = ResponderKeyDistribution;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 7, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPPairingConfirm(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t ConfirmValue) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x03;
+          *((ble_random_number_t*)&data[1]) = ConfirmValue;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPIdentityInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t IdentityResolvingKey) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x08;
+          *((ble_random_number_t*)&data[1]) = IdentityResolvingKey;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPSigningInformation(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, ble_random_number_t SignatureKey) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[17];
+          data[0] = 0x0A;
+          *((ble_random_number_t*)&data[1]) = SignatureKey;
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 17, data);
+HCISocketProxy_Socket_State_event_consumed = 1;
+}
+}
+//End Region Socket
+//End dsregion Socket
+//Session list: 
+}
+void HCISocketProxyImpl_handle_SMP_SMPSecurityRequest(struct HCISocketProxyImpl_Instance *_instance, uint16_t Handle, uint8_t Bonding, uint8_t MITM, uint8_t SecureConnection, uint8_t Keypress) {
+//Region Socket
+uint8_t HCISocketProxy_Socket_State_event_consumed = 0;
+if (_instance->HCISocketProxy_Socket_State == HCISOCKETPROXY_SOCKET_OPEN_STATE) {
+if (HCISocketProxy_Socket_State_event_consumed == 0 && 1) {
+
+          uint8_t data[2];
+          data[0] = 0x0B;
+          data[1] = ( ((Bonding) ? 0x01 : 0x00) | ((MITM) ? 0x04 : 0x00) | ((SecureConnection) ? 0x08 : 0x00) | ((Keypress) ? 0x10 : 0x00) );
+        
+f_HCISocketProxyImpl_SendACLData(_instance, Handle, 0x0006, 2, data);
 HCISocketProxy_Socket_State_event_consumed = 1;
 }
 }
@@ -2562,8 +2562,8 @@ void enqueue_HCISocketProxyImpl_Socket_Open(struct HCISocketProxyImpl_Instance *
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 1 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (74 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 74 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -2575,8 +2575,8 @@ void enqueue_HCISocketProxyImpl_Socket_Close(struct HCISocketProxyImpl_Instance 
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 2 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (75 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 75 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -2588,8 +2588,8 @@ void enqueue_HCISocketProxyImpl_Commands_Reset(struct HCISocketProxyImpl_Instanc
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 3 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (76 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 76 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2601,8 +2601,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetEventMask(struct HCISocketProxyImpl_
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 12 ) {
 
-        _fifo_enqueue(&(inst->fifo), (4 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 4 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (77 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 77 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2629,8 +2629,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetEventMaskAll(struct HCISocketProxyIm
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (5 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 5 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (78 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 78 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2642,8 +2642,8 @@ void enqueue_HCISocketProxyImpl_Commands_Disconnect(struct HCISocketProxyImpl_In
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 7 ) {
 
-        _fifo_enqueue(&(inst->fifo), (6 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 6 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (79 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 79 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2672,8 +2672,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEEventMask(struct HCISocketProxyImp
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 12 ) {
 
-        _fifo_enqueue(&(inst->fifo), (7 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 7 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (80 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 80 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2700,8 +2700,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEEventMaskAll(struct HCISocketProxy
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (8 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 8 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (81 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 81 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2713,8 +2713,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEAdvertisementParameters(struct HCI
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 19 ) {
 
-        _fifo_enqueue(&(inst->fifo), (9 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 9 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (82 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 82 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2797,8 +2797,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEAdvertiseEnable(struct HCISocketPr
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 5 ) {
 
-        _fifo_enqueue(&(inst->fifo), (10 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 10 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (83 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 83 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2818,8 +2818,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEAdvertisingData(struct HCISocketPr
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 36 ) {
 
-        _fifo_enqueue(&(inst->fifo), (11 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 11 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (84 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 84 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2877,8 +2877,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEScanResponseData(struct HCISocketP
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 36 ) {
 
-        _fifo_enqueue(&(inst->fifo), (12 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 12 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (85 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 85 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2936,8 +2936,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEScanParameters(struct HCISocketPro
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 11 ) {
 
-        _fifo_enqueue(&(inst->fifo), (13 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 13 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (86 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 86 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -2991,8 +2991,8 @@ void enqueue_HCISocketProxyImpl_Commands_SetLEScanEnable(struct HCISocketProxyIm
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (14 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 14 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (87 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 87 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3020,8 +3020,8 @@ void enqueue_HCISocketProxyImpl_Commands_LECreateConnection(struct HCISocketProx
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 29 ) {
 
-        _fifo_enqueue(&(inst->fifo), (15 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 15 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (88 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 88 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3142,8 +3142,8 @@ void enqueue_HCISocketProxyImpl_Commands_LECreateConnectionCancel(struct HCISock
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (16 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 16 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (89 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 89 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3155,8 +3155,8 @@ void enqueue_HCISocketProxyImpl_Commands_LERand(struct HCISocketProxyImpl_Instan
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 4 ) {
 
-        _fifo_enqueue(&(inst->fifo), (17 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 17 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (90 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 90 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3168,8 +3168,8 @@ void enqueue_HCISocketProxyImpl_Commands_LEEncrypt(struct HCISocketProxyImpl_Ins
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 36 ) {
 
-        _fifo_enqueue(&(inst->fifo), (18 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 18 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (91 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 91 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3227,8 +3227,8 @@ void enqueue_HCISocketProxyImpl_Commands_LEStartEncryption(struct HCISocketProxy
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 32 ) {
 
-        _fifo_enqueue(&(inst->fifo), (19 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 19 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (92 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 92 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
@@ -3296,8 +3296,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingRequest(struct HCISocketProxyImpl_
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 15 ) {
 
-        _fifo_enqueue(&(inst->fifo), (20 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 20 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (27 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 27 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3390,8 +3390,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingResponse(struct HCISocketProxyImpl
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 15 ) {
 
-        _fifo_enqueue(&(inst->fifo), (21 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 21 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (28 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 28 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3484,8 +3484,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingConfirm(struct HCISocketProxyImpl_
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (22 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 22 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (29 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 29 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3529,8 +3529,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingRandom(struct HCISocketProxyImpl_I
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (23 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 23 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (30 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 30 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3574,8 +3574,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingFailed(struct HCISocketProxyImpl_I
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 7 ) {
 
-        _fifo_enqueue(&(inst->fifo), (24 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 24 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (31 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 31 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3604,8 +3604,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingPublicKey(struct HCISocketProxyImp
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 70 ) {
 
-        _fifo_enqueue(&(inst->fifo), (25 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 25 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (32 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 32 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3704,8 +3704,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPPairingDHKeyCheck(struct HCISocketProxyIm
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (26 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 26 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (33 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 33 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3749,8 +3749,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPKeypressNotification(struct HCISocketProx
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 7 ) {
 
-        _fifo_enqueue(&(inst->fifo), (27 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 27 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (34 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 34 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3779,8 +3779,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPEncryptionInformation(struct HCISocketPro
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (28 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 28 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (35 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 35 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3824,8 +3824,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPMasterIdentification(struct HCISocketProx
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 16 ) {
 
-        _fifo_enqueue(&(inst->fifo), (29 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 29 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (36 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 36 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3870,8 +3870,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPIdentityInformation(struct HCISocketProxy
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (30 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 30 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (37 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 37 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3915,8 +3915,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPIdentityAddressInformation(struct HCISock
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 13 ) {
 
-        _fifo_enqueue(&(inst->fifo), (31 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 31 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (38 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 38 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -3958,8 +3958,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPSigningInformation(struct HCISocketProxyI
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 22 ) {
 
-        _fifo_enqueue(&(inst->fifo), (32 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 32 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (39 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 39 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -4003,8 +4003,8 @@ void enqueue_HCISocketProxyImpl_SMP_SMPSecurityRequest(struct HCISocketProxyImpl
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 10 ) {
 
-        _fifo_enqueue(&(inst->fifo), (33 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 33 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (40 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 40 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (2 >> 8) & 0xFF );
@@ -4057,8 +4057,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTFindInformationRequest(struct HCISocketPr
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 10 ) {
 
-        _fifo_enqueue(&(inst->fifo), (34 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 34 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (41 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 41 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4097,8 +4097,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTFindInformationResponse(struct HCISocketP
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 31 ) {
 
-        _fifo_enqueue(&(inst->fifo), (35 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 35 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (42 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 42 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4158,8 +4158,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTFindInformationError(struct HCISocketProx
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 9 ) {
 
-        _fifo_enqueue(&(inst->fifo), (36 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 36 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (43 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 43 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4197,8 +4197,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByTypeRequest(struct HCISocketProxyIm
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 26 ) {
 
-        _fifo_enqueue(&(inst->fifo), (37 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 37 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (44 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 44 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4260,8 +4260,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByTypeResponse(struct HCISocketProxyI
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 31 ) {
 
-        _fifo_enqueue(&(inst->fifo), (38 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 38 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (45 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 45 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4321,8 +4321,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByTypeError(struct HCISocketProxyImpl
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 9 ) {
 
-        _fifo_enqueue(&(inst->fifo), (39 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 39 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (46 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 46 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4360,8 +4360,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadRequest(struct HCISocketProxyImpl_Ins
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 8 ) {
 
-        _fifo_enqueue(&(inst->fifo), (40 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 40 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (47 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 47 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4391,8 +4391,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadResponse(struct HCISocketProxyImpl_In
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 30 ) {
 
-        _fifo_enqueue(&(inst->fifo), (41 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 41 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (48 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 48 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4444,8 +4444,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadError(struct HCISocketProxyImpl_Insta
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 9 ) {
 
-        _fifo_enqueue(&(inst->fifo), (42 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 42 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (49 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 49 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4483,8 +4483,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByGroupTypeRequest(struct HCISocketPr
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 26 ) {
 
-        _fifo_enqueue(&(inst->fifo), (43 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 43 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (50 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 50 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4546,8 +4546,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByGroupTypeResponse(struct HCISocketP
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 31 ) {
 
-        _fifo_enqueue(&(inst->fifo), (44 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 44 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (51 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 51 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4607,8 +4607,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTReadByGroupTypeError(struct HCISocketProx
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 9 ) {
 
-        _fifo_enqueue(&(inst->fifo), (45 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 45 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (52 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 52 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4646,8 +4646,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTWriteRequest(struct HCISocketProxyImpl_In
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 32 ) {
 
-        _fifo_enqueue(&(inst->fifo), (46 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 46 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (53 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 53 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4708,8 +4708,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTWriteResponse(struct HCISocketProxyImpl_I
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (47 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 47 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (54 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 54 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4730,8 +4730,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTWriteError(struct HCISocketProxyImpl_Inst
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 9 ) {
 
-        _fifo_enqueue(&(inst->fifo), (48 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 48 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (55 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 55 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4769,8 +4769,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTWriteCommand(struct HCISocketProxyImpl_In
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 32 ) {
 
-        _fifo_enqueue(&(inst->fifo), (49 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 49 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (56 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 56 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4831,8 +4831,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTHandleValueNotification(struct HCISocketP
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 32 ) {
 
-        _fifo_enqueue(&(inst->fifo), (50 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 50 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (57 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 57 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4893,8 +4893,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTHandleValueIndication(struct HCISocketPro
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 32 ) {
 
-        _fifo_enqueue(&(inst->fifo), (51 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 51 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (58 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 58 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4955,8 +4955,8 @@ void enqueue_HCISocketProxyImpl_ATT_ATTHandleValueConfirmation(struct HCISocketP
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (52 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 52 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (59 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 59 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (3 >> 8) & 0xFF );
@@ -4989,7 +4989,7 @@ code += fifo_dequeue(&(_instance->fifo));
 
 // Switch to call the appropriate handler
 switch(code) {
-case 1:{
+case 74:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5004,7 +5004,7 @@ break;
 }
 break;
 }
-case 2:{
+case 75:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5019,7 +5019,7 @@ break;
 }
 break;
 }
-case 3:{
+case 76:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5034,7 +5034,7 @@ break;
 }
 break;
 }
-case 4:{
+case 77:{
 byte mbuf[12 - 2];
 while (mbufi < (12 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5063,7 +5063,7 @@ break;
 }
 break;
 }
-case 5:{
+case 78:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5078,7 +5078,7 @@ break;
 }
 break;
 }
-case 53:{
+case 93:{
 byte mbuf[252 - 2];
 while (mbufi < (252 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5341,7 +5341,7 @@ switch(portID) {
 }
 break;
 }
-case 6:{
+case 79:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5371,7 +5371,7 @@ break;
 }
 break;
 }
-case 7:{
+case 80:{
 byte mbuf[12 - 2];
 while (mbufi < (12 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5400,7 +5400,7 @@ break;
 }
 break;
 }
-case 8:{
+case 81:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5415,7 +5415,7 @@ break;
 }
 break;
 }
-case 9:{
+case 82:{
 byte mbuf[19 - 2];
 while (mbufi < (19 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5493,7 +5493,7 @@ break;
 }
 break;
 }
-case 10:{
+case 83:{
 byte mbuf[5 - 2];
 while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5515,7 +5515,7 @@ break;
 }
 break;
 }
-case 11:{
+case 84:{
 byte mbuf[36 - 2];
 while (mbufi < (36 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5574,7 +5574,7 @@ break;
 }
 break;
 }
-case 12:{
+case 85:{
 byte mbuf[36 - 2];
 while (mbufi < (36 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5633,7 +5633,7 @@ break;
 }
 break;
 }
-case 13:{
+case 86:{
 byte mbuf[11 - 2];
 while (mbufi < (11 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5685,7 +5685,7 @@ break;
 }
 break;
 }
-case 14:{
+case 87:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5714,7 +5714,7 @@ break;
 }
 break;
 }
-case 15:{
+case 88:{
 byte mbuf[29 - 2];
 while (mbufi < (29 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5826,7 +5826,7 @@ break;
 }
 break;
 }
-case 16:{
+case 89:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5841,7 +5841,7 @@ break;
 }
 break;
 }
-case 17:{
+case 90:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5856,7 +5856,7 @@ break;
 }
 break;
 }
-case 18:{
+case 91:{
 byte mbuf[36 - 2];
 while (mbufi < (36 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5915,7 +5915,7 @@ break;
 }
 break;
 }
-case 19:{
+case 92:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -5982,7 +5982,7 @@ break;
 }
 break;
 }
-case 20:{
+case 27:{
 byte mbuf[15 - 2];
 while (mbufi < (15 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6068,7 +6068,7 @@ break;
 }
 break;
 }
-case 21:{
+case 28:{
 byte mbuf[15 - 2];
 while (mbufi < (15 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6154,7 +6154,7 @@ break;
 }
 break;
 }
-case 22:{
+case 29:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6199,7 +6199,7 @@ break;
 }
 break;
 }
-case 23:{
+case 30:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6244,7 +6244,7 @@ break;
 }
 break;
 }
-case 24:{
+case 31:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6274,7 +6274,7 @@ break;
 }
 break;
 }
-case 25:{
+case 32:{
 byte mbuf[70 - 2];
 while (mbufi < (70 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6373,7 +6373,7 @@ break;
 }
 break;
 }
-case 26:{
+case 33:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6418,7 +6418,7 @@ break;
 }
 break;
 }
-case 27:{
+case 34:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6448,7 +6448,7 @@ break;
 }
 break;
 }
-case 28:{
+case 35:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6493,7 +6493,7 @@ break;
 }
 break;
 }
-case 29:{
+case 36:{
 byte mbuf[16 - 2];
 while (mbufi < (16 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6538,7 +6538,7 @@ break;
 }
 break;
 }
-case 30:{
+case 37:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6583,7 +6583,7 @@ break;
 }
 break;
 }
-case 31:{
+case 38:{
 byte mbuf[13 - 2];
 while (mbufi < (13 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6625,7 +6625,7 @@ break;
 }
 break;
 }
-case 32:{
+case 39:{
 byte mbuf[22 - 2];
 while (mbufi < (22 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6670,7 +6670,7 @@ break;
 }
 break;
 }
-case 33:{
+case 40:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6721,7 +6721,7 @@ break;
 }
 break;
 }
-case 34:{
+case 41:{
 byte mbuf[10 - 2];
 while (mbufi < (10 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6760,7 +6760,7 @@ break;
 }
 break;
 }
-case 35:{
+case 42:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6820,7 +6820,7 @@ break;
 }
 break;
 }
-case 36:{
+case 43:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6858,7 +6858,7 @@ break;
 }
 break;
 }
-case 37:{
+case 44:{
 byte mbuf[26 - 2];
 while (mbufi < (26 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6919,7 +6919,7 @@ break;
 }
 break;
 }
-case 38:{
+case 45:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -6979,7 +6979,7 @@ break;
 }
 break;
 }
-case 39:{
+case 46:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7017,7 +7017,7 @@ break;
 }
 break;
 }
-case 40:{
+case 47:{
 byte mbuf[8 - 2];
 while (mbufi < (8 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7048,7 +7048,7 @@ break;
 }
 break;
 }
-case 41:{
+case 48:{
 byte mbuf[30 - 2];
 while (mbufi < (30 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7101,7 +7101,7 @@ break;
 }
 break;
 }
-case 42:{
+case 49:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7139,7 +7139,7 @@ break;
 }
 break;
 }
-case 43:{
+case 50:{
 byte mbuf[26 - 2];
 while (mbufi < (26 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7200,7 +7200,7 @@ break;
 }
 break;
 }
-case 44:{
+case 51:{
 byte mbuf[31 - 2];
 while (mbufi < (31 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7260,7 +7260,7 @@ break;
 }
 break;
 }
-case 45:{
+case 52:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7298,7 +7298,7 @@ break;
 }
 break;
 }
-case 46:{
+case 53:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7359,7 +7359,7 @@ break;
 }
 break;
 }
-case 47:{
+case 54:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7382,7 +7382,7 @@ break;
 }
 break;
 }
-case 48:{
+case 55:{
 byte mbuf[9 - 2];
 while (mbufi < (9 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7420,7 +7420,7 @@ break;
 }
 break;
 }
-case 49:{
+case 56:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7481,7 +7481,7 @@ break;
 }
 break;
 }
-case 50:{
+case 57:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7542,7 +7542,7 @@ break;
 }
 break;
 }
-case 51:{
+case 58:{
 byte mbuf[32 - 2];
 while (mbufi < (32 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));
@@ -7603,7 +7603,7 @@ break;
 }
 break;
 }
-case 52:{
+case 59:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));

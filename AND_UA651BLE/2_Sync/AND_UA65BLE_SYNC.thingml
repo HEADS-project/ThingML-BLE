@@ -60,6 +60,13 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
     // Main logic
     composite state Standby init SyncBloodPressure
     {
+      internal event e:BloodPressureCloud?MqttConfirmBloodPressureMeasurement action do
+        ''&SendToNotifier&' |= 0x04;'
+      end
+      internal event e:BloodPressureCloud?MqttRequestBloodPressureMeasurement action do
+        ''&SendToNotifier&' |= 0x08;'
+      end
+      
       composite state SyncBloodPressure init ConnectBP
       {
         state ConnectBP
@@ -71,12 +78,12 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
 
           transition -> ConnectedBP event BloodPressureDevice?Encrypted
           
-          internal event e:BloodPressureCloud?MqttRequestBloodPressureMeasurement action do
-            SendToNotifier = '0x01'
+          internal event e:BloodPressureCloud?MqttConfirmBloodPressureMeasurement action do
+            ''&SendToNotifier&' |= 0x04;'
             BloodPressureDevice!Stop()
           end
-          internal event e:BloodPressureCloud?MqttConfirmBloodPressureMeasurement action do
-            SendToNotifier = '0x02'
+          internal event e:BloodPressureCloud?MqttRequestBloodPressureMeasurement action do
+            ''&SendToNotifier&' |= 0x08;'
             BloodPressureDevice!Stop()
           end
         }
@@ -120,18 +127,17 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
               BloodPressureCloud!TelluCloudBloodPressure(ObservationTime, HealthPressureDiastolic, HealthPressureMean, HealthPressureSystolic, HealthPulseRate)
             end
           end
-          //message BloodPressureMeasurement(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
 
           transition -> ConnectBP event BloodPressureDevice?Stopped guard (not GotMeasurements) action do
             print "[WARNING]: Finished syncing with Blood Pressure Monitor but got no measurements!\n"
           end
           
-          internal event BloodPressureDevice?Stopped guard (GotMeasurements and SendToNotifier == '0x00') action do
+          internal event BloodPressureDevice?Stopped guard (GotMeasurements and '!('&SendToNotifier&' & 0x03)') action do
             print "[INFO]: Finished syncing with Blood Pressure Monitor.\n"
             if (MeasurementOK) do
-              SendToNotifier = '0x04'
+              ''&SendToNotifier&' |= 0x02;'
             end else do
-              SendToNotifier = '0x03'
+              ''&SendToNotifier&' |= 0x01;'
             end
             BloodPressureDevice!Stop()
           end
@@ -156,27 +162,32 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
         state ConnectedN
         {
           on entry do
-            if (SendToNotifier == '0x01') do
-              print "[INFO]: NOTIFIER - request\n"
-              Notifications!RequestBloodPressureMeasurement()
-            end
-            if (SendToNotifier == '0x02') do
-              print "[INFO]: NOTIFIER - stored\n"
-              Notifications!StoredBloodPressureMeasurement()
-            end
-            if (SendToNotifier == '0x03') do
+            if (''&SendToNotifier&' & 0x01') do
+              ''&SendToNotifier&' &= ~0x01;'
               print "[INFO]: NOTIFIER - bad\n"
               Notifications!BadBloodPressureMeasurement()
             end
-            if (SendToNotifier == '0x04') do
+            else if (''&SendToNotifier&' & 0x02') do
+              ''&SendToNotifier&' &= ~0x02;'
               print "[INFO]: NOTIFIER - received\n"
               Notifications!ReceivedBloodPressureMeasurement()
             end
-            SendToNotifier = '0x00'
+            else if (''&SendToNotifier&' & 0x04') do
+              ''&SendToNotifier&' &= ~0x04;'
+              print "[INFO]: NOTIFIER - stored\n"
+              Notifications!StoredBloodPressureMeasurement()
+            end
+            else if (''&SendToNotifier&' & 0x08') do
+              ''&SendToNotifier&' &= ~0x08;'
+              print "[INFO]: NOTIFIER - request\n"
+              Notifications!RequestBloodPressureMeasurement()
+            end
           end
+          
+          transition -> ConnectN event NotifierDevice?Stopped guard (SendToNotifier != '0x00')
         }
 
-        transition -> SyncBloodPressure event NotifierDevice?Stopped
+        transition -> SyncBloodPressure event NotifierDevice?Stopped guard (SendToNotifier == '0x00')
         transition -> SyncBloodPressure event NotifierDevice?Failure
       }
 
@@ -227,7 +238,8 @@ thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMs
 protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
   @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
   @mqtt_publish_topic "5C:31:3E:03:54:2F/smarttracker/health.pressure"
-  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttRequestBloodPressureMeasurement";
+  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttRequestBloodPressureMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttConfirmBloodPressureMeasurement";
 
 configuration AND_UA651BLE_SYNC
 @add_c_libraries "bluetooth"

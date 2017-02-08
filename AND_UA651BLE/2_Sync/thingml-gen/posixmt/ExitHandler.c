@@ -96,8 +96,8 @@ void enqueue_ExitHandler_Signals_Quit(struct ExitHandler_Instance * inst, int16_
     fifo_lock(&(inst->fifo));
     if ( fifo_byte_available(&(inst->fifo)) > 6 ) {
 
-        _fifo_enqueue(&(inst->fifo), (80 >> 8) & 0xFF );
-        _fifo_enqueue(&(inst->fifo), 80 & 0xFF );
+        _fifo_enqueue(&(inst->fifo), (1 >> 8) & 0xFF );
+        _fifo_enqueue(&(inst->fifo), 1 & 0xFF );
 
         // Reception Port
         _fifo_enqueue(&(inst->fifo), (0 >> 8) & 0xFF );
@@ -130,7 +130,7 @@ code += fifo_dequeue(&(_instance->fifo));
 
 // Switch to call the appropriate handler
 switch(code) {
-case 80:{
+case 1:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue(&(_instance->fifo));
 fifo_unlock(&(_instance->fifo));

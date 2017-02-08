@@ -1,11 +1,12 @@
 #include "MQTT1.h"
 
-const char *MQTT1_topics[3] = {
+const char *MQTT1_topics[4] = {
     "5C:31:3E:03:54:2F/smarttracker/health.pressure",
     "5C:31:3E:03:54:2F/MqttRequestBloodPressureMeasurement",
-    "ThingML"
+    "ThingML",
+    "5C:31:3E:03:54:2F/MqttConfirmBloodPressureMeasurement"
 };
-int MQTT1_topics_subscribed[3];
+int MQTT1_topics_subscribed[4];
 
 const int MQTT1_qos = 1;
 
@@ -103,7 +104,7 @@ void MQTT1_connect_callback(struct mosquitto *mosq, void *_instance, int result)
     int ret, i;
     switch (result) {
         case 0:
-            for (i = 0; i < 3; i++) {
+            for (i = 0; i < 4; i++) {
                 ret = mosquitto_subscribe(mosq, &MQTT1_topics_subscribed[i], MQTT1_topics[i], MQTT1_qos);
                 if (ret) fprintf(stderr, "[MQTT] mosquitto_subscribe failed for %s : %s\n", MQTT1_topics[i], mosquitto_strerror(result));
             }
@@ -130,7 +131,7 @@ void MQTT1_subscribe_callback(struct mosquitto *mosq, void *_instance, int mid, 
     print = true;
     if (print) {
         // Find subscribed topic
-        for (i = 0; i < 3; i++) {
+        for (i = 0; i < 4; i++) {
             if (MQTT1_topics_subscribed[i] == mid) break;
         }
         printf("[MQTT1] Subscribed to topic '%s' - QoS levels ", MQTT1_topics[i]);
@@ -140,7 +141,7 @@ void MQTT1_subscribe_callback(struct mosquitto *mosq, void *_instance, int mid, 
     for (i = 0; i < qos_count; i++)
         if (granted_qos[i] == MQTT1_qos) return;
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 4; i++) {
         if (MQTT1_topics_subscribed[i] == mid) break;
     }
     fprintf(stderr, "[MQTT1] Topic '%s' was not granted the specified QoS level\n", MQTT1_topics[i]);
@@ -174,8 +175,8 @@ static int parse_MqttRequestBloodPressureMeasurement(uint8_t *msg, int size, uin
     uint8_t *pstart = NULL;
     int index = 0;
     // Port-message code
-    out_buffer[index+0] = (86 >> 8);
-    out_buffer[index+1] = (86 & 0xFF);
+    out_buffer[index+0] = (66 >> 8);
+    out_buffer[index+1] = (66 & 0xFF);
     index += 2;
     // Find all forwarded parameters
     int np;
@@ -216,8 +217,8 @@ static int parse_MqttConfirmBloodPressureMeasurement(uint8_t *msg, int size, uin
     uint8_t *pstart = NULL;
     int index = 0;
     // Port-message code
-    out_buffer[index+0] = (87 >> 8);
-    out_buffer[index+1] = (87 & 0xFF);
+    out_buffer[index+0] = (67 >> 8);
+    out_buffer[index+1] = (67 & 0xFF);
     index += 2;
     // Find all forwarded parameters
     int np;
@@ -301,11 +302,11 @@ void MQTT1_message_callback(struct mosquitto *mosq, void *_instance, const struc
     printf("[MQTT1] Received message (%i bytes) on topic %s\n", msg->payloadlen, msg->topic);
     // Find the topic index of the message
     int i;
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 4; i++)
         if (strcmp(msg->topic, MQTT1_topics[i]) == 0) break;
 
     // Only parse and enqueue the message if we are listening for it on this topic
-    if (i < 3 && (i == 1)) {
+    if (i < 4 && (i == 1 || i == 3)) {
         MQTT1_parser(msg->payload, msg->payloadlen, (struct MQTT1_Instance*)_instance);
     }
 }
@@ -315,7 +316,7 @@ void MQTT1_message_callback(struct mosquitto *mosq, void *_instance, const struc
 void MQTT1_send_message(uint8_t *msg, int msglen, int topic)
 {
     int ret;
-    if (topic < 3) {
+    if (topic < 4) {
         printf("[MQTT1] Sending message (%i bytes) on topic %s\n", msglen, MQTT1_topics[topic]);
         ret = mosquitto_publish(MQTT1_mosq, NULL, MQTT1_topics[topic], msglen, msg, MQTT1_qos, false);
         if (ret) fprintf(stderr, "[MQTT] mosquitto_publish failed for %s : %s\n", MQTT1_topics[topic], mosquitto_strerror(ret));
