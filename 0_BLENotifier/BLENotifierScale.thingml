@@ -1,0 +1,221 @@
+import "NeoPixelScale.thingml"
+import "BLEGateway.thingml"
+
+
+thing fragment ScaleSensorMsgs {
+	message power_off()
+	message standby_heartbeat()
+	message measuring()
+	message step_off()
+	message bluetooth_activity()
+}
+
+thing ScaleSensor includes ScaleSensorMsgs, TimerMsgs {
+
+	required port clock {
+		receives io_clock, timer_timeout
+		sends timer_start, timer_cancel
+	}
+
+	provided port ctrl {
+		sends power_off, standby_heartbeat, measuring, step_off, bluetooth_activity
+	}
+	
+	statechart ScaleSensorImpl init OFF {
+	
+		on entry do
+			'pinMode(2, INPUT);
+  			 pinMode(3, INPUT);
+  			 pinMode(4, INPUT);
+  			 pinMode(6, INPUT);'
+		end
+	
+		state OFF {
+			on entry ctrl!power_off()
+			
+			transition -> WakeUp  event clock?io_clock
+			guard 'digitalRead(2) == HIGH'
+		
+		}
+		
+		state WakeUp {
+			
+			on entry clock!timer_start(1, 300)
+			
+			transition -> OFF  event t:clock?timer_timeout
+			guard t.id == 1 and 'digitalRead(2) == LOW' // Back to standby
+			action ctrl!standby_heartbeat()
+			
+			transition -> Measuring  event t:clock?timer_timeout
+			guard t.id == 1 and 'digitalRead(2) == HIGH' // Wake up
+		
+		}
+		
+		state Measuring {
+			on entry ctrl!measuring()
+			
+			transition -> Waiting  event clock?io_clock
+			guard 'digitalRead(6) == HIGH'
+			
+			transition -> OFF  event t:clock?io_clock
+			guard 'digitalRead(2) == LOW' // Back to standby
+			
+		}
+		
+		state Waiting {
+			on entry ctrl!step_off()
+			
+			transition -> OFF  event t:clock?io_clock
+			guard 'digitalRead(2) == LOW' // Back to standby
+		
+			transition -> BluetoothTX  event clock?io_clock
+			guard 'digitalRead(3) == LOW'
+		
+		}
+		
+		state BluetoothTX {
+			on entry ctrl!bluetooth_activity()
+			
+			transition -> OFF  event t:clock?io_clock
+			guard 'digitalRead(2) == LOW' // Back to standby
+		}
+	} 
+}
+
+thing BLENotifier includes NeoPixelMsgs, ScaleSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
+
+	required port gateway {
+		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
+	}
+	
+	required port sensor {
+		receives power_off, standby_heartbeat, measuring, step_off, bluetooth_activity
+	}
+	
+	required port neopixels {
+		sends setColor, off, pulse, rotate, breath, solid
+	}
+	
+	required port clock {
+		receives timer_timeout
+		sends timer_start, timer_cancel
+	}
+	
+	function breath() do
+		neopixels!off()
+		neopixels!setColor(0, 50, 255)
+		neopixels!breath()
+	end
+	
+	function pulse() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!pulse()
+	end
+	
+	function pump() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!rotate(12)
+	end
+	
+	function measure() do
+		neopixels!off()
+		neopixels!setColor(160, 140, 0)
+		neopixels!rotate(-2)
+	end
+	
+	function solid(r : UInt8, g : UInt8, b : UInt8) do
+		neopixels!off()
+		neopixels!setColor(r, g, b)
+		neopixels!solid()
+	end
+
+	statechart BLENotifierSC init Init {
+	
+		internal event c:gateway?set_base_color action neopixels!setColor(c.r, c.g, c.b)
+	
+		state Init {
+			on entry do
+				solid(0, 128, 32)
+				clock!timer_start(0, 1000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
+		}
+	
+		state Ready {
+			internal event gateway?request_measurement action pulse()
+			transition -> Measuring event sensor?measuring action pump()
+		}
+		
+		state Measuring {
+			internal event sensor?step_off action measure()
+			internal event sensor?measuring action pump()
+			transition -> WaitGatewayAck event sensor?bluetooth_activity
+			transition -> Ready event sensor?power_off action pulse()
+		}
+		
+		state WaitGatewayAck {
+			on entry do
+				solid(128, 128, 0)
+				clock!timer_start(0, 5000)
+			end
+			
+			transition -> GatewayError event t:clock?timer_timeout guard t.id == 0
+			transition -> GatewayError event gateway?bad_measurement
+			transition -> WaitServerAck event gateway?measurement_received
+		}
+		
+		state GatewayError {
+			on entry do
+				solid(255, 0, 0)
+				clock!timer_start(0, 2000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action pulse()
+		}
+		
+		state WaitServerAck {
+			on entry do
+				neopixels!off()
+				neopixels!setColor(0, 255, 32)
+				neopixels!rotate(25)
+				clock!timer_start(0, 5000)
+			end
+			
+			transition -> ServerError event t:clock?timer_timeout guard t.id == 0
+			transition -> Ready event gateway?measurement_stored action breath()
+		}
+		
+		state ServerError {
+			on entry do
+				neopixels!setColor(255, 32, 0)
+				clock!timer_start(0, 2000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
+		}
+		
+	}
+}
+
+protocol Timer;
+
+configuration BLEScaleNotifier
+{
+	instance notifier : BLENotifier
+	instance uart : Serial
+	instance neopixels : NeoPixelScale
+	instance sensor : ScaleSensor
+	instance gwcmd : GatewayCommandParser
+	
+	connector notifier.neopixels => neopixels.ctrl
+	connector gwcmd.bletx => uart.tx
+	connector gwcmd.blerx => uart.rx
+	connector notifier.gateway => gwcmd.gateway
+	connector notifier.sensor => sensor.ctrl
+	connector neopixels.clock over Timer
+	connector sensor.clock over Timer
+	connector notifier.clock over Timer
+}

@@ -1,0 +1,259 @@
+import "_Datatypes.thingml"
+
+thing fragment NeoPixelMsgs {
+	message off();
+	message setColor(red : UInt8, green : UInt8, blue : UInt8);
+	message solid();
+	message pulse();
+	message breath();
+	message rotate(speed : Int8);
+}
+
+thing NeoPixelScale includes NeoPixelMsgs, TimerMsgs
+@c_global "
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel strip;
+
+#define BREATH_LEN 36
+uint8_t breath[] = {0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
+//uint8_t breath[] = {0, 0, 0, 0, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};
+
+#define PULSE_LEN 37
+uint8_t pulse[] =  {32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32};
+
+#define ROTATE_LEN 10
+uint8_t rotatep[] =  {0, 0, 255, 0, 0, 0, 0, 255, 0, 0};
+
+//uint8_t rotatep[] =  {0, 0, 0, 0, 255, 0, 0, 0, 0, 0};
+
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+"
+{ 
+	readonly property neopixel_pin : UInt8 = 7
+	readonly property neopixel_count : UInt8 = 24
+	
+	
+	
+	provided port ctrl {
+		receives setColor, solid, pulse, off, breath, rotate
+	}
+	
+	required port clock {
+		receives fps_clock
+	}
+	
+	function setPixelColor(pixel : UInt8, color: UInt32) do
+		'strip.setPixelColor('&pixel&', '&color&');'
+	end 
+	
+	function getColor(red : UInt8, green : UInt8, blue : UInt8) : UInt32 do
+		return 'strip.Color('&red&', '&green&', '&blue&')'
+	end
+	
+	function updateNeopixels() do
+		'strip.show();'
+	end
+	
+	function breath_brightness(time : UInt8, max : UInt8) : UInt8 do
+		if (time > max/2) return breath_brightness(max - time , max)
+		if (time == max/2) return 'breath[BREATH_LEN-1]'
+		
+		var index : UInt16 = (time * 'BREATH_LEN') / (max/2)
+		var prev : UInt16 = (index * (max/2)) / 'BREATH_LEN'
+		var next : UInt16 = ((index + 1) * (max/2)) / 'BREATH_LEN'
+
+		var nextv : UInt16
+		if (index < 'BREATH_LEN' - 1) nextv = 'breath['&index+1&']'
+		else nextv = 'breath['&index&']'
+
+		return ( (next-time) * 'breath['&index&']' + (time-prev) * nextv ) / (next-prev)
+	end 
+	
+	function rotate_brightness(angle : UInt8, max : UInt8) : UInt8 do
+	
+		var index : UInt16 = (angle * 'ROTATE_LEN') / max
+		var prev : UInt16 = (index * max) / 'ROTATE_LEN'
+		var next : UInt16 = ((index + 1) * max) / 'ROTATE_LEN'
+
+		var nextv : UInt8
+		if (index < 'ROTATE_LEN' - 1) nextv = 'rotatep['&index+1&']'
+		else nextv = 'rotatep[0]'
+
+		return ( (next-angle) * 'rotatep['&index&']' + (angle-prev) * nextv ) / (next-prev)
+	end 
+	
+	function pulse_brightness(time : UInt8) : UInt8 do
+		if (time < 'PULSE_LEN') return 'pulse['&time&']'
+		else return 'pulse[0]'
+	end
+	
+	
+	function initializeNeopixels() do
+		'strip = Adafruit_NeoPixel('&neopixel_count+4&', '&neopixel_pin&', NEO_GRBW + NEO_KHZ800);
+		 strip.begin();
+		 strip.setBrightness(255);
+		 strip.show();'
+		 var color : UInt32 = getColor(0,50,255)
+		 setPixelColor(neopixel_count, color)
+		 setPixelColor(neopixel_count+1, color)
+		 setPixelColor(neopixel_count+2, color)
+		 setPixelColor(neopixel_count+3, color)
+		 updateNeopixels()
+	end
+
+	statechart NeoPixelStateChart init PULSE {
+	
+		property color_r : UInt8 = 100
+		property color_g : UInt8 = 15
+		property color_b : UInt8 = 0
+		
+		property rotate_speed : Int8 = 4
+		property breath_speed : UInt8 = 100
+		
+		
+		on entry initializeNeopixels()
+		
+		internal event c:ctrl?setColor action do 
+			color_r = c.red
+			color_g = c.green
+			color_b = c.blue
+		end
+	
+		state OFF {
+		
+			on entry do
+				var i : UInt8 = 0
+				var color : UInt32 = getColor(0,0,0)
+				while(i < neopixel_count+4) do
+					setPixelColor(i, color)
+					i = i + 1
+				end
+				updateNeopixels()
+			end
+			
+			transition -> SOLID event ctrl?solid
+			transition -> PULSE event ctrl?pulse
+			transition -> BREATH event ctrl?breath
+			transition -> ROTATE event m : ctrl?rotate action rotate_speed = m.speed
+		}
+	
+		state SOLID {
+			
+			internal event clock?fps_clock action do
+				var i : UInt8 = 0
+				var color : UInt32 = getColor(color_r, color_g, color_b)
+				while(i < neopixel_count) do
+					setPixelColor(i, color)
+					i = i + 1
+				end
+				updateNeopixels()
+			end
+		
+			transition -> OFF event ctrl?off
+		}
+	
+		state ROTATE {
+
+			property angle : Int16 = 0
+			property maxangle : UInt8 = 200
+
+			transition -> OFF event ctrl?off
+			
+			internal event clock?fps_clock action do
+			
+				var i : UInt8 = 0
+				while(i < neopixel_count) do
+					var pangle : UInt16 = angle + (i * maxangle) / neopixel_count
+					pangle = pangle % maxangle
+					var bright : UInt8 = rotate_brightness(pangle, maxangle)
+					var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
+					setPixelColor(i, color)
+					i = i + 1
+				end
+				updateNeopixels()
+			
+				angle = angle + rotate_speed
+				if (angle < 0) angle = maxangle + angle
+				if (angle > maxangle-1) angle = angle - maxangle   
+			
+			end
+		}	
+		
+		state BREATH {
+		
+			property counter : UInt8 = 0
+			readonly property maxcount: UInt8 = 186
+
+			transition -> OFF event ctrl?off
+
+			internal event clock?fps_clock action do
+					var bright : UInt8 = breath_brightness(counter, maxcount)
+					var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
+					var i : UInt8 = neopixel_count
+					while(i < neopixel_count+4) do
+						setPixelColor(i, color)
+						i = i + 1
+					end
+					updateNeopixels()
+					counter = counter + 1
+					if (counter == maxcount) counter = 0
+			end
+		}	
+		
+		state PULSE {
+		
+			property counter : UInt8 = 0
+			readonly property maxcount: UInt8 = 100
+			
+			on entry do
+				var i : UInt8 = neopixel_count
+				var color : UInt32 = getColor(color_r, color_g, color_b)
+				while(i < neopixel_count+4) do
+					setPixelColor(i, color)
+					i = i + 1
+				end
+				updateNeopixels()
+			end
+			
+			transition -> OFF event ctrl?off
+			
+			
+	
+			internal event clock?fps_clock action do
+				var bright : UInt8 = pulse_brightness(counter)
+				var color : UInt32 = getColor((color_r*bright)/256, (color_g*bright)/256, (color_b*bright)/256)
+				var i : UInt8 = 0
+				while(i < neopixel_count) do
+					setPixelColor(i, color)
+					i = i + 1
+				end
+				updateNeopixels()
+				counter = counter + 1
+				if (counter == maxcount) counter = 0
+			end
+		}	
+	}
+}
+
+protocol Timer;
+
+configuration TestNeoPixelsScale {
+
+	instance neo : NeoPixelScale
+	connector neo.clock over Timer
+
+}

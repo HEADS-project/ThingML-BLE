@@ -1,0 +1,90 @@
+import "NeoPixelBP.thingml"
+
+thing fragment SerialMsgs {
+	message receive_byte (b : Byte);
+	message write_byte (b : Byte);
+	message print_message (msg : String);
+}
+
+
+thing Serial includes SerialMsgs
+{
+    provided port rx
+	{
+		sends receive_byte
+	}
+	provided port tx 
+	{
+		receives write_byte, print_message
+	}
+
+    statechart SerialImpl init Receiving 
+    {        
+        state Receiving 
+        {
+            on entry 'Serial.begin(9600);'
+            
+            internal guard 'Serial.available()' > 0
+            action rx!receive_byte ('(char)Serial.read()')
+        }
+    }
+}
+
+thing fragment GatewayCommandMsgs {
+	message request_measurement();
+	message measurement_received();
+	message bad_measurement();
+	message measurement_stored();
+	message set_base_color(r : UInt8, g : UInt8, b : UInt8);
+}
+
+thing GatewayCommandParser includes SerialMsgs, GatewayCommandMsgs {
+
+	required port blerx
+	{
+		receives receive_byte
+	}
+	
+	required port bletx
+	@sync_send "true"
+	{
+		sends write_byte, print_message
+	}
+	
+	provided port gateway {
+		sends request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
+	}
+	
+	statechart GatewayCommandParserSC init Ready {
+		state Ready {
+			transition -> ParseCommand event m : blerx?receive_byte guard m.b == '\'!\''
+		}	
+		
+		state ParseCommand {
+			transition -> SetColor event m : blerx?receive_byte guard m.b == '\'C\''
+			
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'R\'' action gateway!request_measurement()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'G\'' action gateway!measurement_received()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'E\'' action gateway!bad_measurement()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'S\'' action gateway!measurement_stored()
+		}
+		
+		state SetColor {
+			property buf : UInt8[2]
+			property idx : UInt8
+			
+			on entry do
+				idx = 0
+			end
+			
+			internal event m : blerx?receive_byte guard idx < 2 action do
+				buf[idx] = m.b
+				idx = idx + 1
+			end
+			
+			transition -> Ready event m : blerx?receive_byte guard idx == 2 action do
+				gateway!set_base_color(buf[0], buf[1], m.b)
+			end
+		}
+	}
+}
