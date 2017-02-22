@@ -1,251 +1,342 @@
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
 import "BLE_connecter.thingml"
-import "ATTProxy.thingml"
+import "BLE_gatt.thingml"
 
-thing fragment GATTMsgs
+thing Main includes BLEInitialiser, BLEConnecter, GATT, ExitHandlerMsgs, UUIDFunctions
 {
-  message GATTDiscoverAllPrimaryServices();
-  message GATTPrimaryServiceDiscovered(StartHandle : UInt, EndHandle : UInt, Type : UUID);
-  message GATTPrimaryServiceDiscoveryDone();
-
-  message GATTDiscoverServiceCharacteristics(StartHandle : UInt, EndHandle : UInt);
-  message GATTServiceCharacteristicDiscovered(Properties : Byte, ValueHandle : UInt, Type : UUID, DeclarationHandle : UInt);
-  message GATTServiceChararacteristicDiscoveryDone();
-
-  message GATTDiscoverCharacteristicDescriptors(StartHandle : UInt, EndHandle : UInt);
-  message GATTCharacteristicDescriptorDiscovered(Handle : UInt, Type : UUID);
-  message GATTCharacteristicDescriptorDiscoveryDone();
-
-}
-
-thing fragment GATT includes GATTMsgs
-{
-  required port GATT
-  {
-    sends GATTDiscoverAllPrimaryServices
-    receives GATTPrimaryServiceDiscovered
-    receives GATTPrimaryServiceDiscoveryDone
-
-    sends GATTDiscoverServiceCharacteristics
-    receives GATTServiceCharacteristicDiscovered
-    receives GATTServiceChararacteristicDiscoveryDone
-
-    sends GATTDiscoverCharacteristicDescriptors
-    receives GATTCharacteristicDescriptorDiscovered
-    receives GATTCharacteristicDescriptorDiscoveryDone
-  }
-}
-
-thing GATTProxy includes GATTMsgs, BLEConnecter, ATT, UUIDFunctions
-{
-  provided port GATT
-  {
-    receives GATTDiscoverAllPrimaryServices
-    sends GATTPrimaryServiceDiscovered
-    sends GATTPrimaryServiceDiscoveryDone
-
-    receives GATTDiscoverServiceCharacteristics
-    sends GATTServiceCharacteristicDiscovered
-    sends GATTServiceChararacteristicDiscoveryDone
-
-    receives GATTDiscoverCharacteristicDescriptors
-    sends GATTCharacteristicDescriptorDiscovered
-    sends GATTCharacteristicDescriptorDiscoveryDone
+  required port Signals {
+    receives Interrupt
+    sends Quit
   }
 
+  /* ---------- Pairing process results ---------- */
+  /*
+  property OwnLongTermKey : BLERandomNumber = 'a'
+  property OwnEncryptedDiversifier : UInt = 'b'
+  property OwnRandomNumber : BLERandomPart = 'c'
+  property OwnIdentityResolvingKey : BLERandomNumber = 'd'
+  property OwnAddressType : BLEAddressType = 'e'
+  property OwnAddress : BTAddress = 'f'
+  */
+  property PeerLongTermKey : BLERandomNumber = 'g'
+  property PeerEncryptedDiversifier : UInt = 'h'
+  property PeerRandomNumber : BLERandomPart = 'i'
+  property PeerIdentityResolvingKey : BLERandomNumber = 'j'
+  property PeerAddressType : BLEAddressType = 'k'
+  property PeerAddress : BTAddress = 'l'
+  /* --------------------------------------------- */
+
+  property DeviceAddress : BTAddress
   property ConnectedHandle : UInt
-  property AllDiscovered : Boolean = false
-  property DiscoveryStartHandle : UInt
-  property DiscoveryEndHandle : UInt
 
 
-  statechart States init WaitForEncryption
+  /* List of services discovered */
+  property ServicesLength : Byte = 0
+  property ServiceStartHandles : UInt[10]
+  property ServiceEndHandles : UInt[10]
+  property ServiceTypes : UUID[10]
+  /* List of characteristics discovered */
+  property CharacteristicsLength : Byte = 0
+  property CharacteristicProperties : Byte[100]
+  property CharacteristicHandles : UInt[100]
+  property CharacteristicValueHandles : UInt[100]
+  property CharacteristicTypes : UUID[100]
+  /* List of characteristic descroptors discovered */
+  property DescriptorsLength : Byte = 0
+  property DescriptorHandles : UInt[20]
+  property DescriptorTypes : UUID[20]
+
+
+  statechart States init Initialise
   {
-    state WaitForEncryption
+    // Initialise HCI socket and BLE controller
+    state Initialise
     {
+      on entry Initialiser!Start()
+
+      transition -> Connect event e:Initialiser?DeviceInitialised action DeviceAddress = e.Address
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Signals?Interrupt
+    }
+
+    // Start connection to device and encrypt connection
+    state Connect
+    {
+      on entry Connecter!Connect()
       internal event e:Connecter?Connected action do
         ConnectedHandle = e.Handle
+        //Connecter!Encrypt(OwnRandomNumber, OwnEncryptedDiversifier, OwnLongTermKey)
+        Connecter!Encrypt(PeerRandomNumber, PeerEncryptedDiversifier, PeerLongTermKey)
       end
-      transition -> Ready event Connecter?Encrypted
+
+      transition -> Discover event e:Connecter?Encrypted
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Connecter?Stopped
+      transition -> Disconnect event Signals?Interrupt
     }
 
-    composite state Ready init Waiting
+    // Perform GATT Discovery
+    composite state Discover init Services
     {
-      state Waiting
+      property DiscoveryDone : Boolean
+      on entry do
+        DiscoveryDone = false
+      end
+
+      state Services
       {
-        transition -> PrimaryServiceDiscovery event GATT?GATTDiscoverAllPrimaryServices action do
-          AllDiscovered = false
-        end
-        transition -> ServiceCharacteristicDiscovery event e:GATT?GATTDiscoverServiceCharacteristics action do
-          AllDiscovered = false
-          DiscoveryStartHandle = e.StartHandle
-          DiscoveryEndHandle = e.EndHandle
-        end
-        transition -> CharacteristicDescriptorDiscovery event e:GATT?GATTDiscoverCharacteristicDescriptors action do
-          AllDiscovered = false
-          DiscoveryStartHandle = e.StartHandle
-          DiscoveryEndHandle = e.EndHandle
+        on entry GATT!GATTDiscoverAllPrimaryServices()
+        transition -> Characteristics event e:GATT?GATTPrimaryServiceDiscoveryDone
+
+        internal event e:GATT?GATTPrimaryServiceDiscovered action do
+          if (ServicesLength < 10) do
+            ServiceStartHandles[ServicesLength] = e.StartHandle
+            ServiceEndHandles[ServicesLength] = e.EndHandle
+            ServiceTypes[ServicesLength] = e.Type
+            ServicesLength = ServicesLength+1
+          end
+
+          print "[INFO]: Found service with UUID: "
+          PrintUUID(e.Type)
         end
       }
 
-      /* Primary Service Discovery */
-      state PrimaryServiceDiscovery
+      state Characteristics
       {
+        property Index : Byte
+
         on entry do
-          print "[INFO]: Started Primary Service discovery...\n"
-          ATT!ATTReadByGroupTypeRequest(ConnectedHandle, '0x0001', '0xFFFF', MakeUUID("0x2800"))
+          Index = 0
+          var StartHandle : UInt = ServiceStartHandles[Index]
+          var EndHandle : UInt = ServiceEndHandles[Index]
+          GATT!GATTDiscoverServiceCharacteristics(StartHandle, EndHandle)
         end
 
-        internal event e:ATT?ATTReadByGroupTypeResponse action do
-          var StartHandle : UInt
-          var EndHandle : UInt
-          var Type : UUID
-          '
-            uint8_t data_length = '&e.Length&';
-            uint8_t total_length = '&e.AttributeDataList&'.length;
-            uint8_t *data = '&e.AttributeDataList&'.bytes;
-            uint8_t index;
+        internal event e:GATT?GATTServiceCharacteristicDiscovered action do
+          if (CharacteristicsLength < 100) do
+            CharacteristicProperties[CharacteristicsLength] = e.Properties
+            CharacteristicHandles[CharacteristicsLength] = e.DeclarationHandle
+            CharacteristicValueHandles[CharacteristicsLength] = e.ValueHandle
+            CharacteristicTypes[CharacteristicsLength] = e.Type
+            CharacteristicsLength = CharacteristicsLength+1
+          end
 
-            for (index = 0; index < total_length; index += data_length) {
-              // Decode service data
-              '&StartHandle&' = *(uint16_t*)&data[index+0];
-              '&EndHandle&'   = *(uint16_t*)&data[index+2];
-              'Type = ReadUUID('data_length-4', '&data[index+4]') '
-              // Transmit
-              'GATT!GATTPrimaryServiceDiscovered(StartHandle, EndHandle, Type)'
-            }
-          '
-          if (EndHandle == '0xFFFF') do
-            // We are done
-            AllDiscovered = true
-          end else do
-            // Get some more data
-            ATT!ATTReadByGroupTypeRequest(ConnectedHandle, EndHandle+1, '0xFFFF', MakeUUID("0x2800"))
+          print "[INFO]: Found characteristic with UUID: "
+          PrintUUID(e.Type)
+        end
+
+        internal event GATT?GATTServiceChararacteristicDiscoveryDone action do
+          Index = Index+1
+          if (Index < ServicesLength) do
+            var StartHandle : UInt = ServiceStartHandles[Index]
+            var EndHandle : UInt = ServiceEndHandles[Index]
+            GATT!GATTDiscoverServiceCharacteristics(StartHandle, EndHandle)
           end
         end
 
-        internal event e:ATT?ATTReadByGroupTypeError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
-          // We are done
-          AllDiscovered = true
-        end
-
-        transition -> Waiting guard (AllDiscovered) action do
-          print "[INFO]: Primary Service discovery finished...\n"
-          GATT!GATTPrimaryServiceDiscoveryDone()
-        end
+        transition -> Descriptors guard (Index == ServicesLength)
       }
 
-      /* Service Characteristic Discovery */
-      state ServiceCharacteristicDiscovery
+      state Descriptors
       {
+        property RangeIndex : Byte
+        property RangeLength : Byte
+        property RangeStart : UInt[50]
+        property RangeStop : UInt[50]
+
         on entry do
-          print "[INFO]: Started Service Characteristic discovery...\n"
-          ATT!ATTReadByTypeRequest(ConnectedHandle, DiscoveryStartHandle, DiscoveryEndHandle, MakeUUID("0x2803"))
-        end
+          RangeLength = 0
+          var Index : Byte = 0
+          var ServiceIndex : Byte = 1
+          var NextServiceHandle : UInt = 0
+          var NextHandle : UInt = 0
+          // Find handle ranges where there could be descriptors
+          while (Index < CharacteristicsLength-1) do
+            // Find Next service start handle
+            if (CharacteristicValueHandles[Index] > ServiceStartHandles[ServiceIndex]) do
+              ServiceIndex = ServiceIndex+1
+            end
+            if (ServiceIndex < ServicesLength) do
+              NextServiceHandle = ServiceStartHandles[ServiceIndex]
+            end else do
+              NextServiceHandle = '0xFFFF'
+            end
+            // Check if there is some spare room to next characteristic value declaration or service declaration
+            NextHandle = CharacteristicValueHandles[Index]+1
+            if (NextHandle < NextServiceHandle and NextHandle < CharacteristicHandles[Index+1]) do
+              RangeStart[RangeLength] = NextHandle
+              if (NextServiceHandle > CharacteristicHandles[Index+1]) do
+                RangeStop[RangeLength] = CharacteristicHandles[Index+1]-1
+              end else do
+                RangeStop[RangeLength] = NextServiceHandle-1
+              end
+              RangeLength = RangeLength+1
+            end
 
-        internal event e:ATT?ATTReadByTypeResponse action do
-          var Properties : Byte
-          var AttributeHandle : UInt
-          var ValueHandle : UInt
-          var Type : UUID
-          '
-            uint8_t data_length = '&e.Length&';
-            uint8_t total_length = '&e.AttributeDataList&'.length;
-            uint8_t *data = '&e.AttributeDataList&'.bytes;
-            uint8_t index;
+            Index = Index+1
+          end
+          // Last handle, is there more left in the end?
+          NextHandle = CharacteristicValueHandles[CharacteristicsLength-1]+1
+          NextServiceHandle = ServiceEndHandles[ServicesLength-1]
+          if (NextHandle <= NextServiceHandle) do
+            RangeStart[RangeLength] = NextHandle
+            RangeStop[RangeLength] = NextServiceHandle
+            RangeLength = RangeLength+1
+          end
 
-            for (index = 0; index < total_length; index += data_length) {
-              // Decode characteristic data
-              '&AttributeHandle&'   = *(uint16_t*)&data[index+0];
-              '&Properties&' = data[index+2];
-              '&ValueHandle&'   = *(uint16_t*)&data[index+3];
-              'Type = ReadUUID('data_length-5', '&data[index+5]') '
-              // Transmit
-              'GATT!GATTServiceCharacteristicDiscovered(Properties, ValueHandle, Type, AttributeHandle)'
-            }
-          '
-          if (AttributeHandle == DiscoveryEndHandle) do
-            // We are done
-            AllDiscovered = true
+          // If there are any possibilities, check if there are any descriptors there
+          if (RangeLength > 0) do
+            RangeIndex = 0
+            GATT!GATTDiscoverCharacteristicDescriptors(RangeStart[RangeIndex], RangeStop[RangeIndex])
           end else do
-            // Get some more data
-            ATT!ATTReadByTypeRequest(ConnectedHandle, AttributeHandle+1, DiscoveryEndHandle, MakeUUID("0x2803"))
+            DiscoveryDone = true
           end
         end
 
-        internal event e:ATT?ATTReadByTypeError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
-          // We are done
-          AllDiscovered = true
+        internal event e:GATT?GATTCharacteristicDescriptorDiscovered action do
+          if (DescriptorsLength < 20) do
+            DescriptorHandles[DescriptorsLength] = e.Handle
+            DescriptorTypes[DescriptorsLength] = e.Type
+            DescriptorsLength = DescriptorsLength+1
+          end
+
+          print "[INFO]: Found descriptor with UUID: "
+          PrintUUID(e.Type)
         end
 
-        transition -> Waiting guard (AllDiscovered) action do
-          print "[INFO]: Service Characteristic discovery finished...\n"
-          GATT!GATTServiceChararacteristicDiscoveryDone()
-        end
-      }
-
-      /* Characteristic Descriptor Discovery */
-      state CharacteristicDescriptorDiscovery
-      {
-        on entry do
-          print "[INFO]: Started Characteristic Descriptor discovery...\n"
-          ATT!ATTFindInformationRequest(ConnectedHandle, DiscoveryStartHandle, DiscoveryEndHandle)
-        end
-
-        internal event e:ATT?ATTFindInformationResponse action do
-          var Handle : UInt
-          var Type : UUID
-          '
-            uint8_t data_length = ('&e.Format&' == 0x01) ? 4 : 18;
-            uint8_t total_length = '&e.InformationData&'.length;
-            uint8_t *data = '&e.InformationData&'.bytes;
-            uint8_t index;
-
-            for (index = 0; index < total_length; index += data_length) {
-              // Decode characteristic data
-              '&Handle&'   = *(uint16_t*)&data[index+0];
-              'Type = ReadUUID('data_length-2', '&data[index+2]') '
-              // Transmit
-              'GATT!GATTCharacteristicDescriptorDiscovered(Handle, Type)'
-            }
-          '
-          if (Handle == DiscoveryEndHandle) do
-            // We are done
-            AllDiscovered = true
+        internal event GATT?GATTCharacteristicDescriptorDiscoveryDone action do
+          RangeIndex = RangeIndex+1
+          if (RangeIndex < RangeLength) do
+            GATT!GATTDiscoverCharacteristicDescriptors(RangeStart[RangeIndex], RangeStop[RangeIndex])
           end else do
-            // Get some more data
-            ATT!ATTFindInformationRequest(ConnectedHandle, Handle+1, DiscoveryEndHandle)
+            DiscoveryDone = true
           end
         end
-
-        internal event e:ATT?ATTFindInformationError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
-          // We are done
-          AllDiscovered = true
-        end
-
-        transition -> Waiting guard (AllDiscovered) action do
-          print "[INFO]: Characteristic Descriptor discovery finished...\n"
-          GATT!GATTCharacteristicDescriptorDiscoveryDone()
-        end
       }
 
-      transition -> Failed event e:ATT?ATTFindInformationError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
-      transition -> Failed event e:ATT?ATTReadByGroupTypeError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
-      transition -> Failed event e:ATT?ATTReadByTypeError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
+      transition -> Disconnect guard (DiscoveryDone)
 
-      transition -> Closed event Connecter?Stopped
-      transition -> Closed event Connecter?Failure
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Connecter?Stopped
+      transition -> Disconnect event Signals?Interrupt
     }
 
+    // Disconnect
+    state Disconnect
+    {
+      on entry Connecter!Stop()
+
+      internal event Connecter?Stopped action Initialiser!Stop()
+
+      transition -> Failed event Connecter?Failure
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Initialiser?Stopped
+      transition -> Failed event Signals?Interrupt
+    }
+
+    // Failed somewhere
     state Failed
     {
       on entry do
-        print "[ERROR]: GATT failed!\n"
-        Connecter!Stop()
+        print "[ERROR]: Failed, quitting... !!!\n"
+        Signals!Quit(1)
       end
     }
 
-    state Closed
+    // Normal QUIT
+    state Quit
     {
+      on entry do
+        print "[INFO]: Finished, quitting...\n"
+
+        // Print results
+        print "\nResults of discovery:\n\n"
+
+        var ServiceIndex : Byte = 0
+        var CharacteristicIndex : Byte = 0
+        var DescriptorIndex : Byte = 0
+
+        while (ServiceIndex < ServicesLength) do
+          print "\tService "
+          'printf("[0x%4.4X-0x%4.4X] : ", '&ServiceStartHandles[ServiceIndex]&', '&ServiceEndHandles[ServiceIndex]&');'
+          PrintUUID(ServiceTypes[ServiceIndex])
+
+          while (CharacteristicIndex < CharacteristicsLength and CharacteristicValueHandles[CharacteristicIndex] <= ServiceEndHandles[ServiceIndex]) do
+            print "\t\tCharacteristic "
+            'printf("[0x%4.4X->0x%4.4X] (0x%2.2X) : ", '&CharacteristicHandles[CharacteristicIndex]&', '&CharacteristicValueHandles[CharacteristicIndex]&', '&CharacteristicProperties[CharacteristicIndex]&');'
+            PrintUUID(CharacteristicTypes[CharacteristicIndex])
+
+            CharacteristicIndex = CharacteristicIndex+1
+
+            while (DescriptorIndex < DescriptorsLength and (CharacteristicIndex == CharacteristicsLength or DescriptorHandles[DescriptorIndex] < CharacteristicHandles[CharacteristicIndex])) do
+              print "\t\tDescriptor "
+              'printf("[0x%4.4X] : ", '&DescriptorHandles[DescriptorIndex]&');'
+              PrintUUID(DescriptorTypes[DescriptorIndex])
+
+              DescriptorIndex = DescriptorIndex+1
+            end
+
+          end
+
+          ServiceIndex = ServiceIndex+1
+        end
+
+        Signals!Quit(0)
+      end
     }
   }
+}
+
+
+
+configuration BLE_GATT
+@add_c_libraries "bluetooth"
+@c_header "
+  ble_random_number_t g = { 0x33, 0x46, 0xCC, 0x17, 0x3F, 0x56, 0xBC, 0x52, 0xF4, 0xB2, 0x90, 0xC4, 0x0E, 0xEF, 0x43, 0x05, };
+  uint16_t h = 0xF7B3;
+  ble_random_part_t i = { 0xD0, 0xC4, 0x4A, 0x1F, 0x57, 0x36, 0xF2, 0xBC, };
+  ble_random_number_t j = { 0x50, 0xC5, 0x01, 0xFC, 0xF0, 0x43, 0x93, 0xC4, 0x3D, 0xAC, 0xDF, 0xD2, 0x39, 0x59, 0x3F, 0x51, };
+  uint8_t k = 0x00;
+  bdaddr_t l = { 0x2F, 0x54, 0x03, 0x3E, 0x31, 0x5C, };
+"
+{
+  instance handler      : ExitHandler
+  instance hci          : HCISocketProxyImpl
+
+  instance initialiser  : BLEInitialiserImpl
+  instance connecter    : BLEConnecterImpl
+  instance gatt         : GATTProxy
+
+  instance main         : Main
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Connecter => connecter.Connecter
+  connector main.GATT => gatt.GATT
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+
+  connector gatt.Connecter => connecter.Connecter
+  connector gatt.ATT => hci.ATT
+
+
+
+  set hci.Device = "B8:27:EB:03:FA:CD"
+  //set hci.Device = "B8:27:EB:F1:1D:FF"
+  
+  set connecter.ConnectAddressType = BLEAddressType:PUBLIC
+  set connecter.ConnectAddress = "5C:31:3E:03:54:2F"
 }
