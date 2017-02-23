@@ -1,0 +1,251 @@
+import "BLE_connecter.thingml"
+import "ATTProxy.thingml"
+
+thing fragment GATTMsgs
+{
+  message GATTDiscoverAllPrimaryServices();
+  message GATTPrimaryServiceDiscovered(StartHandle : UInt, EndHandle : UInt, Type : UUID);
+  message GATTPrimaryServiceDiscoveryDone();
+
+  message GATTDiscoverServiceCharacteristics(StartHandle : UInt, EndHandle : UInt);
+  message GATTServiceCharacteristicDiscovered(Properties : Byte, ValueHandle : UInt, Type : UUID, DeclarationHandle : UInt);
+  message GATTServiceChararacteristicDiscoveryDone();
+
+  message GATTDiscoverCharacteristicDescriptors(StartHandle : UInt, EndHandle : UInt);
+  message GATTCharacteristicDescriptorDiscovered(Handle : UInt, Type : UUID);
+  message GATTCharacteristicDescriptorDiscoveryDone();
+
+}
+
+thing fragment GATT includes GATTMsgs
+{
+  required port GATT
+  {
+    sends GATTDiscoverAllPrimaryServices
+    receives GATTPrimaryServiceDiscovered
+    receives GATTPrimaryServiceDiscoveryDone
+
+    sends GATTDiscoverServiceCharacteristics
+    receives GATTServiceCharacteristicDiscovered
+    receives GATTServiceChararacteristicDiscoveryDone
+
+    sends GATTDiscoverCharacteristicDescriptors
+    receives GATTCharacteristicDescriptorDiscovered
+    receives GATTCharacteristicDescriptorDiscoveryDone
+  }
+}
+
+thing GATTProxy includes GATTMsgs, BLEConnecter, ATT, UUIDFunctions
+{
+  provided port GATT
+  {
+    receives GATTDiscoverAllPrimaryServices
+    sends GATTPrimaryServiceDiscovered
+    sends GATTPrimaryServiceDiscoveryDone
+
+    receives GATTDiscoverServiceCharacteristics
+    sends GATTServiceCharacteristicDiscovered
+    sends GATTServiceChararacteristicDiscoveryDone
+
+    receives GATTDiscoverCharacteristicDescriptors
+    sends GATTCharacteristicDescriptorDiscovered
+    sends GATTCharacteristicDescriptorDiscoveryDone
+  }
+
+  property ConnectedHandle : UInt
+  property AllDiscovered : Boolean = false
+  property DiscoveryStartHandle : UInt
+  property DiscoveryEndHandle : UInt
+
+
+  statechart States init WaitForEncryption
+  {
+    state WaitForEncryption
+    {
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+      end
+      transition -> Ready event Connecter?Encrypted
+    }
+
+    composite state Ready init Waiting
+    {
+      state Waiting
+      {
+        transition -> PrimaryServiceDiscovery event GATT?GATTDiscoverAllPrimaryServices action do
+          AllDiscovered = false
+        end
+        transition -> ServiceCharacteristicDiscovery event e:GATT?GATTDiscoverServiceCharacteristics action do
+          AllDiscovered = false
+          DiscoveryStartHandle = e.StartHandle
+          DiscoveryEndHandle = e.EndHandle
+        end
+        transition -> CharacteristicDescriptorDiscovery event e:GATT?GATTDiscoverCharacteristicDescriptors action do
+          AllDiscovered = false
+          DiscoveryStartHandle = e.StartHandle
+          DiscoveryEndHandle = e.EndHandle
+        end
+      }
+
+      /* Primary Service Discovery */
+      state PrimaryServiceDiscovery
+      {
+        on entry do
+          print "[INFO]: Started Primary Service discovery...\n"
+          ATT!ATTReadByGroupTypeRequest(ConnectedHandle, '0x0001', '0xFFFF', MakeUUID("0x2800"))
+        end
+
+        internal event e:ATT?ATTReadByGroupTypeResponse action do
+          var StartHandle : UInt
+          var EndHandle : UInt
+          var Type : UUID
+          '
+            uint8_t data_length = '&e.Length&';
+            uint8_t total_length = '&e.AttributeDataList&'.length;
+            uint8_t *data = '&e.AttributeDataList&'.bytes;
+            uint8_t index;
+
+            for (index = 0; index < total_length; index += data_length) {
+              // Decode service data
+              '&StartHandle&' = *(uint16_t*)&data[index+0];
+              '&EndHandle&'   = *(uint16_t*)&data[index+2];
+              'Type = ReadUUID('data_length-4', '&data[index+4]') '
+              // Transmit
+              'GATT!GATTPrimaryServiceDiscovered(StartHandle, EndHandle, Type)'
+            }
+          '
+          if (EndHandle == '0xFFFF') do
+            // We are done
+            AllDiscovered = true
+          end else do
+            // Get some more data
+            ATT!ATTReadByGroupTypeRequest(ConnectedHandle, EndHandle+1, '0xFFFF', MakeUUID("0x2800"))
+          end
+        end
+
+        internal event e:ATT?ATTReadByGroupTypeError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
+          // We are done
+          AllDiscovered = true
+        end
+
+        transition -> Waiting guard (AllDiscovered) action do
+          print "[INFO]: Primary Service discovery finished...\n"
+          GATT!GATTPrimaryServiceDiscoveryDone()
+        end
+      }
+
+      /* Service Characteristic Discovery */
+      state ServiceCharacteristicDiscovery
+      {
+        on entry do
+          print "[INFO]: Started Service Characteristic discovery...\n"
+          ATT!ATTReadByTypeRequest(ConnectedHandle, DiscoveryStartHandle, DiscoveryEndHandle, MakeUUID("0x2803"))
+        end
+
+        internal event e:ATT?ATTReadByTypeResponse action do
+          var Properties : Byte
+          var AttributeHandle : UInt
+          var ValueHandle : UInt
+          var Type : UUID
+          '
+            uint8_t data_length = '&e.Length&';
+            uint8_t total_length = '&e.AttributeDataList&'.length;
+            uint8_t *data = '&e.AttributeDataList&'.bytes;
+            uint8_t index;
+
+            for (index = 0; index < total_length; index += data_length) {
+              // Decode characteristic data
+              '&AttributeHandle&'   = *(uint16_t*)&data[index+0];
+              '&Properties&' = data[index+2];
+              '&ValueHandle&'   = *(uint16_t*)&data[index+3];
+              'Type = ReadUUID('data_length-5', '&data[index+5]') '
+              // Transmit
+              'GATT!GATTServiceCharacteristicDiscovered(Properties, ValueHandle, Type, AttributeHandle)'
+            }
+          '
+          if (AttributeHandle == DiscoveryEndHandle) do
+            // We are done
+            AllDiscovered = true
+          end else do
+            // Get some more data
+            ATT!ATTReadByTypeRequest(ConnectedHandle, AttributeHandle+1, DiscoveryEndHandle, MakeUUID("0x2803"))
+          end
+        end
+
+        internal event e:ATT?ATTReadByTypeError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
+          // We are done
+          AllDiscovered = true
+        end
+
+        transition -> Waiting guard (AllDiscovered) action do
+          print "[INFO]: Service Characteristic discovery finished...\n"
+          GATT!GATTServiceChararacteristicDiscoveryDone()
+        end
+      }
+
+      /* Characteristic Descriptor Discovery */
+      state CharacteristicDescriptorDiscovery
+      {
+        on entry do
+          print "[INFO]: Started Characteristic Descriptor discovery...\n"
+          ATT!ATTFindInformationRequest(ConnectedHandle, DiscoveryStartHandle, DiscoveryEndHandle)
+        end
+
+        internal event e:ATT?ATTFindInformationResponse action do
+          var Handle : UInt
+          var Type : UUID
+          '
+            uint8_t data_length = ('&e.Format&' == 0x01) ? 4 : 18;
+            uint8_t total_length = '&e.InformationData&'.length;
+            uint8_t *data = '&e.InformationData&'.bytes;
+            uint8_t index;
+
+            for (index = 0; index < total_length; index += data_length) {
+              // Decode characteristic data
+              '&Handle&'   = *(uint16_t*)&data[index+0];
+              'Type = ReadUUID('data_length-2', '&data[index+2]') '
+              // Transmit
+              'GATT!GATTCharacteristicDescriptorDiscovered(Handle, Type)'
+            }
+          '
+          if (Handle == DiscoveryEndHandle) do
+            // We are done
+            AllDiscovered = true
+          end else do
+            // Get some more data
+            ATT!ATTFindInformationRequest(ConnectedHandle, Handle+1, DiscoveryEndHandle)
+          end
+        end
+
+        internal event e:ATT?ATTFindInformationError guard (e.Error == ATTErrorCode:ATTRIBUTE_NOT_FOUND) action do
+          // We are done
+          AllDiscovered = true
+        end
+
+        transition -> Waiting guard (AllDiscovered) action do
+          print "[INFO]: Characteristic Descriptor discovery finished...\n"
+          GATT!GATTCharacteristicDescriptorDiscoveryDone()
+        end
+      }
+
+      transition -> Failed event e:ATT?ATTFindInformationError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
+      transition -> Failed event e:ATT?ATTReadByGroupTypeError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
+      transition -> Failed event e:ATT?ATTReadByTypeError guard (e.Error != ATTErrorCode:ATTRIBUTE_NOT_FOUND)
+
+      transition -> Closed event Connecter?Stopped
+      transition -> Closed event Connecter?Failure
+    }
+
+    state Failed
+    {
+      on entry do
+        print "[ERROR]: GATT failed!\n"
+        Connecter!Stop()
+      end
+    }
+
+    state Closed
+    {
+    }
+  }
+}

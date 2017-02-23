@@ -1,7 +1,7 @@
 import "ExitHandler.thingml"
 import "BLE_initialiser.thingml"
 import "BLE_connecter.thingml"
-import "BLE_gatt.thingml"
+import "BLE_gattproxy.thingml"
 
 thing Main includes BLEInitialiser, BLEConnecter, GATT, ExitHandlerMsgs, UUIDFunctions
 {
