@@ -1,0 +1,197 @@
+import "HCIDatatypes.thingml"
+import "ATTProxy.thingml"
+import "BLE_connecter.thingml"
+
+thing fragment BLEWeightscaleMsgs
+{
+  message BatteryPercentage(Percent : Byte);
+  message WeightscaleMeasurement(Weight : UInt, UnitImperial : Boolean,  Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte);
+}
+
+thing BLEWeightscale includes BLEWeightscaleMsgs
+{
+  required port Weightscale
+  {
+    receives BatteryPercentage
+    receives WeightscaleMeasurement
+  }
+}
+
+thing BLEWeightscaleImpl includes BLEWeightscaleMsgs, BLEConnecter, ATT
+@c_header "#include <time.h>"
+{
+  provided port Weightscale
+  {
+    sends BatteryPercentage
+    sends WeightscaleMeasurement
+  }
+
+  property ConnectedHandle : UInt
+
+  property BatteryValueHandle : UInt = '0x002B'
+  property WeightScaleValueHandle : UInt = '0x0012'
+  property WeightScaleConfigurationHandle : UInt = '0x0013'
+
+  statechart States init Waiting
+  {
+    state Waiting
+    {
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+        Connecter!Encrypt()
+      end
+      transition -> ReadBattery event Connecter?Encrypted
+    }
+    
+    state ReadBattery
+    {
+      on entry do
+        print "[INFO]: Reading battery percentage...\n"
+        ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+      end
+
+      transition -> TimeSync event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+        var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
+        'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
+        Weightscale!BatteryPercentage(Percent)
+      end
+
+      internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not read battery percentage!\n"
+        Connecter!Stop()
+      end
+
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+    
+    state TimeSync
+    {
+      on entry do
+        print "[INFO]: Synchronizing the time...\n"
+        var AttributeValue : GATTData
+        
+        // Read the UTC time
+        '
+          time_t utc = time(NULL);
+          struct tm *ptm = gmtime(&utc);
+        '
+        // Write into ATT value
+        '
+          '&AttributeValue&'.length = 7;
+          *((uint16_t*)&'&AttributeValue&'.bytes[0]) = ptm->tm_year+1900;
+          *((uint8_t*)&'&AttributeValue&'.bytes[2]) = ptm->tm_mon+1;
+          *((uint8_t*)&'&AttributeValue&'.bytes[3]) = ptm->tm_mday;
+          *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour+1;
+          *((uint8_t*)&'&AttributeValue&'.bytes[5]) = ptm->tm_min;
+          *((uint8_t*)&'&AttributeValue&'.bytes[6]) = ptm->tm_sec;
+        '
+        ATT!ATTWriteRequest(ConnectedHandle, '0x0017', AttributeValue)
+      end
+      
+      transition -> GetValues event e:ATT?ATTWriteResponse action do
+        print "[INFO]: Time synchronization successfull!\n"
+      end
+      
+      internal event e:ATT?ATTWriteError action do
+        print "[ERROR]: Time synchronization failed. Error code: "
+        'printf("%2.2X", '&e.Error&');'
+        print "!!\n"
+        Connecter!Stop()
+      end
+      
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+    
+    state GetValues
+    {
+      on entry do
+        print "[INFO]: Requesting indications of Weight Scale Measurement...\n"
+        var AttributeValue : GATTData
+        ''&AttributeValue&'.length = 2;'
+        ''&AttributeValue&'.bytes[0] = 0x02;'
+        ''&AttributeValue&'.bytes[1] = 0x00;'
+        ATT!ATTWriteRequest(ConnectedHandle, WeightScaleConfigurationHandle, AttributeValue)
+      end
+      
+            
+      internal event e:ATT?ATTHandleValueIndication guard (e.ConnectionHandle == ConnectedHandle) action do
+        '
+          uint8_t length = '&e.AttributeValue&'.length;
+          uint8_t *data  = '&e.AttributeValue&'.bytes;
+          uint8_t index = 3;
+        '
+        /* Decode the data */
+        var UnitImperial : Boolean = 'data[0] & 0x01'
+        var HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'
+        var HasUserID : Boolean = '(data[0] & 0x04) >> 3'
+        var HasBMIHeight : Boolean = '(data[0] & 0x08) >> 2'
+        
+        /* Blood pressure measurement */
+        var Weight : UInt = '*(uint16_t*)&data[1]'
+        
+        /* Timestamp */
+        var Year : UInt = 0
+        var Month : Byte = 0
+        var Day : Byte = 0
+        var Hour : Byte = 0
+        var Minute : Byte = 0
+        var Second : Byte = 0
+        if (HasTimestamp) do
+          Year = '*(uint16_t*)&data[index+0]'
+          Month = 'data[index+2]'
+          Day = 'data[index+3]'
+          Hour = 'data[index+4]'
+          Minute = 'data[index+5]'
+          Second = 'data[index+6]'
+          'index = index+7;'
+        end
+        
+        /* User ID */
+        var UserID : Byte = 0
+        if (HasUserID) do
+          UserID = 'data[index]'
+          'index = index+1;'
+        end
+        
+        /* BMI and Height */
+        var BMI : UInt = 0
+        var Height : UInt = 0
+        if (HasBMIHeight) do
+          Year = '*(uint16_t*)&data[index+0]'
+          Year = '*(uint16_t*)&data[index+2]'
+          'index = index+4;'
+        end
+        
+        // Print the measurement
+        print "[INFO]: Got Weight scale measurement - "
+        'printf("%d ",'&Weight&');'
+        if (UnitImperial) print "lb "
+        else print "kg "
+        if (HasTimestamp) do
+          'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
+        end
+        if (HasBMIHeight) do
+          'printf("%d ",'&Weight&');'
+          if (UnitImperial) print "in "
+          else print "m "
+          'printf("(%d) ",'&BMI&');'
+        end
+        
+        print "\n"
+        
+        ATT!ATTHandleValueConfirmation(e.ConnectionHandle)
+        Weightscale!WeightscaleMeasurement(Weight, UnitImperial, Year, Month, Day, Hour, Minute, Second)
+      end
+      
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not set indications of Weight Scale Measurement!\n"
+        Connecter!Stop()
+      end
+      
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+  }
+}

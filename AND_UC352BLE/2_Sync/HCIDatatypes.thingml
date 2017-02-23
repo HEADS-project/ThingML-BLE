@@ -1,0 +1,153 @@
+datatype HCIEventMask<8>
+  @c_type "set_event_mask_cp"
+  @c_header "#include <bluetooth/bluetooth.h>"
+  @c_header "#include <bluetooth/hci.h>";
+
+datatype BTLocalName<248>
+  @c_type "change_local_name_cp"
+  @c_header "#include <bluetooth/bluetooth.h>"
+  @c_header "#include <bluetooth/hci.h>";
+
+datatype BTAddress<6>
+  @c_type "bdaddr_t"
+  @c_header "#include <bluetooth/bluetooth.h>";
+
+datatype BLEAdvertiseData<31>
+  @c_type "ble_adv_data_t"
+  @c_header "#ifndef BLE_ADV_DATA_T_H"
+  @c_header "#define BLE_ADV_DATA_T_H"
+  @c_header "typedef struct { uint8_t bytes[31]; } ble_adv_data_t;"
+  @c_header "#endif";
+
+datatype BLERandomPart<8>
+  @c_type "ble_random_part_t"
+  @c_header "#ifndef BLE_RANDOM_PART_T_H"
+  @c_header "#define BLE_RANDOM_PART_T_H"
+  @c_header "typedef struct { uint8_t bytes[8]; } ble_random_part_t;"
+  @c_header "#endif";
+
+datatype BLERandomNumber<16>
+  @c_type "ble_random_number_t"
+  @c_header "#ifndef BLE_RANDOM_NUMBER_T_H"
+  @c_header "#define BLE_RANDOM_NUMBER_T_H"
+  @c_header "typedef struct { uint8_t bytes[16]; } ble_random_number_t;"
+  @c_header "#endif";
+
+enumeration BLEAdvertisingType//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  ADV_IND @enum_val "0x00"
+  ADV_DIRECT_IND_HIGH @enum_val "0x01"
+  ADV_SCAN_IND @enum_val "0x02"
+  ADV_NONCONN_IND @enum_val "0x03"
+  ADV_DIRECT_IND_LOW @enum_val "0x05"
+}
+
+enumeration BLEAddressType//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  PUBLIC @enum_val "0x00"
+  RANDOM @enum_val "0x01"
+  // Resolvable Private Address local IRK, no match -> public "0x02"
+  // Resolvable Private Address local IRK, no match -> private "0x03"
+}
+
+enumeration BLEAdvertisingChannel//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  CHANNEL_37 @enum_val "0x01"
+  CHANNEL_38 @enum_val "0x02"
+  CHANNEL_39 @enum_val "0x04"
+  ALL @enum_val "0x07"
+}
+
+enumeration BLEAdvertisingFilterPolicy//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  ALL @enum_val "0x00"
+  CONN_ALL_SCAN_WHITELIST @enum_val "0x01"
+  CONN_WHITELIST_SCAN_ALL @enum_val "0x02"
+  CONN_SCAN_WHITELIST @enum_val "0x03"
+}
+
+enumeration BLEScanType//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  PASSIVE @enum_val "0x00"
+  ACTIVE @enum_val "0x01"
+}
+
+enumeration BLEScanFilterPolicy//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  ALL @enum_val "0x00"
+  ONLY_FROM_WHITELISTED @enum_val "0x01"
+  DIRECTED_RESOLVABLE @enum_val "0x02"
+  DIRECTED_RESOLVABLE_WHITELISTED @enum_val "0x03"
+}
+
+
+enumeration BLEAdvertisementReportType//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  ADV_IND @enum_val "0x00"
+  ADV_DIRECT_IND @enum_val "0x01"
+  ADV_SCAN_IND @enum_val "0x02"
+  ADV_NONCONN_IND @enum_val "0x03"
+  SCAN_RSP @enum_val "0x04"
+}
+
+enumeration BLEInitiatorFilterPolicy//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  WHITELIST_NOT_USED @enum_val "0x00"
+  WHITELIST_USED @enum_val "0x01"
+}
+
+enumeration BLELinkRole//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  MASTER @enum_val "0x00"
+  SLAVE @enum_val "0x01"
+}
+
+enumeration BTDisconnectReason//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  AUTHENTICATION_FAILURE @enum_val "0x05"
+  REMOTE_USER @enum_val "0x13"
+  REMOTE_LOW_RESOURCES @enum_val "0x14"
+  REMOTE_POWER_OFF @enum_val "0x15"
+  UNSUPPORTED_REMOTE_FEATURE @enum_val "0x1A"
+  UNIT_KEY_NOT_SUPPORTED @enum_val "0x29"
+  UNACCEPTABLE_CONNECTION_PARAMETERS @enum_val "0x3B"
+}
+
+enumeration ACLPacketBoundaryFlag//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  FIRST_NOFLUSH @enum_val "0x00"
+  CONT_FRAGMENT @enum_val "0x01"
+  FIRST_FLUSHABLE @enum_val "0x02"
+  COMPLETE @enum_val "0x03"
+}
+
+enumeration ACLBroadcastFlag//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  POINTTOPOINT @enum_val "0x00"
+  ACTIVE_SLAVE @enum_val "0x01"
+  PARKED_SLAVE @enum_val "0x02"
+}

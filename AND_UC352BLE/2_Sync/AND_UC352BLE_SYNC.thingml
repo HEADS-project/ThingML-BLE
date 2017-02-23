@@ -1,0 +1,332 @@
+import "Datatypes.thingml"
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_connecter.thingml"
+//import "BLE_bloodpressure.thingml"
+import "BLE_weightscale.thingml"
+import "BLE_notifier.thingml"
+import "HCISocketImpl.thingml"
+
+
+thing fragment MqttMsgs
+{
+  message TelluCloudWeightScale(observationTime : DateTime, mass : Float) @tellucloud_type "observation";
+  message MqttRequestWeightScaleMeasurement();
+  message MqttConfirmWeightScaleMeasurement();
+}
+
+//thing Main includes BLEInitialiser, BLEBloodpressure, BLENotifier, ExitHandlerMsgs, BLEConnecterMsgs, MqttMsgs
+thing Main includes BLEInitialiser, BLEWeightscale, BLENotifier, ExitHandlerMsgs, BLEConnecterMsgs, MqttMsgs
+@c_header "#include <time.h>"
+{
+  required port Signals
+  {
+    receives Interrupt
+    sends Quit
+  }
+
+  /* Connecter instances for Blood Pressure device and LED Notifier device */
+  required port WeightScaleDevice
+  {
+    sends Connect, Stop, Encrypt
+    receives Connected, Stopped, Failure, Encrypted
+  }
+  required port NotifierDevice
+  {
+    sends Connect, Stop, Encrypt
+    receives Connected, Stopped, Failure, Encrypted
+  }
+
+  /* MQTT messages */
+  required port WeightScaleCloud
+  {
+    sends TelluCloudWeightScale
+    receives MqttRequestWeightScaleMeasurement, MqttConfirmWeightScaleMeasurement
+  }
+
+  property SendToNotifier : Byte = '0x00'
+
+  statechart States init Initialise
+  {
+    // Initialise HCI socket and BLE controller
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> Standby event Initialiser?DeviceInitialised
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Signals?Interrupt
+    }
+
+    // Main logic
+    composite state Standby init SyncWeightScale
+    {
+      internal event e:WeightScaleCloud?MqttConfirmWeightScaleMeasurement action do
+        ''&SendToNotifier&' |= 0x04;'
+      end
+      internal event e:WeightScaleCloud?MqttRequestWeightScaleMeasurement action do
+        ''&SendToNotifier&' |= 0x08;'
+      end
+      
+      composite state SyncWeightScale init ConnectWS
+      {
+        state ConnectWS
+        {
+          on entry do
+            print "[INFO]: Connecting to WeightScale...\n"
+            WeightScaleDevice!Connect()
+          end
+
+          transition -> ConnectedWS event WeightScaleDevice?Encrypted
+          
+          internal event e:WeightScaleCloud?MqttConfirmWeightScaleMeasurement action do
+            ''&SendToNotifier&' |= 0x04;'
+            WeightScaleDevice!Stop()
+          end
+          internal event e:WeightScaleCloud?MqttRequestWeightScaleMeasurement action do
+            ''&SendToNotifier&' |= 0x08;'
+            WeightScaleDevice!Stop()
+          end
+        }
+
+        state ConnectedWS
+        {
+          property GotMeasurements : Boolean
+          property MeasurementOK : Boolean
+          
+          on entry do
+            GotMeasurements = false
+            MeasurementOK = false
+          end
+          
+          internal event e:Weightscale?WeightscaleMeasurement action do
+            GotMeasurements = true
+            MeasurementOK = true
+            
+            if (MeasurementOK) do
+              var ObservationTime : DateTime = 0
+              var Mass : Float = e.Weight
+              // Convert date time
+              '
+                struct tm timebuf;
+                timebuf.tm_year = '&e.Year&'-1900;
+                timebuf.tm_mon = '&e.Month&'-1;
+                timebuf.tm_mday = '&e.Day&';
+                timebuf.tm_hour = '&e.Hour&';
+                timebuf.tm_min = '&e.Minute&';
+                timebuf.tm_sec = '&e.Second&';
+              '
+              ObservationTime = 'timegm(&timebuf)'
+            
+              WeightScaleCloud!TelluCloudWeightScale(ObservationTime, Mass)
+            end
+          end
+
+          transition -> ConnectWS event WeightScaleDevice?Stopped guard (not GotMeasurements) action do
+            print "[WARNING]: Finished syncing with Weight Scale Device but got no measurements!\n"
+          end
+          
+          internal event WeightScaleDevice?Stopped guard (GotMeasurements and '!('&SendToNotifier&' & 0x03)') action do
+            print "[INFO]: Finished syncing with Weight Scale Device.\n"
+            if (MeasurementOK) do
+              ''&SendToNotifier&' |= 0x02;'
+            end else do
+              ''&SendToNotifier&' |= 0x01;'
+            end
+            WeightScaleDevice!Stop()
+          end
+        }
+
+        transition -> SendToNotifier event WeightScaleDevice?Stopped guard (SendToNotifier != '0x00')
+      }
+
+      
+      composite state SendToNotifier init ConnectN
+      {
+        state ConnectN
+        {
+          on entry do
+            print "[INFO]: Connecting to Notifier ...\n"
+            NotifierDevice!Connect()
+          end
+
+          transition -> ConnectedN event Notifications?ReadyForNotificationCommand
+        }
+
+        state ConnectedN
+        {
+          on entry do
+            if (''&SendToNotifier&' & 0x01') do
+              ''&SendToNotifier&' &= ~0x01;'
+              print "[INFO]: NOTIFIER - bad\n"
+              Notifications!BadBloodPressureMeasurement()
+            end
+            else if (''&SendToNotifier&' & 0x02') do
+              ''&SendToNotifier&' &= ~0x02;'
+              print "[INFO]: NOTIFIER - received\n"
+              Notifications!ReceivedBloodPressureMeasurement()
+            end
+            else if (''&SendToNotifier&' & 0x04') do
+              ''&SendToNotifier&' &= ~0x04;'
+              print "[INFO]: NOTIFIER - stored\n"
+              Notifications!StoredBloodPressureMeasurement()
+            end
+            else if (''&SendToNotifier&' & 0x08') do
+              ''&SendToNotifier&' &= ~0x08;'
+              print "[INFO]: NOTIFIER - request\n"
+              Notifications!RequestBloodPressureMeasurement()
+            end
+          end
+          
+          transition -> ConnectN event NotifierDevice?Stopped guard (SendToNotifier != '0x00')
+        }
+
+        transition -> SyncWeightScale event NotifierDevice?Stopped guard (SendToNotifier == '0x00')
+        transition -> SyncWeightScale event NotifierDevice?Failure
+      }
+
+      transition -> Deinitialise event Signals?Interrupt
+      transition -> Failed event Initialiser?Failure
+    }
+
+    // Close everything
+    state Deinitialise
+    {
+      on entry do
+        print "[INFO]: Stopping...\n"
+        WeightScaleDevice!Stop()
+      end
+
+      internal event WeightScaleDevice?Stopped action NotifierDevice!Stop()
+      internal event NotifierDevice?Stopped action Initialiser!Stop()
+
+      transition -> Quit event Initialiser?Stopped
+
+      transition -> Failed event WeightScaleDevice?Failure
+      transition -> Failed event NotifierDevice?Failure
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Failed event Signals?Interrupt
+    }
+
+    // Failed somewhere
+    state Failed
+    {
+      on entry do
+        print "[ERROR]: Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    // Normal QUIT
+    state Quit // TODO How do we want to quit?
+    {
+      on entry do
+        print "[INFO]: Finished, quitting...\n"
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
+  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  /*
+  @mqtt_publish_topic "5C:31:3E:03:54:2F/smarttracker/health.pressure"
+  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttRequestBloodPressureMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:03:54:2F/MqttConfirmBloodPressureMeasurement";
+  */
+  /*
+  @mqtt_publish_topic "5C:31:3E:00:4B:6B/smarttracker/health.pressure"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttRequestBloodPressureMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttConfirmBloodPressureMeasurement";
+  */
+  @mqtt_publish_topic "5C:31:3E:5F:00:7A/smarttracker/mass"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttRequestWeightScaleMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttConfirmWeightScaleMeasurement";
+
+configuration AND_UC352BLE_SYNC
+@add_c_libraries "bluetooth"
+@c_header "
+  /*
+  ble_random_number_t peer_ltk = { 0x4D, 0xED, 0x37, 0xB5, 0x6C, 0x94, 0x4D, 0xEE, 0xD7, 0x35, 0x5A, 0xDC, 0x52, 0x3A, 0x82, 0xFC, };
+  uint16_t peer_ediv = 0x9B20;
+  ble_random_part_t peer_random = { 0xDE, 0x29, 0x2A, 0x99, 0x19, 0xDE, 0x56, 0xCA, };
+  */
+  /*
+  ble_random_number_t peer_ltk = { 0xCE, 0xED, 0xBC, 0x56, 0x27, 0x71, 0xBA, 0x5B, 0x77, 0xB1, 0x7B, 0xA7, 0x8B, 0xE2, 0x28, 0x66, };
+  uint16_t peer_ediv = 0x7A5E;
+  ble_random_part_t peer_random = { 0x6B, 0x61, 0x4E, 0xEE, 0x54, 0x36, 0x91, 0x3F, };
+  */  
+  ble_random_number_t peer_ltk = { 0xEB, 0x62, 0x86, 0x0E, 0x18, 0x20, 0x25, 0x8A, 0xCA, 0x18, 0x9C, 0xD5, 0x6D, 0x69, 0xAE, 0x6E, };
+  uint16_t peer_ediv = 0x627E;
+  ble_random_part_t peer_random = { 0xDE, 0x2B, 0x79, 0x5A, 0x5B, 0x21, 0x51, 0x3A, };
+  
+  notifier_cmd_t request_cmd  = { 2, '!', 'R' };
+  notifier_cmd_t received_cmd = { 2, '!', 'G' };
+  notifier_cmd_t error_cmd    = { 2, '!', 'E' };
+  notifier_cmd_t stored_cmd   = { 2, '!', 'S' };
+"  
+{
+  instance handler : ExitHandler
+  instance hci     : HCISocketProxyImpl
+
+  instance main : Main
+
+  instance initialiser            : BLEInitialiserImpl
+  instance connecterweightscale   : BLEConnecterImpl
+  instance connecternotifier      : BLEConnecterImpl
+  instance weightscale            : BLEWeightscaleImpl
+  instance notifier               : BLENotifierImpl
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.WeightScaleDevice => connecterweightscale.Connecter
+  connector main.Weightscale => weightscale.Weightscale
+  connector main.NotifierDevice => connecternotifier.Connecter
+  connector main.Notifications => notifier.Notifications
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector connecterweightscale.Socket => hci.Socket
+  connector connecterweightscale.HCICommands => hci.Commands
+  connector connecterweightscale.HCIEvents => hci.Events
+
+  connector connecternotifier.Socket => hci.Socket
+  connector connecternotifier.HCICommands => hci.Commands
+  connector connecternotifier.HCIEvents => hci.Events
+
+  connector weightscale.ATT => hci.ATT
+  connector weightscale.Connecter => connecterweightscale.Connecter
+
+  connector notifier.ATT => hci.ATT
+  connector notifier.Connecter => connecternotifier.Connecter
+  
+  set notifier.RequestCommand  = 'request_cmd'
+  set notifier.ReceivedCommand = 'received_cmd'
+  set notifier.ErrorCommand    = 'error_cmd'
+  set notifier.StoredCommand   = 'stored_cmd'
+  
+  /* ----- BLE CONNECTION PARAMETERS ----- */
+  //set hci.Device = "B8:27:EB:03:FA:CD" // TELENOR
+  set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+
+  set connecterweightscale.ConnectAddressType = BLEAddressType:PUBLIC
+  set connecterweightscale.ConnectAddress = "5C:31:3E:5F:00:7A"
+  connector main.WeightScaleCloud over MQTT1 @tellucloud_deviceid "5C:31:3E:5F:00:7A"
+
+  set connecterweightscale.LongTermKey = 'peer_ltk'
+  set connecterweightscale.EncryptedDiversifier = 'peer_ediv'
+  set connecterweightscale.RandomNumber = 'peer_random'
+
+  set connecternotifier.ConnectAddressType = BLEAddressType:RANDOM
+  //set connecternotifier.ConnectAddress = "D8:1A:59:61:FC:67"  
+  //set connecternotifier.ConnectAddress = "F3:48:7F:62:B8:60"
+  set connecternotifier.ConnectAddress = "CC:AF:6D:65:64:4A" 
+}

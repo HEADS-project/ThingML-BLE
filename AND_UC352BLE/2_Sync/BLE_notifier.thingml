@@ -1,0 +1,136 @@
+import "HCIDatatypes.thingml"
+import "ATTProxy.thingml"
+import "BLE_connecter.thingml"
+
+thing fragment BLENotifierMsgs
+{
+  message ReadyForNotificationCommand();
+  message RequestBloodPressureMeasurement();
+  message ReceivedBloodPressureMeasurement();
+  message BadBloodPressureMeasurement();
+  message StoredBloodPressureMeasurement();
+}
+
+thing BLENotifier includes BLENotifierMsgs
+{
+  required port Notifications
+  {
+    receives ReadyForNotificationCommand
+    sends RequestBloodPressureMeasurement, ReceivedBloodPressureMeasurement, BadBloodPressureMeasurement, StoredBloodPressureMeasurement
+  }
+}
+
+thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
+{
+  property ConnectedHandle : UInt
+
+  property WriteByteValueHandle : UInt = '0x0025'
+  property ReadByteValueHandle : UInt = '0x0021'
+  property ReadByteConfigurationHandle : UInt = '0x0023'
+  
+  property RequestCommand  : NotifierCommand
+  property ReceivedCommand : NotifierCommand
+  property ErrorCommand    : NotifierCommand
+  property StoredCommand   : NotifierCommand
+  
+  property CommandToSend : NotifierCommand
+  property BytesToSend : Byte
+  property SendtBytes : Byte
+  
+  provided port Notifications
+  {
+    sends ReadyForNotificationCommand
+    receives RequestBloodPressureMeasurement, ReceivedBloodPressureMeasurement, BadBloodPressureMeasurement, StoredBloodPressureMeasurement
+  }
+
+  statechart States init Waiting
+  {
+    state Waiting
+    {
+      transition -> Connected event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+      end
+    }
+
+    composite state Connected init SetReadNotifications
+    {
+      state SetReadNotifications
+      {
+        on entry do
+          var AttributeValue : GATTData
+          ''&AttributeValue&'.length = 2;'
+          ''&AttributeValue&'.bytes[0] = 0x01;'
+          ''&AttributeValue&'.bytes[1] = 0x00;'
+          ATT!ATTWriteRequest(ConnectedHandle, ReadByteConfigurationHandle, AttributeValue)
+        end
+        
+        transition -> WaitForCommand event e:ATT?ATTWriteResponse guard (e.ConnectionHandle == ConnectedHandle)
+      }
+      
+      state WaitForCommand
+      {
+        on entry do
+          Notifications!ReadyForNotificationCommand()
+        end
+        
+        transition -> SendCommand event Notifications?RequestBloodPressureMeasurement action do
+          CommandToSend = RequestCommand
+        end
+        
+        transition -> SendCommand event Notifications?ReceivedBloodPressureMeasurement action do
+          CommandToSend = ReceivedCommand
+        end
+        
+        transition -> SendCommand event Notifications?BadBloodPressureMeasurement action do
+          CommandToSend = ErrorCommand
+        end
+        
+        transition -> SendCommand event Notifications?StoredBloodPressureMeasurement action do
+          CommandToSend = StoredCommand
+        end
+      }
+      
+      state SendCommand
+      {
+        on entry do
+          BytesToSend = ''&CommandToSend&'.bytes[0]'
+          SendtBytes = 0
+          
+          if (BytesToSend > 0) do
+            var AttributeValue : GATTData
+            ''&AttributeValue&'.length = 1;'
+            ''&AttributeValue&'.bytes[0] = '&CommandToSend&'.bytes['&SendtBytes&'+1];'
+            ATT!ATTWriteRequest(ConnectedHandle, WriteByteValueHandle, AttributeValue)
+          end else do
+            Connecter!Stop()
+          end
+        end
+        
+        internal event e:ATT?ATTWriteResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+          SendtBytes = SendtBytes+1
+          if (SendtBytes <= BytesToSend) do
+            var AttributeValue : GATTData
+            ''&AttributeValue&'.length = 1;'
+            ''&AttributeValue&'.bytes[0] = '&CommandToSend&'.bytes['&SendtBytes&'+1];'
+            ATT!ATTWriteRequest(ConnectedHandle, WriteByteValueHandle, AttributeValue)
+          end else do
+            Connecter!Stop()
+          end
+        end
+      }
+
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Error while writing!\n"
+        Connecter!Stop()
+      end
+
+      internal event e:ATT?ATTHandleValueNotification guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == ReadByteValueHandle) action do
+        // TODO: Do something with bytes received?
+      end
+      //(ConnectionHandle : UInt, AttributeHandle : UInt, AttributeValue : GATTData);
+
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+  }
+}

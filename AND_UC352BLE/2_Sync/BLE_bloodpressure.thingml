@@ -1,0 +1,182 @@
+import "HCIDatatypes.thingml"
+import "ATTProxy.thingml"
+import "BLE_connecter.thingml"
+
+thing fragment BLEBloodpressureMsgs
+{
+  message BatteryPercentage(Percent : Byte);
+  message BloodPressureMeasurement(Systolic : Float, Diastolic : Float, MeanArterial : Float, UnitKPA : Boolean, Year : UInt, Month : Byte, Day : Byte, Hour : Byte, Minute : Byte, Second : Byte, Pulse : Float, IrregularPulse : Boolean);
+}
+
+thing BLEBloodpressure includes BLEBloodpressureMsgs
+{
+  required port Bloodpressure
+  {
+    receives BatteryPercentage
+    receives BloodPressureMeasurement
+  }
+}
+
+thing BLEBloodpressureImpl includes BLEBloodpressureMsgs, BLEConnecter, ATT
+@c_header "#include <math.h>"
+@c_global "
+  float sfloat_to_float(uint8_t *bytes) {
+    if (bytes[1] == 0x07 && bytes[0] == 0xFE) return INFINITY;
+    else if (bytes[1] == 0x07 && bytes[0] == 0xFF) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x00) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x01) return NAN;
+    else if (bytes[1] == 0x08 && bytes[0] == 0x02) return -INFINITY;
+    else {
+      int8_t exponent = ((int8_t)bytes[1]) >> 4;
+      int16_t mantissa = ((int16_t)(((uint16_t)bytes[1]) << 12) >> 4) | ((uint16_t)bytes[0]);
+      float f_exp = (float)exponent;
+      float f_man = (float)mantissa;
+      return pow(10,f_exp)*f_man;
+    }
+  }
+"
+{
+  provided port Bloodpressure
+  {
+    sends BatteryPercentage
+    sends BloodPressureMeasurement
+  }
+
+  property ConnectedHandle : UInt
+
+  property BatteryValueHandle : UInt = '0x002B'
+  property BloodPressureValueHandle : UInt = '0x0012'
+  property BloodPressureConfigurationHandle : UInt = '0x0013'
+
+  statechart States init Waiting
+  {
+    state Waiting
+    {
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+        Connecter!Encrypt()
+      end
+      transition -> Connected event Connecter?Encrypted
+    }
+
+    state Connected
+    {
+      on entry do
+        print "[INFO]: Requesting indications of Blood Pressure Measurement...\n"
+        var AttributeValue : GATTData
+        ''&AttributeValue&'.length = 2;'
+        ''&AttributeValue&'.bytes[0] = 0x02;'
+        ''&AttributeValue&'.bytes[1] = 0x00;'
+        ATT!ATTWriteRequest(ConnectedHandle, BloodPressureConfigurationHandle, AttributeValue)
+
+        print "[INFO]: Reading battery percentage...\n"
+        ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+      end
+
+      internal event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+        var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
+        'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
+        Bloodpressure!BatteryPercentage(Percent)
+      end
+
+      internal event e:ATT?ATTHandleValueIndication guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == BloodPressureValueHandle) action do
+        '
+          uint8_t length = '&e.AttributeValue&'.length;
+          uint8_t *data  = '&e.AttributeValue&'.bytes;
+          uint8_t index = 7;
+        '
+        /* Decode the data */
+        var UnitsKPA : Boolean = 'data[0] & 0x01'
+        var HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'
+        var HasPulseRate : Boolean = '(data[0] & 0x04) >> 2'
+        var HasUserID : Boolean = '(data[0] & 0x08) >> 3'
+        var HasMeasurementStatus : Boolean = '(data[0] & 0x10) >> 4'
+
+        /* Blood pressure measurement */
+        var Systolic : Float = 'sfloat_to_float(&data[1])'
+        var Diastolic : Float = 'sfloat_to_float(&data[3])'
+        var MeanArterial : Float = 'sfloat_to_float(&data[5])'
+
+        /* Timestamp */
+        var Year : UInt = 0
+        var Month : Byte = 0
+        var Day : Byte = 0
+        var Hour : Byte = 0
+        var Minute : Byte = 0
+        var Second : Byte = 0
+        if (HasTimestamp) do
+          Year = '*(uint16_t*)&data[index+0]'
+          Month = 'data[index+2]'
+          Day = 'data[index+3]'
+          Hour = 'data[index+4]'
+          Minute = 'data[index+5]'
+          Second = 'data[index+6]'
+          'index = index+7;'
+        end
+
+        /* Pulse rate */
+        var Pulse : Float = 0
+        if (HasPulseRate) do
+          Pulse = 'sfloat_to_float(&data[index])'
+          'index = index+2;'
+        end
+
+        /* User ID */
+        var UserID : Byte = 0
+        if (HasUserID) do
+          UserID = 'data[index]'
+          'index = index+1;'
+        end
+
+        /* Measurement Status */
+        var BodyMovement : Boolean = false
+        var CuffFit : Boolean = false
+        var IrregularPulse : Boolean = false
+        var PulseRate : Byte = 0
+        var MeasurementPosition : Boolean = false
+        if (HasMeasurementStatus) do
+          BodyMovement = 'data[index] & 0x01'
+          CuffFit = '(data[index] & 0x02) >> 1'
+          IrregularPulse = '(data[index] & 0x04) >> 2'
+          PulseRate = '(data[index] & 0x18) >> 3'
+          MeasurementPosition = '(data[index] & 0x20) >> 5'
+        end
+
+        // Print the measurement
+        print "[INFO]: Got Blood Pressure measurement - "
+        'printf("%.0f/%.0f (%.0f) ",'&Systolic&', '&Diastolic&', '&MeanArterial&');'
+        if (UnitsKPA) print "kPa "
+        else print "mmHg "
+        if (HasPulseRate) do
+          'printf("%.0fBPM ",'&Pulse&');'
+        end
+        if (HasTimestamp) do
+          'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
+        end
+        if (HasMeasurementStatus) do
+          print "- "
+          if (IrregularPulse) print "Irregular pulse detected "
+          else print "Normal pulse detected "
+        end
+
+        print "\n"
+
+        ATT!ATTHandleValueConfirmation(e.ConnectionHandle)
+        Bloodpressure!BloodPressureMeasurement(Systolic, Diastolic, MeanArterial, UnitsKPA, Year, Month, Day, Hour, Minute, Second, Pulse, IrregularPulse)
+      end
+
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not set indications of Blood Presssure Measurement!\n"
+        Connecter!Stop()
+      end
+
+      internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not read battery percentage!\n"
+        Connecter!Stop()
+      end
+
+      transition -> Waiting event Connecter?Stopped
+      transition -> Waiting event Connecter?Failure
+    }
+  }
+}
