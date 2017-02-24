@@ -1,6 +1,6 @@
 // Depth of the cradle should be 45mm.
 // The right diameter for the thermometer is scale(0.195) import (file = "shape.dxf", layer = "Layer_1");
-
+module cradle() {
 
 difference() {
     union() {
@@ -35,7 +35,13 @@ difference() {
     
     union() {
 
-		//rotate([90,0,0]) scale([1,1.5,1]) cylinder(r=24, h=59, $fn=64);
+		//translate([-20,2,-1]) cube([40,1,14]);
+
+		//rotate([90,0,0]) scale([1,1,1]) translate([0,0,1]) cylinder(r=12, h=1, $fn=64);
+
+
+	
+
 
 		translate([-50,-80,-50]) cube([100,100,50]);
 
@@ -43,10 +49,51 @@ difference() {
 			translate([0,0,-24]) cylinder(r=14.3-1, h=20, $fn=64);
 		}
 
-        translate([0,12,15]) rotate([15,0,0]) linear_extrude(convexity = 10, $fn=128) 
+        translate([0,12,15]) rotate([15,0,0]) linear_extrude(height = 80, convexity = 10, $fn=128) 
             scale(0.195) import (file = "shape.dxf", layer = "Layer_1");
+
+		 translate([0,15,0]) rotate([0,0,0]) linear_extrude(height = 20, convexity = 10, $fn=128) 
+            scale(0.10) import (file = "shape.dxf", layer = "Layer_1");
     }
     
 }
+
+}
+
+
+module bottom() {
+	difference() {
+
+		union() {
+			scale([1,0.7,1]) cylinder(r=40, h=1, $fn=64);
+			scale([1,0.7,1]) cylinder(r=38.6, h=4, $fn=64);
+		}
+
+		union() {
+			translate([0,0,1]) scale([1,0.7,1]) cylinder(r=38.6-1.5, h=5, $fn=64);
+			//translate([0,0,-1]) cylinder(r=20, h=6, $fn=64);
+
+		}
+	}
+	
+	difference() {
+		union() {
+			scale([1,0.7,1]) cylinder(r=35, h=55, $fn=64);	
+		}
+		union() {
+			scale([1,0.7,1]) translate([0,0,-1]) cylinder(r=34, h=60, $fn=64);
+			translate([-50, -4, -2])cube([100, 50, 60]);
+			
+		}
+		
+	}
+
+	translate([30-4,-5,0]) cube([8,1,45]);
+	translate([-30-4,-5,0]) cube([8,1,45]);
+
+}
+
+
+bottom();
 
 

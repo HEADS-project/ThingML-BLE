@@ -1,4 +1,4 @@
-import "NeoPixelBP.thingml"
+import "_Datatypes.thingml"
 
 thing fragment SerialMsgs {
 	message receive_byte (b : Byte);

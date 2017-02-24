@@ -2,6 +2,7 @@ import "NeoPixelScale.thingml"
 import "BLEGateway.thingml"
 
 
+
 thing fragment ScaleSensorMsgs {
 	message power_off()
 	message standby_heartbeat()

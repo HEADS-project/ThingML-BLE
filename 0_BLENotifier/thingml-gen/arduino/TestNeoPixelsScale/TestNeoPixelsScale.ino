@@ -32,12 +32,12 @@ uint8_t NeoPixelScale_NeoPixelStateChart_PULSE_maxcount_var;
 // Declaration of prototypes outgoing messages:
 void NeoPixelScale_NeoPixelStateChart_OnEntry(int state, struct NeoPixelScale_Instance *_instance);
 void NeoPixelScale_handle_clock_fps_clock(struct NeoPixelScale_Instance *_instance);
-void NeoPixelScale_handle_ctrl_setColor(struct NeoPixelScale_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
-void NeoPixelScale_handle_ctrl_rotate(struct NeoPixelScale_Instance *_instance, int8_t speed);
 void NeoPixelScale_handle_ctrl_breath(struct NeoPixelScale_Instance *_instance);
-void NeoPixelScale_handle_ctrl_off(struct NeoPixelScale_Instance *_instance);
-void NeoPixelScale_handle_ctrl_solid(struct NeoPixelScale_Instance *_instance);
+void NeoPixelScale_handle_ctrl_rotate(struct NeoPixelScale_Instance *_instance, int8_t speed);
+void NeoPixelScale_handle_ctrl_setColor(struct NeoPixelScale_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
 void NeoPixelScale_handle_ctrl_pulse(struct NeoPixelScale_Instance *_instance);
+void NeoPixelScale_handle_ctrl_solid(struct NeoPixelScale_Instance *_instance);
+void NeoPixelScale_handle_ctrl_off(struct NeoPixelScale_Instance *_instance);
 // Declaration of callbacks for incoming messages:
 
 // Definition of the states:
@@ -431,19 +431,21 @@ NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixelScale_handle_ctrl_setColor(struct NeoPixelScale_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
+void NeoPixelScale_handle_ctrl_breath(struct NeoPixelScale_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelScale_NeoPixelStateChart_State == NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_BREATH_STATE;
+NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_BREATH_STATE, _instance);
+NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
 //End Region NeoPixelStateChart
 //End dsregion NeoPixelStateChart
 //Session list: 
-if (1) {
-_instance->NeoPixelScale_NeoPixelStateChart_color_r_var = red;
-_instance->NeoPixelScale_NeoPixelStateChart_color_g_var = green;
-_instance->NeoPixelScale_NeoPixelStateChart_color_b_var = blue;
-NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
-}
 }
 void NeoPixelScale_handle_ctrl_rotate(struct NeoPixelScale_Instance *_instance, int8_t speed) {
 if(!(_instance->active)) return;
@@ -462,15 +464,45 @@ NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixelScale_handle_ctrl_breath(struct NeoPixelScale_Instance *_instance) {
+void NeoPixelScale_handle_ctrl_setColor(struct NeoPixelScale_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+if (1) {
+_instance->NeoPixelScale_NeoPixelStateChart_color_r_var = red;
+_instance->NeoPixelScale_NeoPixelStateChart_color_g_var = green;
+_instance->NeoPixelScale_NeoPixelStateChart_color_b_var = blue;
+NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+void NeoPixelScale_handle_ctrl_pulse(struct NeoPixelScale_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixelScale_NeoPixelStateChart_State == NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_BREATH_STATE;
-NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_BREATH_STATE, _instance);
+_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_PULSE_STATE;
+NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_PULSE_STATE, _instance);
+NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
+void NeoPixelScale_handle_ctrl_solid(struct NeoPixelScale_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelScale_NeoPixelStateChart_State == NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_SOLID_STATE;
+NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_SOLID_STATE, _instance);
 NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -511,38 +543,6 @@ if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_PULSE_STATE, _instance);
 _instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE;
 NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
-NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
-void NeoPixelScale_handle_ctrl_solid(struct NeoPixelScale_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelScale_NeoPixelStateChart_State == NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_SOLID_STATE;
-NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_SOLID_STATE, _instance);
-NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
-void NeoPixelScale_handle_ctrl_pulse(struct NeoPixelScale_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelScale_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelScale_NeoPixelStateChart_State == NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelScale_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelScale_NeoPixelStateChart_OnExit(NEOPIXELSCALE_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelScale_NeoPixelStateChart_State = NEOPIXELSCALE_NEOPIXELSTATECHART_PULSE_STATE;
-NeoPixelScale_NeoPixelStateChart_OnEntry(NEOPIXELSCALE_NEOPIXELSTATECHART_PULSE_STATE, _instance);
 NeoPixelScale_NeoPixelStateChart_State_event_consumed = 1;
 }
 }

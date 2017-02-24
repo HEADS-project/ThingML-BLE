@@ -1,0 +1,171 @@
+import "NeoPixelThermo.thingml"
+import "BLEGateway.thingml"
+
+
+thing fragment ThermoSensorMsgs {
+	message on_cradle()
+	message off_cradle()
+}
+
+thing ThermoSensor includes ThermoSensorMsgs, TimerMsgs {
+
+	required port clock {
+		receives io_clock, timer_timeout
+		sends timer_start, timer_cancel
+	}
+
+	provided port ctrl {
+		sends on_cradle, off_cradle
+	}
+	
+	statechart ScaleSensorImpl init ON_CRADLE {
+	
+		on entry do
+			ctrl!on_cradle()
+		end
+	
+		state ON_CRADLE {
+			
+			transition -> DEBOUNCING_ON  event clock?io_clock
+			guard 'analogRead(A0) < 535'
+		
+		}
+		
+		state DEBOUNCING_ON {
+			
+			transition -> OFF_CRADLE  event clock?io_clock
+			guard 'analogRead(A0) < 535'
+			action ctrl!off_cradle()
+			
+			transition -> ON_CRADLE  event clock?io_clock
+			guard 'analogRead(A0) > 600'
+		
+		}
+		
+		state OFF_CRADLE {
+			on entry ctrl!off_cradle()
+			
+			transition -> DEBOUNCING_OFF  event clock?io_clock
+			guard 'analogRead(A0) > 600'
+			
+		}
+		
+		state DEBOUNCING_OFF {
+			
+			transition -> OFF_CRADLE  event clock?io_clock
+			guard 'analogRead(A0) < 535'
+			
+			transition -> ON_CRADLE  event clock?io_clock
+			guard 'analogRead(A0) > 600'
+			action ctrl!on_cradle()
+		
+		}
+	} 
+}
+
+thing BLENotifierThermo includes NeoPixelMsgs, ThermoSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
+
+	required port gateway {
+		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
+	}
+	
+	required port sensor {
+		receives on_cradle, off_cradle
+	}
+	
+	required port neopixels {
+		sends setColor, off, pulse, rotate, breath, solid
+	}
+	
+	required port clock {
+		receives timer_timeout
+		sends timer_start, timer_cancel
+	}
+	
+	function breath() do
+		neopixels!off()
+		neopixels!setColor(0, 50, 255)
+		neopixels!breath()
+	end
+	
+	function pulse() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!pulse()
+	end
+	
+	function pump() do
+		neopixels!off()
+		neopixels!setColor(255, 32, 0)
+		neopixels!rotate(12)
+	end
+	
+	function measure() do
+		neopixels!off()
+		neopixels!setColor(160, 140, 0)
+		neopixels!rotate(-2)
+	end
+	
+	function solid(r : UInt8, g : UInt8, b : UInt8) do
+		neopixels!off()
+		neopixels!setColor(r, g, b)
+		neopixels!solid()
+	end
+
+	statechart BLENotifierSC init Init {
+	
+		internal event c:gateway?set_base_color action neopixels!setColor(c.r, c.g, c.b)
+	
+		state Init {
+			on entry do
+				solid(0, 128, 32)
+				clock!timer_start(0, 1000)
+			end
+			
+			transition -> OnCradle event t:clock?timer_timeout guard t.id == 0 action breath()
+		}
+	
+		composite state OnCradle init StdBy keeps history {
+		
+			transition -> OffCradle event sensor?off_cradle
+		
+			state StdBy {
+				on entry breath()
+				transition -> Red event gateway?request_measurement action pulse()
+			}
+		
+			state Red {
+				on entry pulse()
+			}
+
+		}
+		
+		state OffCradle {
+			on entry solid(128, 100, 0)
+			
+			transition -> OnCradle event sensor?on_cradle
+		}
+		
+		
+	}
+}
+
+protocol Timer;
+
+configuration BLEThermoNotifier
+{
+	instance notifier : BLENotifierThermo
+	instance uart : Serial
+	instance neopixels : NeoPixelThermo
+	instance sensor : ThermoSensor
+	instance gwcmd : GatewayCommandParser
+	
+	connector notifier.neopixels => neopixels.ctrl
+	connector gwcmd.bletx => uart.tx
+	connector gwcmd.blerx => uart.rx
+	connector notifier.gateway => gwcmd.gateway
+	connector notifier.sensor => sensor.ctrl
+	connector neopixels.clock over Timer
+	connector sensor.clock over Timer
+	connector notifier.clock over Timer
+}
