@@ -1,0 +1,199 @@
+import "ModuleMsgs.thingml"
+import "HCIDatatypes.thingml"
+import "HCISocket.thingml"
+
+thing fragment BLEConnecterMsgs
+{
+  message Connect();
+  message ConnectTo(AddressType : BLEAddressType, Address : BTAddress, LongTermKey : BLERandomNumber, EncryptedDiversifier : UInt, RandomNumber : BLERandomPart);
+  message ConnectToU(AddressType : BLEAddressType, Address : BTAddress);
+  message Connected(Handle : UInt, AddressType : BLEAddressType, Address : BTAddress);
+
+  message Encrypt();
+  message Encrypted();
+}
+
+thing fragment BLEConnecter includes ModuleMsgs, BLEConnecterMsgs
+{
+  required port Connecter
+  {
+    sends Connect, ConnectTo, ConnectToU, Stop, Encrypt
+    receives Connected, Stopped, Failure, Encrypted
+  }
+}
+
+thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
+{
+  provided port Connecter
+  {
+    receives Connect, ConnectTo, ConnectToU, Stop, Encrypt
+    sends Connected, Stopped, Failure, Encrypted
+  }
+
+  property ConnectAddress : String
+  property ConnectAddressBT : BTAddress
+  property ConnectAddressType : BLEAddressType
+  property LongTermKey : BLERandomNumber
+  property EncryptedDiversifier : UInt
+  property RandomNumber : BLERandomPart
+
+  property ConnectedHandle : Int
+  property ConnectedAddressType : BLEAddressType
+  property ConnectedAddress : BTAddress
+
+  statechart States init NotConnected
+  {
+    state NotConnected
+    {
+      transition -> Connecting event e:Connecter?Connect action do
+        'str2ba('&ConnectAddress&',&'&ConnectAddressBT&');'
+      end
+      
+      transition -> Connecting event e:Connecter?ConnectToU action do
+        ConnectAddressType = e.AddressType
+        ConnectAddressBT = e.Address
+      end
+      
+      transition -> Connecting event e:Connecter?ConnectTo action do
+        ConnectAddressType = e.AddressType
+        ConnectAddressBT = e.Address
+        LongTermKey = e.LongTermKey
+        EncryptedDiversifier = e.EncryptedDiversifier
+        RandomNumber = e.RandomNumber
+      end
+
+      internal event Connecter?Stop action Connecter!Stopped()
+    }
+
+    state Connecting
+    {
+      on entry do
+        var Interval : Int = '0x0010'
+        var Window : Int = '0x0010'
+        var FilterPolicy : BLEInitiatorFilterPolicy = BLEInitiatorFilterPolicy:WHITELIST_NOT_USED
+        var PeerAddressType : BLEAddressType = ConnectAddressType
+        var PeerAddress : BTAddress = ConnectAddressBT
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var ConnIntervalMin : Int = '0x0006'
+        var ConnIntervalMax : Int = '0x000C'
+        var ConnLatency : Int = '0x0000'
+        var SupervisionTimeout : Int = '0x00c8'
+        var CELengthMin : Int = '0x0004'
+        var CELengthMax : Int = '0x0006'
+        
+        HCICommands!LECreateConnection(Interval, Window, FilterPolicy, PeerAddressType, PeerAddress, OwnAddressType, ConnIntervalMin, ConnIntervalMax, ConnLatency, SupervisionTimeout, CELengthMin, CELengthMax)
+      end
+
+      internal event e:HCIEvents?LECreateConnectionStatus guard (e.Status == 0) action do
+        print "[INFO]: Requested connection to "
+        '
+          char address[18];
+          bzero(address, 18);
+          ba2str(&'&ConnectAddressBT&', address);
+          printf("%s", address);
+        '
+        print "...\n"
+      end
+      transition -> Failure event e:HCIEvents?LECreateConnectionStatus guard (e.Status > 0)
+
+      transition -> CancelConnection event Connecter?Stop
+
+      transition -> Connected event e:HCIEvents?LEConnectionComplete guard (e.Status == 0) action do
+        ConnectedHandle = e.ConnectionHandle
+        ConnectedAddressType = e.PeerAddressType
+        ConnectedAddress = e.PeerAddress
+        print "[INFO]: Normal connection complete\n"
+      end
+      transition -> Failure event e:HCIEvents?LEConnectionComplete guard (e.Status > 0)
+
+      transition -> Connected event e:HCIEvents?LEEnhancedConnectionComplete guard (e.Status == 0) action do
+        ConnectedHandle = e.ConnectionHandle
+        print "[INFO]: Enhanced connection complete\n"
+      end
+      transition -> Failure event e:HCIEvents?LEEnhancedConnectionComplete guard (e.Status > 0)
+    }
+
+    state CancelConnection
+    {
+      on entry HCICommands!LECreateConnectionCancel()
+      transition -> Failure event e:HCIEvents?LECreateConnectionCancelCompleted guard (e.Status > 0)
+
+      transition -> NotConnected event e:HCIEvents?LEConnectionComplete guard (e.Status == '0x02') action Connecter!Stopped()
+      transition -> NotConnected event e:HCIEvents?LEEnhancedConnectionComplete guard (e.Status == '0x02') action Connecter!Stopped()
+    }
+
+    state Connected
+    {
+      on entry do
+        print "[INFO]: Connected!\n"
+        Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
+      end
+
+      internal event Connecter?Connect action Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
+
+      internal event e:Connecter?Encrypt action do
+        HCICommands!LEStartEncryption(ConnectedHandle, RandomNumber, EncryptedDiversifier, LongTermKey)
+      end
+      internal event e:HCIEvents?LEStartEncryptionStatus guard (e.Status == 0) action print "[INFO]: Requested encryption...\n"
+      transition -> Failure event e:HCIEvents?LEStartEncryptionStatus guard (e.Status > 0) action print "[ERROR]: Start encryption failed!\n"
+
+      transition -> Encrypted event e:HCIEvents?EncryptionChanged guard (e.Status == 0 and e.Enabled)
+      transition -> Failure event e:HCIEvents?EncryptionChanged guard (e.Status > 0) action print "[ERROR]: Encryption failed!\n"
+
+      transition -> NotConnected event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action do
+        print "[INFO]: Connection closed by remote.\n"
+        Connecter!Stopped()
+      end
+      transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
+
+      transition -> Disconnecting event Connecter?Stop
+    }
+
+    state Encrypted
+    {
+      on entry do
+        print "[INFO]: Connection encrypted!\n"
+        Connecter!Encrypted()
+      end
+
+      internal event Connecter?Connect action Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
+      internal event Connecter?Encrypt action Connecter!Encrypted()
+
+      transition -> Connected event e:HCIEvents?EncryptionChanged guard (e.Status == 0 and not e.Enabled)
+      transition -> Failure event e:HCIEvents?EncryptionChanged guard (e.Status > 0) action print "[ERROR]: Encryption failed!\n"
+      
+      transition -> NotConnected event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action do
+        print "[INFO]: Connection closed by remote.\n"
+        Connecter!Stopped()
+      end
+      transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
+
+      transition -> Disconnecting event Connecter?Stop
+    }
+
+    state Disconnecting
+    {
+      on entry HCICommands!Disconnect(ConnectedHandle, BTDisconnectReason:REMOTE_USER)
+
+      internal event e:HCIEvents?DisconnectStatus guard (e.Status == 0) action do
+        print "[INFO]: Closing connection...\n"
+      end
+      transition -> Failure event e:HCIEvents?DisconnectStatus guard (e.Status > 0)
+
+      transition -> NotConnected event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action Connecter!Stopped()
+      transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: BLE_connecter failed :(\n"
+        Connecter!Failure()
+        Connecter!Stopped()
+      end
+
+      transition -> Connecting event e:Connecter?Connect
+      internal event Connecter?Stop action Connecter!Failure()
+    }
+  }
+}

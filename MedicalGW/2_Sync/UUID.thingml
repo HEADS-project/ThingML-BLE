@@ -1,0 +1,64 @@
+import "Datatypes.thingml"
+import "ATTDatatypes.thingml"
+
+thing fragment UUIDFunctions
+{
+  function ReadUUID(Length : UInt, Data : DataPointer) : UUID do
+    var Value : UUID = '{ 0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00/*-*/, 0x00, 0x80/*-*/, 0x00, 0x10/*-*/, 0x00, 0x00/*-*/, 0x00, 0x00, 0x00, 0x00 }' // Bluetooth base UUID
+    if (Length == 16) do
+      'memcpy(&'&Value&', '&Data&', 16);'
+    end else do
+      if (Length == 2 or Length == 4) do
+        'memcpy(&(((uint8_t*)&'&Value&')[12]), '&Data&', '&Length&');'
+      end else do
+        print "[ERROR]: Trying to decode a UUID that was not 16, 32 or 128 bits long!\n"
+      end
+    end
+    return Value
+  end
+
+  function MakeUUID(Text : String) : UUID do
+    var Value : UUID = '{ 0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00/*-*/, 0x00, 0x80/*-*/, 0x00, 0x10/*-*/, 0x00, 0x00/*-*/, 0x00, 0x00, 0x00, 0x00 }' // Bluetooth base UUID
+    '
+      uint8_t *val = (uint8_t*)&'&Value&';
+      const char *str = '&Text&';
+      size_t length = strlen(str);
+      if (length == 36 && str[8] == \'-\' && str[13] == \'-\' && str[18] == \'-\' && str[23] == \'-\') {
+        // 128-bit UUID
+        if (sscanf(str, "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx"
+                      , &val[15], &val[14], &val[13], &val[12], &val[11], &val[10], &val[9], &val[8], &val[7], &val[6], &val[5], &val[4], &val[3], &val[2], &val[1], &val[0] ) == 16 ) {
+            // Should be valid, and have stored the values in the Value-memory
+        } else {
+          printf("[ERROR]: String is not a valid UUID!\n");
+        }
+
+      } else if (length == 4 || length == 6 || length == 8 || length == 10) {
+        // 16-bit or 32-bit UUID
+        uint32_t id;
+        char *end = NULL;
+        id = strtol(str, &end, 16);
+
+        if (id && end && *end == \'\0\') {
+          // Should be valid
+          *(uint32_t*)&val[12] = id;
+        } else {
+          printf("[ERROR]: String is not a valid UUID!\n");
+        }
+      } else {
+        printf("[ERROR]: String is not a valid UUID!\n");
+      }
+    '
+    return Value
+  end
+
+  function PrintUUID(ID : UUID) do
+    '
+      uint8_t *v = &'&ID&';
+      printf("%2.2X%2.2X%2.2X%2.2X-",v[15],v[14],v[13],v[12]);
+      printf("%2.2X%2.2X-",v[11],v[10]);
+      printf("%2.2X%2.2X-",v[9],v[8]);
+      printf("%2.2X%2.2X-",v[7],v[6]);
+      printf("%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X\n",v[5],v[4],v[3],v[2],v[1],v[0]);
+    '
+  end
+}

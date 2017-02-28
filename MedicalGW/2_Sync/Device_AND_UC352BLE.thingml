@@ -1,0 +1,350 @@
+import "Datatypes.thingml"
+import "HCIDatatypes.thingml"
+import "DeviceMessages.thingml"
+import "BLE_scanner.thingml"
+import "BLE_connecter.thingml"
+import "BLE_notifier.thingml"
+
+thing ANDUC352BLE includes DeviceMsgs
+{
+  required port ANDUC352BLE
+  {
+    receives WantsToConnect, FinishedConnection
+    sends AllowedToConnect
+  }
+}
+
+thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs, ATT
+@c_header "
+  #include <time.h>
+  #include <bluetooth/bluetooth.h>
+"
+@c_global "
+  static ble_random_number_t peer_ltk = { 0xEB, 0x62, 0x86, 0x0E, 0x18, 0x20, 0x25, 0x8A, 0xCA, 0x18, 0x9C, 0xD5, 0x6D, 0x69, 0xAE, 0x6E, };
+  static uint16_t peer_ediv = 0x627E;
+  static ble_random_part_t peer_random = { 0xDE, 0x2B, 0x79, 0x5A, 0x5B, 0x21, 0x51, 0x3A, };
+"
+{
+  property AddressType : BLEAddressType = BLEAddressType:PUBLIC
+  property Address : String = "5C:31:3E:5F:00:7A"
+  property AddressBT : BTAddress
+  property LongTermKey : BLERandomNumber
+  property EncryptedDiversifier : UInt
+  property RandomNumber : BLERandomPart
+  
+  property NotifierAddressType : BLEAddressType = BLEAddressType:RANDOM
+  property NotifierAddress : String = "CC:AF:6D:65:64:4A"
+  property NotifierAddressBT : BTAddress
+  
+  property ConnectedHandle : UInt
+
+  property BatteryValueHandle : UInt = '0x002B'
+  property WeightScaleValueHandle : UInt = '0x0012'
+  property WeightScaleConfigurationHandle : UInt = '0x0013'
+  
+    
+  provided port ANDUC352BLE
+  {
+    sends WantsToConnect, FinishedConnection
+    receives AllowedToConnect
+  }
+  
+  
+  message TelluCloudWeightScale(observationTime : DateTime, mass : Float) @tellucloud_type "observation";
+  message MqttRequestWeightScaleMeasurement();
+  message MqttConfirmWeightScaleMeasurement();
+  
+  required port Tellu
+  {
+    sends TelluCloudWeightScale
+    receives MqttRequestWeightScaleMeasurement, MqttConfirmWeightScaleMeasurement
+  }
+  
+  property DoSync : Boolean
+  property GotMeasurement : Boolean
+  property GotStored : Boolean
+  property GotRequest : Boolean
+  
+  statechart States init Standby
+  {
+    on entry do
+      // Set byte variables of properties
+      LongTermKey = 'peer_ltk'
+      EncryptedDiversifier = 'peer_ediv'
+      RandomNumber = 'peer_random'
+      'str2ba('&Address&', &'&AddressBT&');'
+      'str2ba('&NotifierAddress&', &'&NotifierAddressBT&');'
+    end
+    
+    state Standby
+    {
+      on entry do
+        DoSync = false
+      end
+      
+      internal event e:Scanner?ConnectableAdvertisement action do
+        // Check if we want to connect to this device
+        if (e.AddressType == AddressType and 'bacmp(&'&e.Address&', &'&AddressBT&')' == 0) do
+          DoSync = true
+          GotMeasurement = false
+          ANDUC352BLE!WantsToConnect()
+        end
+      end
+      
+      // If we get requests or confirmations here, jump straight to the Notify state
+      internal event Tellu?MqttRequestWeightScaleMeasurement action do
+        GotRequest = true
+        ANDUC352BLE!WantsToConnect()
+      end
+      internal event Tellu?MqttConfirmWeightScaleMeasurement action do
+        GotStored = true
+        ANDUC352BLE!WantsToConnect()
+      end
+      
+      transition -> Connecting event ANDUC352BLE?AllowedToConnect guard (DoSync == true)
+      transition -> Notify event ANDUC352BLE?AllowedToConnect guard (DoSync == false)
+    }
+    
+    state Connecting
+    {
+      on entry do
+        print "[INFO]: Connecting to A&D UC-352BLE...\n"
+        Connecter!ConnectTo(AddressType, AddressBT, LongTermKey, EncryptedDiversifier, RandomNumber)
+      end
+      
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+        Connecter!Encrypt()
+      end
+      
+      transition -> Sync event Connecter?Encrypted
+      
+      transition -> Notify event Connecter?Stopped
+      transition -> Notify event Connecter?Failure
+    }
+    
+    composite state Sync init ReadBattery
+    {
+      on entry do
+        print "[INFO]: Syncing with A&D UC-352BLE...\n"
+      end
+      
+      state ReadBattery
+      {
+        on entry do
+          print "[INFO]: Reading battery percentage...\n"
+          ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+        end
+
+        transition -> TimeSync event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+          var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
+          'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
+          //Weightscale!BatteryPercentage(Percent)
+        end
+
+        internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
+          print "[ERROR]: Could not read battery percentage!\n"
+          Connecter!Stop()
+        end
+      }
+      
+      state TimeSync
+      {
+        on entry do
+          print "[INFO]: Synchronizing the time...\n"
+          var AttributeValue : GATTData
+          // Read the UTC time
+          '
+            time_t utc = time(NULL);
+            struct tm *ptm = gmtime(&utc);
+          '
+          // Write into ATT value
+          '
+            '&AttributeValue&'.length = 7;
+            *((uint16_t*)&'&AttributeValue&'.bytes[0]) = ptm->tm_year+1900;
+            *((uint8_t*)&'&AttributeValue&'.bytes[2]) = ptm->tm_mon+1;
+            *((uint8_t*)&'&AttributeValue&'.bytes[3]) = ptm->tm_mday;
+            *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour+1;
+            *((uint8_t*)&'&AttributeValue&'.bytes[5]) = ptm->tm_min;
+            *((uint8_t*)&'&AttributeValue&'.bytes[6]) = ptm->tm_sec;
+          '
+          ATT!ATTWriteRequest(ConnectedHandle, '0x0017', AttributeValue)
+        end
+
+        transition -> GetValues event e:ATT?ATTWriteResponse action do
+          print "[INFO]: Time synchronization successfull!\n"
+        end
+
+        internal event e:ATT?ATTWriteError action do
+          print "[ERROR]: Time synchronization failed. Error code: "
+          'printf("%2.2X", '&e.Error&');'
+          print "!!\n"
+          Connecter!Stop()
+        end
+      }
+      
+      state GetValues
+      {        
+        on entry do
+          print "[INFO]: Requesting indications of Weight Scale Measurement...\n"
+          var AttributeValue : GATTData
+          ''&AttributeValue&'.length = 2;'
+          ''&AttributeValue&'.bytes[0] = 0x02;'
+          ''&AttributeValue&'.bytes[1] = 0x00;'
+          ATT!ATTWriteRequest(ConnectedHandle, WeightScaleConfigurationHandle, AttributeValue)
+        end
+
+        internal event e:ATT?ATTHandleValueIndication guard (e.ConnectionHandle == ConnectedHandle) action do
+          '
+            uint8_t length = '&e.AttributeValue&'.length;
+            uint8_t *data  = '&e.AttributeValue&'.bytes;
+            uint8_t index = 3;
+          '
+          /* Decode the data */
+          var UnitImperial : Boolean = 'data[0] & 0x01'
+          var HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'
+          var HasUserID : Boolean = '(data[0] & 0x04) >> 3'
+          var HasBMIHeight : Boolean = '(data[0] & 0x08) >> 2'
+
+          /* Blood pressure measurement */
+          var Weight : UInt = '*(uint16_t*)&data[1]'
+
+          /* Timestamp */
+          var Year : UInt = 0
+          var Month : Byte = 0
+          var Day : Byte = 0
+          var Hour : Byte = 0
+          var Minute : Byte = 0
+          var Second : Byte = 0
+          if (HasTimestamp) do
+            Year = '*(uint16_t*)&data[index+0]'
+            Month = 'data[index+2]'
+            Day = 'data[index+3]'
+            Hour = 'data[index+4]'
+            Minute = 'data[index+5]'
+            Second = 'data[index+6]'
+            'index = index+7;'
+          end
+
+          /* User ID */
+          var UserID : Byte = 0
+          if (HasUserID) do
+            UserID = 'data[index]'
+            'index = index+1;'
+          end
+
+          /* BMI and Height */
+          var BMI : UInt = 0
+          var Height : UInt = 0
+          if (HasBMIHeight) do
+            Year = '*(uint16_t*)&data[index+0]'
+            Year = '*(uint16_t*)&data[index+2]'
+            'index = index+4;'
+          end
+
+          // Print the measurement
+          print "[INFO]: Got Weight scale measurement - "
+          'printf("%d ",'&Weight&');'
+          if (UnitImperial) print "lb "
+          else print "kg "
+          if (HasTimestamp) do
+            'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
+          end
+          if (HasBMIHeight) do
+            'printf("%d ",'&Weight&');'
+            if (UnitImperial) print "in "
+            else print "m "
+            'printf("(%d) ",'&BMI&');'
+          end
+
+          print "\n"
+          ATT!ATTHandleValueConfirmation(e.ConnectionHandle)
+          
+          /* Send to Tellu */
+          if (HasTimestamp) do
+            // Convert to DateTime
+            var ObservationTime : DateTime = 0
+            '
+              struct tm timebuf;
+              timebuf.tm_year = '&Year&'-1900;
+              timebuf.tm_mon = '&Month&'-1;
+              timebuf.tm_mday = '&Day&';
+              timebuf.tm_hour = '&Hour&';
+              timebuf.tm_min = '&Minute&';
+              timebuf.tm_sec = '&Second&';
+            '
+            ObservationTime = 'timegm(&timebuf)'
+            // Scale to kg
+            var Mass : Float = Weight
+            Mass = Mass / 200
+            // Send
+            Tellu!TelluCloudWeightScale(ObservationTime, Mass)
+            
+            GotMeasurement = true
+          end
+        end
+
+        internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+          print "[ERROR]: Could not set indications of Weight Scale Measurement!\n"
+          Connecter!Stop()
+        end
+      }
+      
+      transition -> Notify event Connecter?Stopped
+      transition -> Notify event Connecter?Failure
+    }
+    
+    composite state Notify init Wait
+    {
+      state Wait
+      {
+        on entry do
+          ANDUC352BLE!WantsToConnect()
+        end
+        
+        transition -> ConnectingNotifier event ANDUC352BLE?AllowedToConnect
+      }
+      
+      state ConnectingNotifier
+      {
+        on entry do
+          print "[INFO]: Connecting to A&D UC-352BLE notifier...\n"
+          Notifications!NotifierConnect(NotifierAddressType, NotifierAddressBT)
+        end
+
+        transition -> ConnectedNotifier event Notifications?NotifierReady
+      }
+      
+      state ConnectedNotifier
+      {
+        on entry do
+          if (DoSync == true) do
+            DoSync = false
+            if (GotMeasurement == true) do
+              Notifications!NotifierReceived()
+            end else do
+              Notifications!NotifierError()
+            end
+          end
+          else if (GotStored == true) do
+            GotStored = false
+            Notifications!NotifierStored()
+          end
+          else if (GotRequest == true) do
+            GotRequest = false
+            Notifications!NotifierRequest()
+          end
+        end
+        
+        // Send more if we already got them
+        transition -> ConnectingNotifier event Notifications?NotifierFinished guard (GotStored == true or GotRequest == true)
+      }
+      
+      transition -> Standby event Notifications?NotifierFinished action ANDUC352BLE!FinishedConnection()
+    }
+    
+    // Store requests and confirmations, we will eventually get to Notify
+    internal event Tellu?MqttRequestWeightScaleMeasurement action GotRequest = true
+    internal event Tellu?MqttConfirmWeightScaleMeasurement action GotStored = true
+  }
+}

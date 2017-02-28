@@ -1,0 +1,243 @@
+import "Datatypes.thingml"
+import "ExitHandler.thingml"
+import "HCISocketImpl.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_scanner.thingml"
+import "BLE_connecter.thingml"
+import "BLE_notifier.thingml"
+import "Device_AND_UC352BLE.thingml"
+import "Device_AND_UA651BLE.thingml"
+
+enumeration Device @c_type "uint8_t" @c_byte_size "1"
+{
+  NONE @enum_val "0x00"
+  ANDUC352BLE @enum_val "0x01"
+  ANDUA651BLE @enum_val "0x02"
+}
+
+thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, ANDUA651BLE
+@c_header "#include <time.h>"
+{
+  required port Signals
+  {
+    receives Interrupt
+    sends Quit
+  }
+
+  statechart States init Initialise
+  {
+    // Initialise HCI socket and BLE controller
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> Standby event Initialiser?DeviceInitialised
+
+      transition -> Failed event Initialiser?Failure
+      transition -> Quit event Signals?Interrupt
+    }
+
+    /* -------------------- Main logic -------------------- */
+    
+    composite state Standby init Scan
+    {
+      property WantsToConnect : Device
+      property ConnectedTo : Device
+      
+      state Scan
+      {
+        on entry do
+          WantsToConnect = Device:NONE
+          ConnectedTo = Device:NONE
+          Scanner!Start()
+        end
+        
+        internal event ANDUC352BLE?WantsToConnect action do
+          ''&WantsToConnect&' |= '&Device:ANDUC352BLE&';'
+          Scanner!Stop()
+        end
+        
+        internal event ANDUA651BLE?WantsToConnect action do
+          ''&WantsToConnect&' |= '&Device:ANDUA651BLE&';'
+          Scanner!Stop()
+        end
+        
+        transition -> Sync event Scanner?Stopped
+      }
+      
+      state Sync
+      {
+        on entry do
+          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
+            ConnectedTo = Device:ANDUC352BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
+            ANDUC352BLE!AllowedToConnect()
+          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
+            ConnectedTo = Device:ANDUA651BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
+            ANDUA651BLE!AllowedToConnect()
+          end
+        end
+        
+        // If request from currently allowed device, respond with allowed
+        internal event ANDUC352BLE?WantsToConnect guard (ConnectedTo == Device:ANDUC352BLE) action ANDUC352BLE!AllowedToConnect()
+        internal event ANDUA651BLE?WantsToConnect guard (ConnectedTo == Device:ANDUA651BLE) action ANDUA651BLE!AllowedToConnect()
+        
+        // If another device asks for connection, queue it
+        internal event ANDUC352BLE?WantsToConnect guard (ConnectedTo != Device:ANDUC352BLE) action do
+          ''&WantsToConnect&' |= '&Device:ANDUC352BLE&';'
+        end
+        internal event ANDUA651BLE?WantsToConnect guard (ConnectedTo != Device:ANDUA651BLE) action do
+          ''&WantsToConnect&' |= '&Device:ANDUA651BLE&';'
+        end
+        
+        // When a device finishes, and there are some more queued, allow next in line to connect
+        internal event e:ANDUC352BLE?FinishedConnection guard (ConnectedTo == Device:ANDUC352BLE and WantsToConnect != Device:NONE) action do
+          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
+            ConnectedTo = Device:ANDUC352BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
+            ANDUC352BLE!AllowedToConnect()
+          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
+            ConnectedTo = Device:ANDUA651BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
+            ANDUA651BLE!AllowedToConnect()
+          end
+        end
+        internal event e:ANDUA651BLE?FinishedConnection guard (ConnectedTo == Device:ANDUA651BLE and WantsToConnect != Device:NONE) action do
+          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
+            ConnectedTo = Device:ANDUC352BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
+            ANDUC352BLE!AllowedToConnect()
+          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
+            ConnectedTo = Device:ANDUA651BLE
+            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
+            ANDUA651BLE!AllowedToConnect()
+          end
+        end
+        
+        // When a device finishes, and no more queued, go back to scanning
+        transition -> Scan event ANDUC352BLE?FinishedConnection guard (ConnectedTo == Device:ANDUC352BLE and WantsToConnect == Device:NONE)
+        transition -> Scan event ANDUA651BLE?FinishedConnection guard (ConnectedTo == Device:ANDUA651BLE and WantsToConnect == Device:NONE)
+      }
+      
+      transition -> Deinitialise event Signals?Interrupt
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Scanner?Failure
+    }
+    
+    /* ---------------------------------------------------- */
+
+    // Close everything
+    state Deinitialise
+    {
+      on entry do
+        print "[INFO]: Stopping...\n"
+        Scanner!Stop()
+      end
+      
+      internal event Scanner?Stopped action Initialiser!Stop()
+      transition -> Quit event Initialiser?Stopped
+
+      transition -> Failed event Scanner?Failure
+      transition -> Failed event Initialiser?Failure
+      transition -> Failed event Signals?Interrupt
+    }
+
+    // Failed somewhere
+    state Failed
+    {
+      on entry do
+        print "[ERROR]: Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    // Normal QUIT
+    state Quit // TODO How do we want to quit?
+    {
+      on entry do
+        print "[INFO]: Finished, quitting...\n"
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+/* MQTT protocols for each device */
+protocol MQTT2 @serializer "PosixTelluCloudSerializerPlugin"
+  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  @tellucloud_deviceid "5C:31:3E:5F:00:7A"
+  @mqtt_publish_topic "5C:31:3E:5F:00:7A/smarttracker/mass"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttRequestWeightScaleMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttConfirmWeightScaleMeasurement";
+  
+protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
+  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  @tellucloud_deviceid "5C:31:3E:00:4B:6B"
+  @mqtt_publish_topic "5C:31:3E:00:4B:6B/smarttracker/health.pressure"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttRequestBloodPressureMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttConfirmBloodPressureMeasurement";
+
+configuration MedicalGW
+@add_c_libraries "bluetooth"
+{
+  instance handler : ExitHandler
+  instance hci     : HCISocketProxyImpl
+
+  instance main                   : Main
+  instance initialiser            : BLEInitialiserImpl
+  instance scanner                : BLEScannerImpl
+  instance connecter              : BLEConnecterImpl
+  instance notifierconnecter      : BLEConnecterImpl
+  instance notifier               : BLENotifierImpl
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Scanner => scanner.Scanner
+  
+  /* Utilities */
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+  
+  connector scanner.Socket => hci.Socket
+  connector scanner.HCICommands => hci.Commands
+  connector scanner.HCIEvents => hci.Events
+  
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+  
+  connector notifierconnecter.Socket => hci.Socket
+  connector notifierconnecter.HCICommands => hci.Commands
+  connector notifierconnecter.HCIEvents => hci.Events
+  
+  connector notifier.Connecter => notifierconnecter.Connecter
+  connector notifier.ATT => hci.ATT
+  
+  /* Devices */
+  instance weightscale    : ANDUC352BLEImpl
+  instance bloodpressure  : ANDUA651BLEImpl
+  
+  connector weightscale.Scanner => scanner.Scanner
+  connector weightscale.Connecter => connecter.Connecter
+  connector weightscale.Notifications => notifier.Notifications
+  connector weightscale.ATT => hci.ATT
+  connector weightscale.Tellu over MQTT2
+  
+  connector bloodpressure.Scanner => scanner.Scanner
+  connector bloodpressure.Connecter => connecter.Connecter
+  connector bloodpressure.Notifications => notifier.Notifications
+  connector bloodpressure.ATT => hci.ATT
+  connector bloodpressure.Tellu over MQTT1
+  
+  connector main.ANDUC352BLE => weightscale.ANDUC352BLE
+  connector main.ANDUA651BLE => bloodpressure.ANDUA651BLE
+
+  
+  /* ----- BLE CONNECTION PARAMETERS ----- */
+  //set hci.Device = "B8:27:EB:03:FA:CD" // TELENOR
+  set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+}

@@ -1,0 +1,160 @@
+import "HCIDatatypes.thingml"
+import "ATTProxy.thingml"
+import "BLE_connecter.thingml"
+
+thing fragment BLENotifierMsgs
+{
+  message NotifierConnect(AddressType : BLEAddressType, Address : BTAddress);
+  message NotifierReady();
+  message NotifierFinished();
+  message NotifierRequest();
+  message NotifierError();
+  message NotifierReceived();
+  message NotifierStored();
+}
+
+thing fragment BLENotifier includes BLENotifierMsgs
+{
+  required port Notifications
+  {
+    receives NotifierReady, NotifierFinished
+    sends NotifierConnect, NotifierRequest, NotifierError, NotifierReceived, NotifierStored
+  }
+}
+
+thing BLENotifierImpl includes BLENotifierMsgs, BLEConnecter, ATT
+@c_global "
+  notifier_cmd_t request_cmd  = { 2, '!', 'R' };
+  notifier_cmd_t received_cmd = { 2, '!', 'G' };
+  notifier_cmd_t error_cmd    = { 2, '!', 'E' };
+  notifier_cmd_t stored_cmd   = { 2, '!', 'S' };
+"  
+{
+  property ConnectedHandle : UInt
+
+  property WriteByteValueHandle : UInt = '0x0025'
+  property ReadByteValueHandle : UInt = '0x0021'
+  property ReadByteConfigurationHandle : UInt = '0x0023'
+  
+  property RequestCommand  : NotifierCommand
+  property ReceivedCommand : NotifierCommand
+  property ErrorCommand    : NotifierCommand
+  property StoredCommand   : NotifierCommand
+  
+  property CommandToSend : NotifierCommand
+  property BytesToSend : Byte
+  property SendtBytes : Byte
+  
+  
+  provided port Notifications
+  {
+    sends NotifierReady, NotifierFinished
+    receives NotifierConnect, NotifierRequest, NotifierError, NotifierReceived, NotifierStored
+  }
+
+  statechart States init Waiting
+  {
+    on entry do
+      RequestCommand = 'request_cmd'
+      ReceivedCommand = 'received_cmd'
+      ErrorCommand = 'error_cmd'
+      StoredCommand = 'stored_cmd'
+    end
+  
+    state Waiting
+    {
+      internal event e:Notifications?NotifierConnect action do
+        Connecter!ConnectToU(e.AddressType, e.Address)
+      end
+      
+      transition -> Connected event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+      end
+    }
+
+    composite state Connected init SetReadNotifications
+    {
+      state SetReadNotifications
+      {
+        on entry do
+          var AttributeValue : GATTData
+          ''&AttributeValue&'.length = 2;'
+          ''&AttributeValue&'.bytes[0] = 0x01;'
+          ''&AttributeValue&'.bytes[1] = 0x00;'
+          ATT!ATTWriteRequest(ConnectedHandle, ReadByteConfigurationHandle, AttributeValue)
+        end
+        
+        transition -> WaitForCommand event e:ATT?ATTWriteResponse guard (e.ConnectionHandle == ConnectedHandle)
+      }
+      
+      state WaitForCommand
+      {
+        on entry do
+          Notifications!NotifierReady()
+        end
+        
+        transition -> SendCommand event Notifications?NotifierRequest action do
+          print "[INFO]: Sending notifier request...\n"
+          CommandToSend = RequestCommand
+        end
+        
+        transition -> SendCommand event Notifications?NotifierReceived action do
+          print "[INFO]: Sending notifier received...\n"
+          CommandToSend = ReceivedCommand
+        end
+        
+        transition -> SendCommand event Notifications?NotifierError action do
+          print "[INFO]: Sending notifier error...\n"
+          CommandToSend = ErrorCommand
+        end
+        
+        transition -> SendCommand event Notifications?NotifierStored action do
+          print "[INFO]: Sending notifier stored...\n"
+          CommandToSend = StoredCommand
+        end
+      }
+      
+      state SendCommand
+      {
+        on entry do
+          BytesToSend = ''&CommandToSend&'.bytes[0]'
+          SendtBytes = 0
+          
+          if (BytesToSend > 0) do
+            var AttributeValue : GATTData
+            ''&AttributeValue&'.length = 1;'
+            ''&AttributeValue&'.bytes[0] = '&CommandToSend&'.bytes['&SendtBytes&'+1];'
+            ATT!ATTWriteRequest(ConnectedHandle, WriteByteValueHandle, AttributeValue)
+          end else do
+            Connecter!Stop()
+          end
+        end
+        
+        internal event e:ATT?ATTWriteResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+          SendtBytes = SendtBytes+1
+          if (SendtBytes <= BytesToSend) do
+            var AttributeValue : GATTData
+            ''&AttributeValue&'.length = 1;'
+            ''&AttributeValue&'.bytes[0] = '&CommandToSend&'.bytes['&SendtBytes&'+1];'
+            ATT!ATTWriteRequest(ConnectedHandle, WriteByteValueHandle, AttributeValue)
+          end else do
+            Connecter!Stop()
+          end
+        end
+      }
+
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Error while writing!\n"
+        Connecter!Stop()
+      end
+
+      internal event e:ATT?ATTHandleValueNotification guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == ReadByteValueHandle) action do
+        // TODO: Do something with bytes received?
+      end
+      //(ConnectionHandle : UInt, AttributeHandle : UInt, AttributeValue : GATTData);
+
+      transition -> Waiting event Connecter?Stopped action Notifications!NotifierFinished()
+      transition -> Waiting event Connecter?Failure action Notifications!NotifierFinished()
+    }
+  }
+}

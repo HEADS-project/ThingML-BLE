@@ -1,0 +1,6 @@
+thing fragment DeviceMsgs
+{
+  message WantsToConnect();
+  message AllowedToConnect();
+  message FinishedConnection();
+}

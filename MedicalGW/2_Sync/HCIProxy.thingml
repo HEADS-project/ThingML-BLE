@@ -1,0 +1,256 @@
+import "HCIMessages.thingml"
+
+thing fragment HCIController includes HCIControllerMsgs
+{
+  required port HCICommands
+  {
+    sends Reset
+    sends SetEventMask,SetEventMaskAll
+    sends SetLocalName
+    sends Disconnect
+    sends SetLEEventMask,SetLEEventMaskAll
+    sends SetLEAdvertisementParameters
+    sends SetLEAdvertiseEnable
+    sends SetLEAdvertisingData
+    sends SetLEScanResponseData
+    sends SetLEScanParameters
+    sends SetLEScanEnable
+    sends LECreateConnection, LECreateConnectionCancel
+    sends LERand
+    sends LEEncrypt
+    sends LEStartEncryption
+  }
+
+  required port HCIEvents
+  {
+    receives ResetCompleted
+    receives SetEventMaskCompleted
+    receives SetLocalNameCompleted
+    receives DisconnectStatus
+    receives DisconnectionCompleted
+    receives SetLEEventMaskCompleted
+    receives SetLEAdvertisementParametersCompleted
+    receives SetLEAdvertiseEnableCompleted
+    receives SetLEAdvertisingDataCompleted
+    receives SetLEScanResponseDataCompleted
+    receives SetLEScanParametersCompleted
+    receives SetLEScanEnableCompleted
+    receives LEAdvertisementReport
+    receives LECreateConnectionStatus, LECreateConnectionCancelCompleted
+    receives LEConnectionComplete, LEEnhancedConnectionComplete
+    receives LERandCompleted
+    receives LEEncryptCompleted
+    receives EncryptionChanged
+    receives LEStartEncryptionStatus
+  }
+}
+
+thing fragment HCIControllerProxy includes HCIControllerMsgs
+{
+  provided port Commands
+  {
+    receives Reset
+    receives SetEventMask,SetEventMaskAll
+    receives SetLocalName
+    receives Disconnect
+    receives SetLEEventMask,SetLEEventMaskAll
+    receives SetLEAdvertisementParameters
+    receives SetLEAdvertiseEnable
+    receives SetLEAdvertisingData
+    receives SetLEScanResponseData
+    receives SetLEScanParameters
+    receives SetLEScanEnable
+    receives LECreateConnection, LECreateConnectionCancel
+    receives LERand
+    receives LEEncrypt
+    receives LEStartEncryption
+  }
+
+  provided port Events
+  {
+    sends ResetCompleted
+    sends SetEventMaskCompleted
+    sends SetLocalNameCompleted
+    sends DisconnectStatus
+    sends DisconnectionCompleted
+    sends SetLEEventMaskCompleted
+    sends SetLEAdvertisementParametersCompleted
+    sends SetLEAdvertiseEnableCompleted
+    sends SetLEAdvertisingDataCompleted
+    sends SetLEScanResponseDataCompleted
+    sends SetLEScanParametersCompleted
+    sends SetLEScanEnableCompleted
+    sends LEAdvertisementReport
+    sends LECreateConnectionStatus, LECreateConnectionCancelCompleted
+    sends LEConnectionComplete, LEEnhancedConnectionComplete
+    sends LERandCompleted
+    sends LEEncryptCompleted
+    sends EncryptionChanged
+    sends LEStartEncryptionStatus
+  }
+
+  /* Receive data functions */
+  function DecodeEvent(Event : Byte, Length : Byte, Data : DataPointer) do
+    /* ------ Received events ------ */
+    if (Event == '0x05') do // Disconnection Complete
+      var Status : Byte = ''&Data&'[0]'
+      var ConnectionHandle : UInt = '(*((uint16_t*)&'&Data&'[1]) & 0x0FFF)'
+      var Reason : BTDisconnectReason = ''&Data&'[3]'
+      Events!DisconnectionCompleted(Status, ConnectionHandle, Reason)
+    end
+    if (Event == '0x08') do // Encryption Change Event
+      var Status : Byte = ''&Data&'[0]'
+      var ConnectionHandle : UInt = '(*((uint16_t*)&'&Data&'[1]) & 0x0FFF)'
+      var Enabled : Byte = ''&Data&'[3]'
+      Events!EncryptionChanged(Status, ConnectionHandle, Enabled)
+    end
+    if (Event == '0x0E') do // Command Completed Event
+      var NumberAllowedCommandPackets : Byte = ''&Data&'[0]'
+      var Group : UInt = '(*((uint16_t*)&'&Data&'[1]) >> 10)'
+      var Command : UInt = '(*((uint16_t*)&'&Data&'[1]) & 0x03FF)'
+      var ReturnData : DataPointer = '&'&Data&'[3]'
+      OnCommandCompletedEvent(NumberAllowedCommandPackets, Group, Command, ReturnData)
+    end
+    if (Event == '0x0F') do // Command Status Event
+      var Status : Byte = ''&Data&'[0]'
+      var NumberAllowedCommandPackets : Byte = ''&Data&'[1]'
+      var Group : UInt = '(*((uint16_t*)&'&Data&'[2]) >> 10)'
+      var Command : UInt = '(*((uint16_t*)&'&Data&'[2]) & 0x03FF)'
+      OnCommandStatusEvent(NumberAllowedCommandPackets, Group, Command, Status)
+    end
+    if (Event == '0x3E') do // LE Meta Event
+      var SubEventCode : Byte = ''&Data&'[0]'
+      var NewLength : Byte = Length - 1
+      var NewData : DataPointer = '&'&Data&'[1]'
+      OnLEMetaEvent(SubEventCode, NewLength, NewData)
+    end
+  end
+
+  function OnCommandCompletedEvent(NumberAllowedCommandPackets : Byte, Group : UInt, Command : UInt, Data : DataPointer) do
+    /* Controller commands */
+    if (Group == '0x03') do
+      if (Command == '0x0003') do // Reset
+        var Status : Byte = ''&Data&'[0]'
+        Events!ResetCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0001') do // Set event mask
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetEventMaskCompleted(NumberAllowedCommandPackets, Status)
+      end
+    end
+    /* LE Controller commands */
+    if (Group == '0x08') do
+      if (Command == '0x0001') do // Set LE event mask
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEEventMaskCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0006') do // Set LE advertisement parameters
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertisementParametersCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0008') do // Set LE advertising data
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertisingDataCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0009') do // Set LE scan response data
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEScanResponseDataCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000A') do // Set LE advertise enable
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEAdvertiseEnableCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000B') do // Set LE scan parameters
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEScanParametersCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000C') do // Set LE scan enable
+        var Status : Byte = ''&Data&'[0]'
+        Events!SetLEScanEnableCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000E') do // Set LE create connection cancel
+        var Status : Byte = ''&Data&'[0]'
+        Events!LECreateConnectionCancelCompleted(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x0018') do // Rand
+        var Status : Byte = ''&Data&'[0]'
+        var Random : BLERandomPart = '*((ble_random_part_t*)&'&Data&'[1])'
+        Events!LERandCompleted(NumberAllowedCommandPackets, Status, Random)
+      end
+      if (Command == '0x0017') do // Encrypt
+        var Status : Byte = ''&Data&'[0]'
+        var EncryptedData : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+        Events!LEEncryptCompleted(NumberAllowedCommandPackets, Status, EncryptedData)
+      end
+
+    end
+  end
+
+  function OnCommandStatusEvent(NumberAllowedCommandPackets : Byte, Group : UInt, Command : UInt, Status : Byte ) do
+    /* Link Control commands */
+    if (Group == '0x01') do
+      if (Command == '0x0006') do // Disconnect
+        Events!DisconnectStatus(NumberAllowedCommandPackets, Status)
+      end
+    end
+    /* LE Controller commands */
+    if (Group == '0x08') do
+      if (Command == '0x000D') do // LE Create Connection
+        Events!LECreateConnectionStatus(NumberAllowedCommandPackets, Status)
+      end
+      if (Command == '0x000D') do // LE Start Encryption
+        Events!LEStartEncryptionStatus(NumberAllowedCommandPackets, Status)
+      end
+    end
+  end
+
+  function OnLEMetaEvent(SubEventCode : Byte, Length : Byte, Data : DataPointer) do
+    if (SubEventCode == '0x01') do // LE connection complete
+      'evt_le_connection_complete* data = &'&Data&'[0];'
+        var Status : Byte = 'data->status'
+        var ConnectionHandle : UInt = 'data->handle'
+        var Role : BLELinkRole = 'data->role'
+        var PeerAddressType : BLEAddressType = 'data->peer_bdaddr_type'
+        var PeerAddress : BTAddress = 'data->peer_bdaddr'
+        var ConnInterval : UInt = 'data->interval'
+        var ConnLatency : UInt = 'data->latency'
+        var SupervisionTimeout : UInt = 'data->supervision_timeout'
+        var MasterClockAccuracy : Byte = 'data->master_clock_accuracy'
+
+        Events!LEConnectionComplete(Status, ConnectionHandle, Role, PeerAddressType, PeerAddress, ConnInterval, ConnLatency, SupervisionTimeout, MasterClockAccuracy)
+    end
+    if (SubEventCode == '0x02') do // LE advertising report
+      var NumReports : Byte = ''&Data&'[0]'
+      var Count : Byte = 0
+      var Index : Byte = 1
+      while (Count < NumReports) do
+        'le_advertising_info* data = &'&Data&'['&Index&'];'
+        var Type : BLEAdvertisementReportType = 'data->evt_type'
+        var AddressType : BLEAddressType = 'data->bdaddr_type'
+        var Address : BTAddress = 'data->bdaddr'
+        var ReportLength : Byte = 'data->length'
+        var ReportData : BLEAdvertiseData
+        'memcpy(&'&ReportData&', &(data->data), '&ReportLength&');'
+        
+        Events!LEAdvertisementReport(Type, AddressType, Address, ReportLength, ReportData)
+        Index = Index + 9 + ReportLength
+        Count = Count + 1
+      end
+    end
+    if (SubEventCode == '0x0A') do // LE enhanced connection complete
+      var Status : Byte = ''&Data&'[0]'
+      var ConnectionHandle : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var Role : BLELinkRole = ''&Data&'[3]'
+      var PeerAddressType : BLEAddressType = ''&Data&'[4]'
+      var PeerAddress : BTAddress = '*((bdaddr_t*)&'&Data&'[5])'
+      var LocalResolvablePrivateAddress : BTAddress = '*((bdaddr_t*)&'&Data&'[11])'
+      var PeerResolvablePrivateAddress : BTAddress = '*((bdaddr_t*)&'&Data&'[17])'
+      var ConnInterval : UInt = '*((uint16_t*)&'&Data&'[23])'
+      var ConnLatency : UInt = '*((uint16_t*)&'&Data&'[25])'
+      var SupervisionTimeout : UInt = '*((uint16_t*)&'&Data&'[27])'
+      var MasterClockAccuracy : Byte = ''&Data&'[29]'
+
+      Events!LEEnhancedConnectionComplete(Status, ConnectionHandle, Role, PeerAddressType, PeerAddress, LocalResolvablePrivateAddress, PeerResolvablePrivateAddress, ConnInterval, ConnLatency, SupervisionTimeout, MasterClockAccuracy)
+    end
+  end
+}
