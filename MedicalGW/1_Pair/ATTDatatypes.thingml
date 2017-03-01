@@ -1,0 +1,44 @@
+datatype UUID<16>
+  @c_type "ble_uuid_t"
+  @c_header "#ifndef BLE_UUID_T_H"
+  @c_header "#define BLE_UUID_T_H"
+  @c_header "typedef struct { uint8_t bytes[16]; } ble_uuid_t;"
+  @c_header "#endif";
+
+
+// The size of this datatype should reflect the used ATT_MTU size, which by default is 23 octets for GATT
+// A larger size can be defined here, and should be sent to the responding device with an Exchange MTU Request using the ATT protocol
+datatype GATTData<24>
+  @c_type "ble_gatt_data_t"
+  @c_header "#ifndef BLE_GATT_DATA_T_H"
+  @c_header "#define BLE_GATT_DATA_T_H"
+  @c_header "typedef struct { uint8_t length; uint8_t bytes[23]; } ble_gatt_data_t;"
+  @c_header "#endif";
+
+
+
+enumeration ATTErrorCode//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  INVALID_HANDLE @enum_val "0x01"
+  READ_NOT_PERMITTED @enum_val "0x02"
+  WRITE_NOT_PERMITTED @enum_val "0x03"
+  INVALID_PDU @enum_val "0x04"
+  INSUFFICIENT_AUTHENTICATION @enum_val "0x05"
+  REQUEST_NOT_SUPPORTED @enum_val "0x06"
+  INVALID_OFFSET @enum_val "0x07"
+  INSUFFICIENT_AUTHORIZATION @enum_val "0x08"
+  PREPARE_QUEUE_FULL @enum_val "0x09"
+  ATTRIBUTE_NOT_FOUND @enum_val "0x0A"
+  ATTRIBUTE_NOT_LONG @enum_val "0x0B"
+  INSUFFICIENT_ENCRYPTION_KEY_SIZE @enum_val "0x0C"
+  INVALID_ATTRIBUTE_VALUE_LENGTH @enum_val "0x0D"
+  UNLIKELY_ERROR @enum_val "0x0E"
+  INSUFICIENT_ENCRYPTION @enum_val "0x0F"
+  UNSUPPORTED_GROUP_TYPE @enum_val "0x10"
+  INSUFICIENT_RESOURCES @enum_val "0x11"
+  // TODO : Some more error codes are defined in the ranges
+  // 0x80-0x9F (Application errors)
+  // 0xE0–0xFF (Common Profile and Service errors)
+}

@@ -1,0 +1,9 @@
+thing fragment ModuleMsgs 
+{
+  message Start();
+  message Stop();
+
+  message Started();
+  message Stopped();
+  message Failure();
+}

@@ -1,0 +1,157 @@
+import "ModuleMsgs.thingml"
+import "HCIDatatypes.thingml"
+import "HCISocketImpl.thingml"
+
+thing fragment BLEConnecterMsgs
+{
+  message Connect();
+  message ConnectTo(AddressType : BLEAddressType, Address : BTAddress);
+  message Connected(Handle : UInt, AddressType : BLEAddressType, Address : BTAddress);
+}
+
+thing fragment BLEConnecter includes ModuleMsgs, BLEConnecterMsgs
+{
+  required port Connecter
+  {
+    sends Connect, ConnectTo, Stop
+    receives Connected, Stopped, Failure
+  }
+}
+
+thing BLEConnecterImpl includes ModuleMsgs, BLEConnecterMsgs, HCISocket
+{
+  provided port Connecter
+  {
+    receives Connect, ConnectTo, Stop
+    sends Connected, Stopped, Failure
+  }
+
+  property ConnectAddressType : BLEAddressType
+  property ConnectAddress : String
+  
+  property ConnectToAddressType : BLEAddressType
+  property ConnectToAddress : BTAddress
+
+  property ConnectedHandle : Int
+  property ConnectedAddressType : BLEAddressType
+  property ConnectedAddress : BTAddress
+
+  statechart States init NotConnected
+  {
+    state NotConnected
+    {
+      transition -> Connecting event e:Connecter?Connect action do
+        ConnectToAddressType = ConnectAddressType
+        'str2ba('&ConnectAddress&',&'&ConnectToAddress&');'
+      end
+      
+      transition -> Connecting event e:Connecter?ConnectTo action do
+        ConnectToAddressType = e.AddressType
+        ConnectToAddress = e.Address
+      end
+
+      internal event Connecter?Stop action Connecter!Stopped()
+      transition -> Failure event Socket?Closed
+    }
+
+    state Connecting
+    {
+      on entry do
+        var Interval : Int = '0x0010'
+        var Window : Int = '0x0010'
+        var FilterPolicy : BLEInitiatorFilterPolicy = BLEInitiatorFilterPolicy:WHITELIST_NOT_USED
+        var PeerAddressType : BLEAddressType = ConnectToAddressType
+        var PeerAddress : BTAddress = ConnectToAddress
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var ConnIntervalMin : Int = '0x0006'
+        var ConnIntervalMax : Int = '0x000C'
+        var ConnLatency : Int = '0x0000'
+        var SupervisionTimeout : Int = '0x00c8'
+        var CELengthMin : Int = '0x0004'
+        var CELengthMax : Int = '0x0006'
+        
+        HCICommands!LECreateConnection(Interval, Window, FilterPolicy, PeerAddressType, PeerAddress, OwnAddressType, ConnIntervalMin, ConnIntervalMax, ConnLatency, SupervisionTimeout, CELengthMin, CELengthMax)
+      end
+
+      internal event e:HCIEvents?LECreateConnectionStatus guard (e.Status == 0) action do
+        print "[INFO]: Requested connection to "
+        print ConnectAddress
+        print "...\n"
+      end
+      transition -> Failure event e:HCIEvents?LECreateConnectionStatus guard (e.Status > 0)
+
+      internal event Connecter?Stop action HCICommands!LECreateConnectionCancel()
+      transition -> NotConnected event e:HCIEvents?LECreateConnectionCancelCompleted guard (e.Status == 0) action Connecter!Stopped()
+      transition -> Failure event e:HCIEvents?LECreateConnectionCancelCompleted guard (e.Status > 0)
+
+      transition -> Connected event e:HCIEvents?LEConnectionComplete guard (e.Status == 0) action do
+        ConnectedHandle = e.ConnectionHandle
+        ConnectedAddressType = e.PeerAddressType
+        ConnectedAddress = e.PeerAddress
+        print "[INFO]: Normal connection complete\n"
+      end
+      transition -> Failure event e:HCIEvents?LEConnectionComplete guard (e.Status > 0)
+
+      transition -> Connected event e:HCIEvents?LEEnhancedConnectionComplete guard (e.Status == 0) action do
+        ConnectedHandle = e.ConnectionHandle
+        print "[INFO]: Enhanced connection complete\n"
+      end
+      transition -> Failure event e:HCIEvents?LEEnhancedConnectionComplete guard (e.Status > 0)
+
+      transition -> Failure event Socket?Closed
+    }
+
+    state Connected
+    {
+      on entry do
+        print "[INFO]: CONNECTED :D\n"
+        Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
+      end
+
+      internal event Connecter?Connect action Connecter!Connected(ConnectedHandle, ConnectedAddressType, ConnectedAddress)
+
+      transition -> Closed event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action do
+        print "[INFO]: Connection closed by remote.\n"
+        Connecter!Stopped()
+      end
+      transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
+
+      transition -> Disconnecting event Connecter?Stop
+      transition -> Failure event Socket?Closed
+    }
+
+    state Disconnecting
+    {
+      on entry HCICommands!Disconnect(ConnectedHandle, BTDisconnectReason:REMOTE_USER)
+
+      internal event e:HCIEvents?DisconnectStatus guard (e.Status == 0) action do
+        print "[INFO]: Closing connection...\n"
+      end
+      transition -> Failure event e:HCIEvents?DisconnectStatus guard (e.Status > 0)
+
+      transition -> Closed event e:HCIEvents?DisconnectionCompleted guard (e.Status == 0) action Connecter!Stopped()
+      transition -> Failure event e:HCIEvents?DisconnectionCompleted guard (e.Status > 0)
+
+      transition -> Failure event Connecter?Stop
+      transition -> Failure event Socket?Closed
+    }
+
+    state Closed
+    {
+      internal event Connecter?Connect action Connecter!Failure()
+      internal event Connecter?Stop action Connecter!Stopped()
+    }
+
+    state Failure
+    {
+      on entry do
+        print "[ERROR]: BLE_connecter failed :(\n"
+        Socket!Close()
+        Connecter!Failure()
+      end
+
+      internal event Connecter?Connect action Connecter!Failure()
+      internal event Connecter?Stop action Connecter!Failure()
+    }
+  }
+}

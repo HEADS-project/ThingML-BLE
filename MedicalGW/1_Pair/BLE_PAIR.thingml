@@ -1,0 +1,481 @@
+import "ExitHandler.thingml"
+import "BLE_initialiser.thingml"
+import "BLE_connecter.thingml"
+import "SMPProxy.thingml"
+import "BLE_encryption.thingml"
+import "HCIDatatypes.thingml"
+
+thing Main includes BLEInitialiser, BLEConnecter, ExitHandlerMsgs, SMP, ATT, BLEEncryption, HCISocket
+@c_global "
+  void print_bytes(uint8_t *data, int16_t length) {
+    printf(\"{ \");
+
+    int16_t i;
+    for (i = 0; i < length; i++) printf(\"0x%2.2X, \",data[i]);
+
+    printf(\"};\\n\");
+  }
+"
+@c_header "#include <time.h>"
+{
+  required port Signals {
+    receives Interrupt
+    sends Quit
+  }
+  
+  property Stopped : Boolean = false
+  property PerhiperalAddress : BTAddress
+
+  property ConnectedAddressType : BLEAddressType
+  property ConnectedAddress : BTAddress
+  property ConnectedHandle : UInt
+
+  property DeviceAddressType : BLEAddressType = BLEAddressType:PUBLIC
+  property DeviceAddress : BTAddress
+
+  property Mrand : BLERandomNumber
+  property Srand : BLERandomNumber
+  property Mconfirm : BLERandomNumber
+  property Sconfirm : BLERandomNumber
+
+  /* TO BE USED FOR LATER */
+  property PeerLTK : BLERandomNumber
+  property PeerEDIV : UInt
+  property PeerRandom : BLERandomPart
+  property PeerIRK : BLERandomNumber
+  property PeerIdentityAddressType : BLEAddressType
+  property PeerIdentityAddress : BTAddress
+
+  property OwnLTK : BLERandomNumber
+  property OwnEDIV : UInt
+  property OwnRandom : BLERandomPart
+  property OwnIRK : BLERandomNumber
+  property OwnIdentityAddressType : BLEAddressType
+  property OwnIdentityAddress : BTAddress
+
+  property HavePeerLTK : Boolean = false
+  property HavePeerIdentification : Boolean = false
+  property HavePeerIdentity : Boolean = false
+  property HavePeerIdentityAddress : Boolean = false
+  /* -------------------- */
+
+  property HasPairedSuccessfully : Boolean = false
+
+  statechart States init Initialise
+  {
+    state Initialise
+    {
+      on entry Initialiser!Start()
+
+      transition -> SetScanningParameters event e:Initialiser?DeviceInitialised action do
+        DeviceAddress = e.Address
+      end
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Signals?Interrupt
+    }
+    
+    /* .................................................. */
+    // Scan for devices to pair with
+    state SetScanningParameters
+    {
+      on entry do
+        print "[INFO]: Setting scan parameters...\n"
+
+        var Type : BLEScanType = BLEScanType:ACTIVE
+        var Interval : Int = '0x0010'
+        var Window : Int = '0x0010'
+        var OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC 
+        var FilterPolicy : BLEScanFilterPolicy = BLEScanFilterPolicy:ALL
+
+        HCICommands!SetLEScanParameters(Type, Interval, Window, OwnAddressType, FilterPolicy)
+      end
+
+      internal event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status == 0) action HCICommands!SetLEScanEnable('0x01', '0x00')
+      transition -> Failed event e:HCIEvents?SetLEScanParametersCompleted guard (e.Status > 0)
+
+      transition -> Scanning event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0)
+      transition -> Failed event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+    }
+    state Scanning
+    {
+      on entry do
+        print "[INFO]: Scanning...\n"
+      end
+      
+      internal event e:HCIEvents?LEAdvertisementReport action do
+        // Check the address to see if it was from the correct device
+        if (''&e.Address&'.b[5] == 0x5C' and ''&e.Address&'.b[4] == 0x31' and ''&e.Address&'.b[3] == 0x3E') do
+          // AND BLE devices, should start with "5C:31:3E:..."
+          print "[INFO]: Got advertisement report!\n"
+          PerhiperalAddress = e.Address
+          HCICommands!SetLEScanEnable('0x00', '0x00')
+        end else if (''&e.Address&'.b[5] == 0x84' and ''&e.Address&'.b[4] == 0xEB' and ''&e.Address&'.b[3] == 0x18') do
+          // Kinsa devices, should start with "84:EB:18:..."
+          print "[INFO]: Got advertisement report!\n"
+          PerhiperalAddress = e.Address
+          HCICommands!SetLEScanEnable('0x00', '0x00')
+        end
+      end
+      
+      internal event Signals?Interrupt action do
+        Stopped = true
+        HCICommands!SetLEScanEnable('0x00', '0x00')
+      end
+
+      transition -> Connect event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0 and not Stopped)
+      transition -> Uninitialise event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status == 0 and Stopped)
+      transition -> Failed event e:HCIEvents?SetLEScanEnableCompleted guard (e.Status > 0)
+    }
+
+    /* .................................................. */
+
+    // Initiate connection to the device
+    state Connect
+    {
+      on entry Connecter!ConnectTo(BLEAddressType:PUBLIC, PerhiperalAddress)
+      transition -> Pairing event e:Connecter?Connected action do
+        ConnectedAddressType = e.AddressType
+        ConnectedAddress = e.Address
+        ConnectedHandle = e.Handle
+      end
+
+      internal event Signals?Interrupt action Connecter!Stop()
+      transition -> Uninitialise event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+    }
+
+    composite state Pairing init Request
+    {
+      state Request
+      {
+        internal event SMP?SMPSecurityRequest action do
+          print "[INFO]: Received Security request, requesting pairing...\n"
+
+          var IOCapability : SMPIOCapabilities = SMPIOCapabilities:NO_INPUT_NO_OUTPUT 
+          var OOBDataPresent : Boolean = false
+          var Bonding : Boolean = true
+          var MITM : Boolean = false
+          var SecureConnection : Boolean = false
+          var Keypress : Boolean = false
+          var MaximumEncryptionKeySize : Byte = 16
+          var InitiatorKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+          var ResponderKeyDistribution : SMPKeyDistribution = SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+
+          SMP!SMPPairingRequest(ConnectedHandle, IOCapability, OOBDataPresent, Bonding, MITM, SecureConnection, Keypress, MaximumEncryptionKeySize, InitiatorKeyDistribution, ResponderKeyDistribution)
+        end
+
+        transition -> Confirm event e:SMP?SMPPairingResponse guard (e.IOCapability == SMPIOCapabilities:NO_INPUT_NO_OUTPUT and e.OOBDataPresent == false and e.Bonding == true and e.MITM == false and e.SecureConnection == false and e.Keypress == false and e.MaximumEncryptionKeySize == 16 and e.InitiatorKeyDistribution == SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY and e.ResponderKeyDistribution == SMPKeyDistribution:ENCKEY_IDKEY_NOSIGN_NOLINKKEY)
+        transition -> PairFailed event SMP?SMPPairingResponse
+      }
+
+      composite state Confirm init SendMconfirm
+      {
+        state SendMconfirm
+        {
+          on entry do
+            print "[INFO]: Confirm Pairing...\n"
+            Encrypter!GenerateRandomNumber()
+          end
+
+          internal event e:Encrypter?GenerateRandomNumberCompleted action do
+            Mrand = e.Random
+            Encrypter!GenerateConfirm(Mrand, DeviceAddressType, DeviceAddress, ConnectedAddressType, ConnectedAddress)
+          end
+
+          transition -> GetSconfirm event e:Encrypter?GenerateConfirmCompleted action do
+            Mconfirm = e.Confirm
+            SMP!SMPPairingConfirm(ConnectedHandle, Mconfirm)
+            print "[INFO]: Sent Mconfirm.\n"
+          end
+        }
+
+        state GetSconfirm
+        {
+          transition -> GetSrandom event e:SMP?SMPPairingConfirm action do
+            Sconfirm = e.ConfirmValue
+            print "[INFO]: Got Sconfirm, replied with Mrand.\n"
+            SMP!SMPPairingRandom(ConnectedHandle, Mrand)
+          end
+        }
+
+        state GetSrandom
+        {
+          internal event e:SMP?SMPPairingRandom action do
+            Srand = e.RandomValue
+            print "[INFO]: Got Srand, confirming...\n"
+            Encrypter!GenerateConfirm(Srand, DeviceAddressType, DeviceAddress, ConnectedAddressType, ConnectedAddress)
+          end
+
+          transition -> GetSconfirm event e:Encrypter?GenerateConfirmCompleted action do
+            Encrypter!CheckConfirm(Sconfirm, e.Confirm)
+          end
+        }
+
+        transition -> Encrypt event e:Encrypter?CheckConfirmCompleted guard (e.Correct)
+        transition -> PairFailed event e:Encrypter?CheckConfirmCompleted guard (not e.Correct)
+      }
+
+      state Encrypt
+      {
+        on entry do
+          print "[INFO]: Encrypting connection ...\n"
+          Encrypter!GenerateSTK(Srand, Mrand)
+        end
+
+        internal event e:Encrypter?GenerateSTKCompleted action do
+          print "[INFO]: Generated STK.\n"
+          var Random : BLERandomPart = '{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }'
+          var EDIV : UInt = 0
+          HCICommands!LEStartEncryption(ConnectedHandle, Random, EDIV, e.STK)
+        end
+
+        internal event e:HCIEvents?LEStartEncryptionStatus guard (e.Status == 0) action print "[INFO]: Waiting for encryption...\n"
+        transition -> PairFailed event e:HCIEvents?LEStartEncryptionStatus guard (e.Status > 0)
+
+        transition -> ExchangeKeys event e:HCIEvents?EncryptionChanged guard (e.Status == '0x00' and e.Enabled == '0x01')
+        transition -> PairFailed event e:HCIEvents?EncryptionChanged guard (e.Status > '0x00' or e.Enabled != '0x01')
+      }
+
+      composite state ExchangeKeys init WaitForPeerKeys
+      {
+        state WaitForPeerKeys
+        {
+          internal event e:SMP?SMPEncryptionInformation action do
+            PeerLTK = e.LongTermKey
+            HavePeerLTK = true
+          end
+
+          internal event e:SMP?SMPMasterIdentification action do
+            PeerEDIV = e.EDIV
+            PeerRandom  = e.Rand
+            HavePeerIdentification = true
+          end
+
+          internal event e:SMP?SMPIdentityInformation action do
+            PeerIRK = e.IdentityResolvingKey 
+            HavePeerIdentity = true
+          end
+
+          internal event e:SMP?SMPIdentityAddressInformation action do
+            PeerIdentityAddressType = e.AddressType
+            PeerIdentityAddress = e.Address
+            HavePeerIdentityAddress = true
+          end
+
+          transition -> GenerateOwnKeys guard (HavePeerLTK and HavePeerIdentification and HavePeerIdentity and HavePeerIdentityAddress)
+        }
+
+        composite state GenerateOwnKeys init GenerateLTK
+        {
+          on entry print "[INFO]: Got all peer keys, generating own...\n"
+
+          state GenerateLTK
+          {
+            on entry Encrypter!GenerateRandomNumber()
+            transition -> GenerateEDIVRand event e:Encrypter?GenerateRandomNumberCompleted action do
+              OwnLTK = e.Random
+            end
+          }
+
+          state GenerateEDIVRand
+          {
+            on entry Encrypter!GenerateRandomNumber()
+            transition -> GenerateIRK event e:Encrypter?GenerateRandomNumberCompleted action do
+              OwnEDIV = '*((uint16_t*)&'&e.Random&'.bytes[0])'
+              OwnRandom = '*((ble_random_part_t*)&'&e.Random&'.bytes[2])'
+            end
+          }
+
+          state GenerateIRK
+          {
+            on entry Encrypter!GenerateRandomNumber()
+            transition -> SendAll event e:Encrypter?GenerateRandomNumberCompleted action do
+              OwnIRK = e.Random
+            end
+          }
+
+          state SendAll
+          {
+            on entry do
+              OwnIdentityAddressType = DeviceAddressType
+              OwnIdentityAddress = DeviceAddress
+
+              print "[INFO]: Generate all own keys, sending...\n"
+
+              SMP!SMPEncryptionInformation(ConnectedHandle, OwnLTK)
+              SMP!SMPMasterIdentification(ConnectedHandle, OwnEDIV, OwnRandom)
+              SMP!SMPIdentityInformation(ConnectedHandle, OwnIRK)
+              SMP!SMPIdentityAddressInformation(ConnectedHandle, OwnIdentityAddressType, OwnIdentityAddress)
+
+              // TODO: Jakob - use a ATT command to check that everything was sent correctly instead of waiting for peer to close the connection
+              HasPairedSuccessfully = true
+            end
+          }
+        }
+      }
+
+      state PairFailed
+      {
+        on entry do
+          print "[ERROR]: Pairing procedure failed.\n"
+          Connecter!Stop()
+        end
+      }
+
+      internal event SMP?SMPPairingFailed action do
+        print "[ERROR]: Received pairing failed!\n"
+        Connecter!Stop()
+      end
+      internal event Signals?Interrupt action Connecter!Stop()
+      transition -> Uninitialise event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+      
+      transition -> TimeSync guard (HasPairedSuccessfully)
+    }
+
+    /* .................................................. */
+    // Synchronize the time
+    // The DateTime Characteristic is defined on the devices:
+    //    Characteristic [0x0016->0x0017] (0x0A) : 00002A08-0000-1000-8000-00805F9B34FB
+    
+    state TimeSync
+    {
+      on entry do
+        print "[INFO]: Synchronizing the time...\n"
+        var AttributeValue : GATTData
+        
+        // Read the UTC time
+        '
+          time_t utc = time(NULL);
+          struct tm *ptm = gmtime(&utc);
+        '
+        // Write into ATT value
+        '
+          '&AttributeValue&'.length = 7;
+          *((uint16_t*)&'&AttributeValue&'.bytes[0]) = ptm->tm_year+1900;
+          *((uint8_t*)&'&AttributeValue&'.bytes[2]) = ptm->tm_mon+1;
+          *((uint8_t*)&'&AttributeValue&'.bytes[3]) = ptm->tm_mday;
+          *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour+1;
+          *((uint8_t*)&'&AttributeValue&'.bytes[5]) = ptm->tm_min;
+          *((uint8_t*)&'&AttributeValue&'.bytes[6]) = ptm->tm_sec;
+        '        
+        
+        ATT!ATTWriteRequest(ConnectedHandle, '0x0017', AttributeValue)
+      end
+      
+      internal event e:ATT?ATTWriteResponse action do
+        print "[INFO]: Time synchronization successfull!\n"
+        Connecter!Stop()
+      end
+      
+      internal event e:ATT?ATTWriteError action do
+        print "[ERROR]: Time synchronization failed. Error code: "
+        'printf("%2.2X", '&e.Error&');'
+        print "!!\n"
+        Connecter!Stop()
+      end
+      
+      internal event Signals?Interrupt action Connecter!Stop()
+      transition -> Uninitialise event Connecter?Stopped
+      transition -> Failed event Connecter?Failure
+    }
+    
+    /* .................................................. */
+
+
+    state Uninitialise
+    {
+      on entry Initialiser!Stop()
+
+      transition -> Failed event Initialiser?Failure
+
+      transition -> Quit event Initialiser?Stopped
+      transition -> Quit event Signals?Interrupt
+    }
+
+    state Failed
+    {
+      on entry do
+        print "[ERROR]: Failed, quitting... !!!\n"
+        Signals!Quit(1)
+      end
+    }
+
+    state Quit
+    {
+      on entry do
+        print "[INFO]: Finished, quitting...\n"
+
+        if (HasPairedSuccessfully) do
+          print "\n\n\nPairing was successfull! Please note the following values and use for later connection:\n\n"
+          
+          print "\tPeer address : "
+          '
+            char adr_str[18];
+            ba2str(&'&PerhiperalAddress&', adr_str);
+            printf("%s\n\n", adr_str);
+          '
+
+          print "\tble_random_number_t peer_ltk = "
+          'print_bytes((uint8_t*)&('&PeerLTK&'), 16);'
+          print "\tuint16_t peer_ediv = "
+          'printf("0x%4.4X;\n", '&PeerEDIV&');'
+          print "\tble_random_part_t peer_random = "
+          'print_bytes((uint8_t*)&('&PeerRandom&'), 8);'
+
+          print "\n"
+        end
+        Signals!Quit(0)
+      end
+    }
+  }
+}
+
+
+
+configuration BLE_PAIR
+@add_c_libraries "bluetooth"
+{
+  instance handler      : ExitHandler
+  instance hci          : HCISocketProxyImpl
+
+  instance initialiser  : BLEInitialiserImpl
+  instance connecter    : BLEConnecterImpl
+  instance encrypter    : BLEEncryptionImpl
+
+  instance main         : Main
+
+
+
+  connector main.Signals => handler.Signals
+  connector main.Initialiser => initialiser.Initialiser
+  connector main.Connecter => connecter.Connecter
+  connector main.SMP => hci.SMP
+  connector main.ATT => hci.ATT
+  connector main.Encrypter => encrypter.Encrypter
+  connector main.Socket => hci.Socket
+  connector main.HCICommands => hci.Commands
+  connector main.HCIEvents => hci.Events
+
+  connector initialiser.Socket => hci.Socket
+  connector initialiser.HCICommands => hci.Commands
+  connector initialiser.HCIEvents => hci.Events
+
+  connector connecter.Socket => hci.Socket
+  connector connecter.HCICommands => hci.Commands
+  connector connecter.HCIEvents => hci.Events
+
+  connector encrypter.Socket => hci.Socket
+  connector encrypter.HCICommands => hci.Commands
+  connector encrypter.HCIEvents => hci.Events
+
+
+
+  //set hci.Device = "B8:27:EB:03:FA:CD" // TELENOR
+  //set hci.Device = "B8:27:EB:F1:1D:FF" // HOME
+  set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+  
+  set connecter.ConnectAddressType = BLEAddressType:PUBLIC
+  set connecter.ConnectAddress = "5C:31:3E:03:54:2F"
+}

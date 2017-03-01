@@ -1,0 +1,168 @@
+import "SMPMessages.thingml"
+
+thing fragment SMP includes SMPMsgs
+{
+  required port SMP
+  {
+    receives SMPPairingRequest
+    receives SMPPairingResponse
+    receives SMPPairingConfirm
+    receives SMPPairingRandom
+    receives SMPPairingFailed
+    receives SMPPairingPublicKey
+    receives SMPPairingDHKeyCheck
+    receives SMPKeypressNotification
+    receives SMPEncryptionInformation
+    receives SMPMasterIdentification
+    receives SMPIdentityInformation
+    receives SMPIdentityAddressInformation
+    receives SMPSigningInformation
+    receives SMPSecurityRequest
+    sends SMPPairingRequest
+    sends SMPPairingResponse
+    sends SMPPairingConfirm
+    sends SMPPairingRandom
+    sends SMPPairingFailed
+    sends SMPPairingPublicKey
+    sends SMPPairingDHKeyCheck
+    sends SMPKeypressNotification
+    sends SMPEncryptionInformation
+    sends SMPMasterIdentification
+    sends SMPIdentityInformation
+    sends SMPIdentityAddressInformation
+    sends SMPSigningInformation
+    sends SMPSecurityRequest
+  }
+}
+
+thing fragment SMPProxy includes SMPMsgs
+{
+  provided port SMP
+  {
+    receives SMPPairingRequest
+    receives SMPPairingResponse
+    receives SMPPairingConfirm
+    receives SMPPairingRandom
+    receives SMPPairingFailed
+    receives SMPPairingPublicKey
+    receives SMPPairingDHKeyCheck
+    receives SMPKeypressNotification
+    receives SMPEncryptionInformation
+    receives SMPMasterIdentification
+    receives SMPIdentityInformation
+    receives SMPIdentityAddressInformation
+    receives SMPSigningInformation
+    receives SMPSecurityRequest
+    sends SMPPairingRequest
+    sends SMPPairingResponse
+    sends SMPPairingConfirm
+    sends SMPPairingRandom
+    sends SMPPairingFailed
+    sends SMPPairingPublicKey
+    sends SMPPairingDHKeyCheck
+    sends SMPKeypressNotification
+    sends SMPEncryptionInformation
+    sends SMPMasterIdentification
+    sends SMPIdentityInformation
+    sends SMPIdentityAddressInformation
+    sends SMPSigningInformation
+    sends SMPSecurityRequest
+  }
+
+  /* Receive data functions */
+  function OnSMPData(Handle : UInt, Length : UInt, Data : DataPointer) do
+    var Code : Byte = ''&Data&'[0]'
+    if (Code == '0x01') do
+      var IOCapability : SMPIOCapabilities = ''&Data&'[1]'
+      var OOBDataPresent : Boolean = ''&Data&'[2] == 0x01'
+      var Bonding : Boolean = '(('&Data&'[3] & 0x03) == 0x01)'
+      var MITM : Boolean = '(('&Data&'[3] & 0x04) > 0)'
+      var SecureConnection : Boolean = '(('&Data&'[3] & 0x08) > 0)'
+      var Keypress : Boolean = '(('&Data&'[3] & 0x10) > 0)'
+      var MaximumEncryptionKeySize : Byte = ''&Data&'[4]'
+      var InitiatorKeyDistribution : SMPKeyDistribution = ''&Data&'[5]'
+      var ResponderKeyDistribution : SMPKeyDistribution = ''&Data&'[6]'
+
+      SMP!SMPPairingRequest(Handle, IOCapability, OOBDataPresent, Bonding, MITM, SecureConnection, Keypress, MaximumEncryptionKeySize, InitiatorKeyDistribution, ResponderKeyDistribution)
+    end
+    if (Code == '0x02') do
+      var IOCapability : SMPIOCapabilities = ''&Data&'[1]'
+      var OOBDataPresent : Boolean = ''&Data&'[2] == 0x01'
+      var Bonding : Boolean = '(('&Data&'[3] & 0x03) == 0x01)'
+      var MITM : Boolean = '(('&Data&'[3] & 0x04) > 0)'
+      var SecureConnection : Boolean = '(('&Data&'[3] & 0x08) > 0)'
+      var Keypress : Boolean = '(('&Data&'[3] & 0x10) > 0)'
+      var MaximumEncryptionKeySize : Byte = ''&Data&'[4]'
+      var InitiatorKeyDistribution : SMPKeyDistribution = ''&Data&'[5]'
+      var ResponderKeyDistribution : SMPKeyDistribution = ''&Data&'[6]'
+
+      SMP!SMPPairingResponse(Handle, IOCapability, OOBDataPresent, Bonding, MITM, SecureConnection, Keypress, MaximumEncryptionKeySize, InitiatorKeyDistribution, ResponderKeyDistribution)
+    end
+    if (Code == '0x03') do
+      var ConfirmValue : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPPairingConfirm(Handle, ConfirmValue)
+    end
+    if (Code == '0x04') do
+      var RandomValue : BLERandomNumber= '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPPairingRandom(Handle, RandomValue)
+    end
+    if (Code == '0x05') do
+      var Reason : SMPPairingFailReason = ''&Data&'[1]'
+
+      SMP!SMPPairingFailed(Handle, Reason)
+    end
+    if (Code == '0x06') do
+      var LongTermKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPEncryptionInformation(Handle, LongTermKey)
+    end
+    if (Code == '0x07') do
+      var EDIV : UInt = '*((uint16_t*)&'&Data&'[1])'
+      var Rand : BLERandomPart = '*((ble_random_part_t*)&'&Data&'[3])'
+
+      SMP!SMPMasterIdentification(Handle, EDIV, Rand)
+    end
+    if (Code == '0x08') do
+      var IdentityResolvingKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPIdentityInformation(Handle, IdentityResolvingKey)
+    end
+    if (Code == '0x09') do
+      var AddressType : BLEAddressType = ''&Data&'[1]'
+      var Address : BTAddress = '*((bdaddr_t*)&'&Data&'[2])'
+
+      SMP!SMPIdentityAddressInformation(Handle, AddressType, Address)
+    end
+    if (Code == '0x0A') do
+      var SignatureKey : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPSigningInformation(Handle, SignatureKey)
+    end
+    if (Code == '0x0B') do
+      var Bonding : Boolean = '(('&Data&'[1] & 0x03) == 0x01)'
+      var MITM : Boolean = '(('&Data&'[1] & 0x04) > 0)'
+      var SecureConnection : Boolean = '(('&Data&'[1] & 0x08) > 0)'
+      var Keypress : Boolean = '(('&Data&'[1] & 0x10) > 0)'
+
+      SMP!SMPSecurityRequest(Handle, Bonding, MITM, SecureConnection, Keypress)
+    end
+    if (Code == '0x0C') do
+      var KeyX : SMPPublicKey = '*((smp_public_key_t*)&'&Data&'[1])'
+      var KeyY : SMPPublicKey = '*((smp_public_key_t*)&'&Data&'[33])'
+
+      SMP!SMPPairingPublicKey(Handle, KeyX, KeyY)
+    end
+    if (Code == '0x0D') do
+      var DHKeyCheck : BLERandomNumber = '*((ble_random_number_t*)&'&Data&'[1])'
+
+      SMP!SMPPairingDHKeyCheck(Handle, DHKeyCheck)
+    end
+    if (Code == '0x0E') do
+      var Type : SMPKeypressNotification = ''&Data&'[1]'
+
+      SMP!SMPKeypressNotification(Handle, Type)
+    end
+  end
+}

@@ -1,0 +1,73 @@
+import "HCIDatatypes.thingml"
+
+datatype SMPPublicKey<32>
+  @c_type "smp_public_key_t"
+  @c_header "#ifndef SMP_PUBLIC_KEY_T_H"
+  @c_header "#define SMP_PUBLIC_KEY_T_H"
+  @c_header "typedef struct { uint8_t bytes[32]; } smp_public_key_t;"
+  @c_header "#endif";
+
+
+enumeration SMPIOCapabilities//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  DISPLAY_ONLY @enum_val "0x00"
+  DISPLAY_YESNO @enum_val "0x01"
+  KEYBOARD_ONLY @enum_val "0x02"
+  NO_INPUT_NO_OUTPUT @enum_val "0x03"
+  KEYBOARD_DISPLAY @enum_val "0x04"
+}
+
+enumeration SMPKeyDistribution//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  NOENCKEY_NOIDKEY_NOSIGN_NOLINKKEY @enum_val "0x00"
+  ENCKEY_NOIDKEY_NOSIGN_NOLINKKEY   @enum_val "0x01"
+  NOENCKEY_IDKEY_NOSIGN_NOLINKKEY   @enum_val "0x02"
+  ENCKEY_IDKEY_NOSIGN_NOLINKKEY     @enum_val "0x03"
+  NOENCKEY_NOIDKEY_SIGN_NOLINKKEY   @enum_val "0x04"
+  ENCKEY_NOIDKEY_SIGN_NOLINKKEY     @enum_val "0x05"
+  NOENCKEY_IDKEY_SIGN_NOLINKKEY     @enum_val "0x06"
+  ENCKEY_IDKEY_SIGN_NOLINKKEY       @enum_val "0x07"
+  NOENCKEY_NOIDKEY_NOSIGN_LINKKEY   @enum_val "0x08"
+  ENCKEY_NOIDKEY_NOSIGN_LINKKEY     @enum_val "0x09"
+  NOENCKEY_IDKEY_NOSIGN_LINKKEY     @enum_val "0x0A"
+  ENCKEY_IDKEY_NOSIGN_LINKKEY       @enum_val "0x0B"
+  NOENCKEY_NOIDKEY_SIGN_LINKKEY     @enum_val "0x0C"
+  ENCKEY_NOIDKEY_SIGN_LINKKEY       @enum_val "0x0D"
+  NOENCKEY_IDKEY_SIGN_LINKKEY       @enum_val "0x0E"
+  ENCKEY_IDKEY_SIGN_LINKKEY         @enum_val "0x0F"
+}
+
+enumeration SMPPairingFailReason//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  PASSKEY_ENTRY_FAILED @enum_val "0x01"
+  OOB_NOT_AVAILABLE @enum_val "0x02"
+  AUTHENTICATION_REQUIREMENTS @enum_val "0x03"
+  CONFIRM_VALUE_FAILED @enum_val "0x03"
+  PAIRING_NOT_SUPPORTED @enum_val "0x04"
+  ENCRYPTION_KEY_SIZE @enum_val "0x06"
+  COMMAND_NOT_SUPPORTED @enum_val "0x07"
+  UNSPECIFIED @enum_val "0x08"
+  REPEATED_ATTEMPTS @enum_val "0x09"
+  INVALID_PARAMETERS @enum_val "0x0A"
+  DHKEY_FAILED @enum_val "0x0B"
+  NUMERIC_COMPARISON_FAILED @enum_val "0x0C"
+  BREDR_PAIRING_PROGRESS @enum_val "0x0D"
+  CROSS_TRANSPORT_KEY @enum_val "0x0E"
+}
+
+enumeration SMPKeypressNotification//<1>
+  @c_type "uint8_t"
+  @c_byte_size "1"
+{
+  ENTRY_STARTED @enum_val "0x00"
+  DIGIT_ENTERED @enum_val "0x01"
+  DIGIT_ERASED @enum_val "0x02"
+  CLEARED @enum_val "0x03"
+  ENTRY_COMPLETED @enum_val "0x04"
+}
