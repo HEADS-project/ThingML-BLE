@@ -1,0 +1,226 @@
+import "Datatypes.thingml"
+import "HCIDatatypes.thingml"
+import "DeviceMessages.thingml"
+import "BLE_scanner.thingml"
+import "BLE_connecter.thingml"
+import "BLE_notifier.thingml"
+
+thing KINSASmartEar includes DeviceMsgs
+{
+  required port KINSASmartEar
+  {
+    receives WantsToConnect, FinishedConnection
+    sends AllowedToConnect
+  }
+}
+
+thing KINSASmartEarImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs, ATT
+@c_header "
+  #include <time.h>
+  #include <bluetooth/bluetooth.h>
+"
+@c_global "
+  static ble_random_number_t peer_ltk = { 0xE9, 0x9C, 0xD6, 0xCD, 0xF9, 0x5C, 0x13, 0xC1, 0x45, 0x0C, 0x04, 0xF0, 0xC0, 0x03, 0xBC, 0x50, };
+  static uint16_t peer_ediv = 0xF7B1;
+  static ble_random_part_t peer_random = { 0x83, 0x07, 0x58, 0x20, 0x51, 0x3A, 0x71, 0xBF, };
+"
+{
+  property AddressType : BLEAddressType = BLEAddressType:PUBLIC
+  property Address : String = "84:EB:18:1B:62:E0"
+  property AddressBT : BTAddress
+  property LongTermKey : BLERandomNumber
+  property EncryptedDiversifier : UInt
+  property RandomNumber : BLERandomPart
+  
+  property NotifierAddressType : BLEAddressType = BLEAddressType:RANDOM
+  property NotifierAddress : String = "E2:A2:02:62:4F:73"
+  property NotifierAddressBT : BTAddress
+  
+  property ConnectedHandle : UInt
+
+  property BatteryValueHandle : UInt = '0x0025'
+  property TemperatureStringHandle : UInt = '0x0030'
+  property TemperatureConfigurationHandle : UInt = '0x0031'
+  
+    
+  provided port KINSASmartEar
+  {
+    sends WantsToConnect, FinishedConnection
+    receives AllowedToConnect
+  }
+  
+  
+  message TelluCloudTemperature(observationTime : DateTime, healt_temperature : Float) @tellucloud_type "observation";
+  message MqttRequestTemperatureMeasurement();
+  message MqttConfirmTemperatureMeasurement();
+  
+  required port Tellu
+  {
+    sends TelluCloudTemperature
+    receives MqttRequestTemperatureMeasurement, MqttConfirmTemperatureMeasurement
+  }
+  
+  property DoSync : Boolean
+  property GotMeasurement : Boolean
+  property GotStored : Boolean
+  property GotRequest : Boolean
+  
+  statechart States init Standby
+  {
+    on entry do
+      // Set byte variables of properties
+      LongTermKey = 'peer_ltk'
+      EncryptedDiversifier = 'peer_ediv'
+      RandomNumber = 'peer_random'
+      'str2ba('&Address&', &'&AddressBT&');'
+      'str2ba('&NotifierAddress&', &'&NotifierAddressBT&');'
+    end
+    
+    state Standby
+    {
+      on entry do
+        DoSync = false
+      end
+      
+      internal event e:Scanner?ConnectableAdvertisement action do
+        // Check if we want to connect to this device
+        if (e.AddressType == AddressType and 'bacmp(&'&e.Address&', &'&AddressBT&')' == 0) do
+          DoSync = true
+          GotMeasurement = false
+          KINSASmartEar!WantsToConnect()
+        end
+      end
+      
+      // If we get requests or confirmations here, jump straight to the Notify state
+      internal event Tellu?MqttRequestTemperatureMeasurement action do
+        GotRequest = true
+        KINSASmartEar!WantsToConnect()
+      end
+      internal event Tellu?MqttConfirmTemperatureMeasurement action do
+        GotStored = true
+        KINSASmartEar!WantsToConnect()
+      end
+      
+      transition -> Connecting event KINSASmartEar?AllowedToConnect guard (DoSync == true)
+      transition -> Notify event KINSASmartEar?AllowedToConnect guard (DoSync == false)
+    }
+    
+    state Connecting
+    {
+      on entry do
+        print "[INFO]: Connecting to KINSA Smart Ear...\n"
+        Connecter!ConnectTo(AddressType, AddressBT, LongTermKey, EncryptedDiversifier, RandomNumber)
+      end
+      
+      internal event e:Connecter?Connected action do
+        ConnectedHandle = e.Handle
+        Connecter!Encrypt()
+      end
+      
+      transition -> Sync event Connecter?Encrypted
+      
+      transition -> Notify event Connecter?Stopped
+      transition -> Notify event Connecter?Failure
+    }
+    
+    state Sync
+    {
+      on entry do
+        print "[INFO]: Syncing with KINSA Smart Ear...\n"
+        
+        print "[INFO]: Requesting notifications of Temperature Measurement...\n"
+        var AttributeValue : GATTData
+        ''&AttributeValue&'.length = 2;'
+        ''&AttributeValue&'.bytes[0] = 0x01;'
+        ''&AttributeValue&'.bytes[1] = 0x00;'
+        ATT!ATTWriteRequest(ConnectedHandle, TemperatureConfigurationHandle, AttributeValue)
+
+        print "[INFO]: Reading battery percentage...\n"
+        ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+      end
+      
+      internal event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+        var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
+        'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
+        //Bloodpressure!BatteryPercentage(Percent)
+        
+        //ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+      end
+      
+      internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not read battery percentage!\n"
+        Connecter!Stop()
+      end
+      
+      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+        print "[ERROR]: Could not set notifications of Temperature Measurement!\n"
+        Connecter!Stop()
+      end
+      
+      internal event e:ATT?ATTHandleValueNotification guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == TemperatureStringHandle) action do
+        print "[INFO]: Got Temperature Measurement!\n"
+
+        
+        
+        /* Send to Tellu */
+        GotMeasurement = true
+      end
+      
+      transition -> Notify event Connecter?Stopped
+      transition -> Notify event Connecter?Failure
+    }
+    
+    composite state Notify init Wait
+    {
+      state Wait
+      {
+        on entry do
+          KINSASmartEar!WantsToConnect()
+        end
+        
+        transition -> ConnectingNotifier event KINSASmartEar?AllowedToConnect
+      }
+      
+      state ConnectingNotifier
+      {
+        on entry do
+          print "[INFO]: Connecting to KINSA Smart Ear notifier...\n"
+          Notifications!NotifierConnect(NotifierAddressType, NotifierAddressBT)
+        end
+
+        transition -> ConnectedNotifier event Notifications?NotifierReady
+      }
+      
+      state ConnectedNotifier
+      {
+        on entry do
+          if (DoSync == true) do
+            DoSync = false
+            if (GotMeasurement == true) do
+              Notifications!NotifierReceived()
+            end else do
+              Notifications!NotifierError()
+            end
+          end
+          else if (GotStored == true) do
+            GotStored = false
+            Notifications!NotifierStored()
+          end
+          else if (GotRequest == true) do
+            GotRequest = false
+            Notifications!NotifierRequest()
+          end
+        end
+        
+        // Send more if we already got them
+        transition -> ConnectingNotifier event Notifications?NotifierFinished guard (GotStored == true or GotRequest == true)
+      }
+      
+      transition -> Standby event Notifications?NotifierFinished action KINSASmartEar!FinishedConnection()
+    }
+    
+    // Store requests and confirmations, we will eventually get to Notify
+    internal event Tellu?MqttRequestTemperatureMeasurement action GotRequest = true
+    internal event Tellu?MqttConfirmTemperatureMeasurement action GotStored = true
+  }
+}

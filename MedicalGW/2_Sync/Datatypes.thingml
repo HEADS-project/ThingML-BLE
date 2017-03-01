@@ -21,6 +21,9 @@ datatype Float<4>
   
 datatype DateTime<4>
   @c_type "time_t";
+  
+object CInt
+  @c_type "int";
 
 datatype NotifierCommand<8>
   @c_type "notifier_cmd_t"

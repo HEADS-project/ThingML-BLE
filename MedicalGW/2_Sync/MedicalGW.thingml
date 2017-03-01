@@ -7,15 +7,17 @@ import "BLE_connecter.thingml"
 import "BLE_notifier.thingml"
 import "Device_AND_UC352BLE.thingml"
 import "Device_AND_UA651BLE.thingml"
+import "Device_KINSA_SMARTEAR.thingml"
 
 enumeration Device @c_type "uint8_t" @c_byte_size "1"
 {
   NONE @enum_val "0x00"
   ANDUC352BLE @enum_val "0x01"
   ANDUA651BLE @enum_val "0x02"
+  KINSASmartEar @enum_val "0x04"
 }
 
-thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, ANDUA651BLE
+thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, ANDUA651BLE, KINSASmartEar
 @c_header "#include <time.h>"
 {
   required port Signals
@@ -23,6 +25,25 @@ thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, AN
     receives Interrupt
     sends Quit
   }
+  
+  property WantsToConnect : Device
+  property ConnectedTo : Device
+  
+  function AllowConnection() do
+    if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
+      ConnectedTo = Device:ANDUC352BLE
+      ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
+      ANDUC352BLE!AllowedToConnect()
+    end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
+      ConnectedTo = Device:ANDUA651BLE
+      ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
+      ANDUA651BLE!AllowedToConnect()
+    end else if (''&WantsToConnect&' & '&Device:KINSASmartEar&'') do
+      ConnectedTo = Device:KINSASmartEar
+      ''&WantsToConnect&' &= ~'&Device:KINSASmartEar&';'
+      KINSASmartEar!AllowedToConnect()
+    end
+  end
 
   statechart States init Initialise
   {
@@ -40,10 +61,7 @@ thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, AN
     /* -------------------- Main logic -------------------- */
     
     composite state Standby init Scan
-    {
-      property WantsToConnect : Device
-      property ConnectedTo : Device
-      
+    {      
       state Scan
       {
         on entry do
@@ -62,62 +80,37 @@ thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, AN
           Scanner!Stop()
         end
         
+        internal event KINSASmartEar?WantsToConnect action do
+          ''&WantsToConnect&' |= '&Device:KINSASmartEar&';'
+          Scanner!Stop()
+        end
+        
         transition -> Sync event Scanner?Stopped
       }
       
       state Sync
       {
-        on entry do
-          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
-            ConnectedTo = Device:ANDUC352BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
-            ANDUC352BLE!AllowedToConnect()
-          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
-            ConnectedTo = Device:ANDUA651BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
-            ANDUA651BLE!AllowedToConnect()
-          end
-        end
+        on entry AllowConnection()
         
         // If request from currently allowed device, respond with allowed
         internal event ANDUC352BLE?WantsToConnect guard (ConnectedTo == Device:ANDUC352BLE) action ANDUC352BLE!AllowedToConnect()
         internal event ANDUA651BLE?WantsToConnect guard (ConnectedTo == Device:ANDUA651BLE) action ANDUA651BLE!AllowedToConnect()
+        internal event KINSASmartEar?WantsToConnect guard (ConnectedTo == Device:KINSASmartEar) action KINSASmartEar!AllowedToConnect()
         
         // If another device asks for connection, queue it
-        internal event ANDUC352BLE?WantsToConnect guard (ConnectedTo != Device:ANDUC352BLE) action do
-          ''&WantsToConnect&' |= '&Device:ANDUC352BLE&';'
-        end
-        internal event ANDUA651BLE?WantsToConnect guard (ConnectedTo != Device:ANDUA651BLE) action do
-          ''&WantsToConnect&' |= '&Device:ANDUA651BLE&';'
-        end
+        internal event ANDUC352BLE?WantsToConnect guard (ConnectedTo != Device:ANDUC352BLE) action ''&WantsToConnect&' |= '&Device:ANDUC352BLE&';'
+        internal event ANDUA651BLE?WantsToConnect guard (ConnectedTo != Device:ANDUA651BLE) action ''&WantsToConnect&' |= '&Device:ANDUA651BLE&';'
+        internal event KINSASmartEar?WantsToConnect guard (ConnectedTo != Device:KINSASmartEar) action ''&WantsToConnect&' |= '&Device:KINSASmartEar&';'
         
         // When a device finishes, and there are some more queued, allow next in line to connect
-        internal event e:ANDUC352BLE?FinishedConnection guard (ConnectedTo == Device:ANDUC352BLE and WantsToConnect != Device:NONE) action do
-          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
-            ConnectedTo = Device:ANDUC352BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
-            ANDUC352BLE!AllowedToConnect()
-          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
-            ConnectedTo = Device:ANDUA651BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
-            ANDUA651BLE!AllowedToConnect()
-          end
-        end
-        internal event e:ANDUA651BLE?FinishedConnection guard (ConnectedTo == Device:ANDUA651BLE and WantsToConnect != Device:NONE) action do
-          if (''&WantsToConnect&' & '&Device:ANDUC352BLE&'') do
-            ConnectedTo = Device:ANDUC352BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUC352BLE&';'
-            ANDUC352BLE!AllowedToConnect()
-          end else if (''&WantsToConnect&' & '&Device:ANDUA651BLE&'') do
-            ConnectedTo = Device:ANDUA651BLE
-            ''&WantsToConnect&' &= ~'&Device:ANDUA651BLE&';'
-            ANDUA651BLE!AllowedToConnect()
-          end
-        end
+        internal event e:ANDUC352BLE?FinishedConnection guard (ConnectedTo == Device:ANDUC352BLE and WantsToConnect != Device:NONE) action AllowConnection()
+        internal event e:ANDUA651BLE?FinishedConnection guard (ConnectedTo == Device:ANDUA651BLE and WantsToConnect != Device:NONE) action AllowConnection()
+        internal event e:KINSASmartEar?FinishedConnection guard (ConnectedTo == Device:KINSASmartEar and WantsToConnect != Device:NONE) action AllowConnection()
         
         // When a device finishes, and no more queued, go back to scanning
         transition -> Scan event ANDUC352BLE?FinishedConnection guard (ConnectedTo == Device:ANDUC352BLE and WantsToConnect == Device:NONE)
         transition -> Scan event ANDUA651BLE?FinishedConnection guard (ConnectedTo == Device:ANDUA651BLE and WantsToConnect == Device:NONE)
+        transition -> Scan event KINSASmartEar?FinishedConnection guard (ConnectedTo == Device:KINSASmartEar and WantsToConnect == Device:NONE)
       }
       
       transition -> Deinitialise event Signals?Interrupt
@@ -179,6 +172,14 @@ protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
   @mqtt_publish_topic "5C:31:3E:00:4B:6B/smarttracker/health.pressure"
   @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttRequestBloodPressureMeasurement"
   @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttConfirmBloodPressureMeasurement";
+  
+protocol MQTT3 @serializer "PosixTelluCloudSerializerPlugin"
+  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  @tellucloud_deviceid "84:EB:18:1B:62:E0"
+  @mqtt_publish_topic "84:EB:18:1B:62:E0/smarttracker/health.temperature"
+  @mqtt_subscribe_topic "84:EB:18:1B:62:E0/MqttRequestTemperatureMeasurement"
+  @mqtt_subscribe_topic "84:EB:18:1B:62:E0/MqttConfirmTemperatureMeasurement";
 
 configuration MedicalGW
 @add_c_libraries "bluetooth"
@@ -220,6 +221,7 @@ configuration MedicalGW
   /* Devices */
   instance weightscale    : ANDUC352BLEImpl
   instance bloodpressure  : ANDUA651BLEImpl
+  instance temperature    : KINSASmartEarImpl
   
   connector weightscale.Scanner => scanner.Scanner
   connector weightscale.Connecter => connecter.Connecter
@@ -233,8 +235,15 @@ configuration MedicalGW
   connector bloodpressure.ATT => hci.ATT
   connector bloodpressure.Tellu over MQTT1
   
+  connector temperature.Scanner => scanner.Scanner
+  connector temperature.Connecter => connecter.Connecter
+  connector temperature.Notifications => notifier.Notifications
+  connector temperature.ATT => hci.ATT
+  connector temperature.Tellu over MQTT3
+  
   connector main.ANDUC352BLE => weightscale.ANDUC352BLE
   connector main.ANDUA651BLE => bloodpressure.ANDUA651BLE
+  connector main.KINSASmartEar => temperature.KINSASmartEar
 
   
   /* ----- BLE CONNECTION PARAMETERS ----- */

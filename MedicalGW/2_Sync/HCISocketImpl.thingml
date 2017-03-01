@@ -1,12 +1,26 @@
 import "HCISocket.thingml"
 
 thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
-@c_header "#include <errno.h>"
-@c_header "#include <stdio.h>"
-@c_header "#include <sys/ioctl.h>"
-@c_header "#include <bluetooth/bluetooth.h>"
-@c_header "#include <bluetooth/hci.h>"
-@c_header "#include <bluetooth/hci_lib.h>"
+@c_header "
+  #include <errno.h>
+  #include <stdio.h>
+  #include <sys/ioctl.h>
+  #include <bluetooth/bluetooth.h>
+  #include <bluetooth/hci.h>
+  #include <bluetooth/hci_lib.h>
+  #include <bluetooth/l2cap.h>
+"
+@c_global "
+  void printBytes(int length, void *data) {
+    uint8_t *bytes = data;
+    int i;
+    printf(\"BYTES: [\");
+    for (i = 0; i < length; i++) {
+      printf(\"%2.2X, \", bytes[i]);
+    }
+    printf(\"]\\n\");
+  }
+"
 {
   property DevHandle : Int = -1
 
@@ -40,6 +54,15 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
         hci_close_dev(handle);
         return;
       }
+      // Save the address for later use
+      struct hci_dev_info info;
+      if (hci_devinfo(device_id, &info) < 0) {
+        perror("[WARNING] Couldn\'t get HCI device info");
+      } else {
+         memcpy(&'&Address&', &info.bdaddr, sizeof(bdaddr_t));
+         if (info.type == 3) '&AddressType&' = 1;
+         else '&AddressType&' = info.type;
+      }
       // We are open for business
       '&DevHandle&' = handle;
       'StartSocketReader()'
@@ -62,24 +85,18 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
   end
 
   /* Get the address of the controller currently connected to */
+  property Address : BTAddress
+  property AddressType : Byte = 0
+  
   function GetBTAddress()
   @SuppressWarnings "Call"
   : BTAddress
   do
-    var Address : BTAddress = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}'
+    var AddressRet : BTAddress = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}'
     if (DevHandle >= 0) do
-      '
-        int device_id = hci_devid('&Device&');
-        if (device_id < 0) {
-          printf("[ERROR] Couldn\'t find device with address ");
-          fflush(stdout);
-          perror('&Device&');
-        }
-        // Get the address
-        hci_devba(device_id, &'&Address&');
-      '
+      AddressRet = Address
     end
-    return Address
+    return AddressRet
   end
 
   /* Function to send data to the socket */
@@ -160,7 +177,7 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
           // Decode packet and send appropriate messages
           '&MessageType&' = buffer[0];
           switch ('&MessageType&') {
-            case 0x01: // HCL Command
+            case 0x01: // HCI Command
               //printf("[WARNING]: Unhandled incoming HCI command!\n");
               //TODO: Jakob - why does this even happen??
               break;
@@ -175,10 +192,11 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
             case 0x03: // SCO Data
               printf("[WARNING]: Unhandled incoming SCO data!\n");
               break;
-            case 0x04: // HCL Event 
+            case 0x04: // HCI Event 
               '&EventType&' = buffer[1];
               '&Length&' = buffer[2];
               '&Data&' = &buffer[3];
+              'KernelDisconnectHack(EventType, Length, Data)'
               'DecodeEvent(EventType, Length, Data)'
               break;
             case 0xff: // Vendor Package
@@ -188,5 +206,75 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
         }
       '
     end
+  end
+  
+  /* Hacks for keeping the kernel from closing connections prematurely */
+  /* See: https://github.com/sandeepmistry/node-bluetooth-hci-socket/blob/master/src/BluetoothHciSocket.cpp#L319 */
+  property KernelSocket : CInt = 0
+  function KernelDisconnectHack(Event : Byte, Length : Byte, Data : DataPointer) do
+    if (Event == '0x3E' and ''&Data&'[0]' == '0x01' and ''&Data&'[1]' == '0x00') do // LE Meta Event - LE Connection Complete, Status 0x00
+      /* Create an L2CAP socket */
+      '
+        int l2socket = socket(PF_BLUETOOTH, SOCK_SEQPACKET, 0);
+        struct sockaddr_l2 l2a;
+        if (l2socket == -1) {
+          perror("[WARNING]: Could not create kernel-hack socket");
+          return;
+        }
+        
+        unsigned short l2cid;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+        l2cid = 4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+        l2cid = bswap_16(4);
+#else
+        #error "Unknown byte order"
+#endif
+        
+        memset(&l2a, 0, sizeof(l2a));
+        l2a.l2_family = AF_BLUETOOTH;
+        l2a.l2_cid = l2cid;
+        memcpy(&l2a.l2_bdaddr, &'&Address&', sizeof(l2a.l2_bdaddr));
+        l2a.l2_bdaddr_type = '&AddressType&';
+      
+        printBytes(6, &l2a.l2_bdaddr);
+        printBytes(2, &l2a.l2_cid);
+        printBytes(1, &l2a.l2_bdaddr_type);
+        
+        if (bind(l2socket, (struct sockaddr*)&l2a, sizeof(l2a)) < 0) {
+          perror("[WARNING]: Could not bind kernel-hack socket");
+          return;
+        }
+        
+        memset(&l2a, 0, sizeof(l2a));
+        l2a.l2_family = AF_BLUETOOTH;
+        l2a.l2_cid = l2cid;
+        memcpy(&l2a.l2_bdaddr, &'&Data&'[6], sizeof(l2a.l2_bdaddr));
+        l2a.l2_bdaddr_type = '&Data&'[5] + 1;
+        
+        printBytes(6, &l2a.l2_bdaddr);
+        printBytes(2, &l2a.l2_cid);
+        printBytes(1, &l2a.l2_bdaddr_type);
+        
+        if (connect(l2socket, (struct sockaddr*)&l2a, sizeof(l2a)) < 0) {
+          perror("[WARNING]: Could not connect kernel-hack socket");
+          return;
+        }
+        
+        '&KernelSocket&' = l2socket;
+      '
+    end
+    
+    if (Event == '0x05' and ''&Data&'[0]' == '0x00') do // Disconnection Complete, Status 0x00
+      /* Delete the L2CAP socket */
+      '
+        if ('&KernelSocket&' != 0 && close('&KernelSocket&') < 0) {
+          perror("[WARNING]: Could not close kernel-hack socket");
+        }
+        '&KernelSocket&' = 0;
+      '
+    end
+    
+    // TODO: Jakob handle multiple connections based on handle?
   end
 }
