@@ -150,7 +150,7 @@ thing BLENotifierThermo includes NeoPixelMsgs, ThermoSensorMsgs, TimerMsgs, Gate
 	}
 }
 
-protocol Timer;
+//protocol Timer;
 
 configuration BLEThermoNotifier
 {

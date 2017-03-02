@@ -32,13 +32,13 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerProxy, SMPProxy, ATTPr
   }
 
   /* Platform specific functions */
-  function OpenSocket() @abstract "true" @SuppressWarnings "Call" do end
-  function CloseSocket() @abstract "true" @SuppressWarnings "Call" do end
-  function SocketIsOpen() : Byte  @abstract "true" @SuppressWarnings "Call" do end
-  function GetBTAddress()  : BTAddress @abstract "true" @SuppressWarnings "Call" do end
+  abstract function OpenSocket() @abstract "true" @SuppressWarnings "Call" 
+  abstract function CloseSocket() @abstract "true" @SuppressWarnings "Call"
+  abstract function SocketIsOpen() : Byte  @abstract "true" @SuppressWarnings "Call"
+  abstract function GetBTAddress()  : BTAddress @abstract "true" @SuppressWarnings "Call"
 
-  function SendCommand(Group : UInt, Command : UInt, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
-  function SendACLData(Handle : UInt, CID : UInt, Length : UInt, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
+  abstract function SendCommand(Group : UInt, Command : UInt, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call"
+  abstract function SendACLData(Handle : UInt, CID : UInt, Length : UInt, Data : DataPointer) @abstract "true" @SuppressWarnings "Call"
 
 
   /* Receive ACL Data functions */
