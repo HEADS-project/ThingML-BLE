@@ -55,16 +55,14 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
 
   /* Check if socket is open */
   function SocketIsOpen()
-  @SuppressWarnings "Call"
-  : Byte
+  : Byte @SuppressWarnings "Call"
   do
     return DevHandle >= 0
   end
 
   /* Get the address of the controller currently connected to */
   function GetBTAddress()
-  @SuppressWarnings "Call"
-  : BTAddress
+  : BTAddress @SuppressWarnings "Call"
   do
     var Address : BTAddress = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}'
     if (DevHandle >= 0) do

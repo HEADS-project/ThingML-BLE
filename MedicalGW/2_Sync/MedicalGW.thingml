@@ -239,5 +239,5 @@ configuration MedicalGW
   
   /* ----- BLE CONNECTION PARAMETERS ----- */
   //set hci.Device = "B8:27:EB:03:FA:CD" // TELENOR
-  set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+  set hci.Device = "hci0" // NEW
 }
