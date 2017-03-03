@@ -32,6 +32,7 @@ thing Serial includes SerialMsgs
 
 thing fragment GatewayCommandMsgs {
 	message request_measurement();
+	message cancel_request();
 	message measurement_received();
 	message bad_measurement();
 	message measurement_stored();
@@ -52,7 +53,7 @@ thing GatewayCommandParser includes SerialMsgs, GatewayCommandMsgs {
 	}
 	
 	provided port gateway {
-		sends request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
+		sends request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color, cancel_request
 	}
 	
 	statechart GatewayCommandParserSC init Ready {
@@ -64,6 +65,7 @@ thing GatewayCommandParser includes SerialMsgs, GatewayCommandMsgs {
 			transition -> SetColor event m : blerx?receive_byte guard m.b == '\'C\''
 			
 			transition -> Ready event m : blerx?receive_byte guard m.b == '\'R\'' action gateway!request_measurement()
+			transition -> Ready event m : blerx?receive_byte guard m.b == '\'K\'' action gateway!cancel_request()
 			transition -> Ready event m : blerx?receive_byte guard m.b == '\'G\'' action gateway!measurement_received()
 			transition -> Ready event m : blerx?receive_byte guard m.b == '\'E\'' action gateway!bad_measurement()
 			transition -> Ready event m : blerx?receive_byte guard m.b == '\'S\'' action gateway!measurement_stored()
