@@ -63,7 +63,7 @@ thing ThermoSensor includes ThermoSensorMsgs, TimerMsgs {
 	} 
 }
 
-thing BLENotifierThermo includes NeoPixelNotifierMsgs, ThermoSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
+thing BLENotifierThermo includes NeoPixelNotifierClient, ThermoSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
 
 	required port gateway {
 		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color, cancel_request
@@ -73,44 +73,10 @@ thing BLENotifierThermo includes NeoPixelNotifierMsgs, ThermoSensorMsgs, TimerMs
 		receives on_cradle, off_cradle
 	}
 	
-	required port neopixels {
-		sends setColor, off, pulse, rotate, breath, solid
-	}
-	
 	required port clock {
 		receives timer_timeout
 		sends timer_start, timer_cancel
 	}
-	
-	function breath() do
-		neopixels!off()
-		neopixels!setColor(0, 50, 255)
-		neopixels!breath()
-	end
-	
-	function pulse() do
-		neopixels!off()
-		neopixels!setColor(255, 32, 0)
-		neopixels!pulse()
-	end
-	
-	function pump() do
-		neopixels!off()
-		neopixels!setColor(255, 32, 0)
-		neopixels!rotate(12)
-	end
-	
-	function measure() do
-		neopixels!off()
-		neopixels!setColor(160, 140, 0)
-		neopixels!rotate(-2)
-	end
-	
-	function solid(r : UInt8, g : UInt8, b : UInt8) do
-		neopixels!off()
-		neopixels!setColor(r, g, b)
-		neopixels!solid()
-	end
 
 	statechart BLENotifierSC init Init {
 	
@@ -118,11 +84,11 @@ thing BLENotifierThermo includes NeoPixelNotifierMsgs, ThermoSensorMsgs, TimerMs
 	
 		state Init {
 			on entry do
-				solid(0, 128, 32)
+				neo_solid(0, 128, 32)
 				clock!timer_start(0, 1000)
 			end
 			
-			transition -> OnCradle event t:clock?timer_timeout guard t.id == 0 action breath()
+			transition -> OnCradle event t:clock?timer_timeout guard t.id == 0 action neo_standby()
 		}
 	
 		composite state OnCradle init StdBy keeps history {
@@ -130,19 +96,19 @@ thing BLENotifierThermo includes NeoPixelNotifierMsgs, ThermoSensorMsgs, TimerMs
 			transition -> OffCradle event sensor?off_cradle
 		
 			state StdBy {
-				on entry breath()
+				on entry neo_standby()
 				transition -> Red event gateway?request_measurement 
 			}
 		
 			state Red {
-				on entry pulse()
+				on entry neo_requested()
 				transition -> StdBy event gateway?cancel_request 
 			}
 
 		}
 		
 		state OffCradle {
-			on entry measure()
+			on entry neo_measuring2()
 			
 			transition -> OnCradle event sensor?on_cradle
 		}
