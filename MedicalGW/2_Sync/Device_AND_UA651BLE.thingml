@@ -21,9 +21,9 @@ thing ANDUA651BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
   #include <bluetooth/bluetooth.h>
 "
 @c_global "
-  static ble_random_number_t peer_ltk = { 0xCE, 0xED, 0xBC, 0x56, 0x27, 0x71, 0xBA, 0x5B, 0x77, 0xB1, 0x7B, 0xA7, 0x8B, 0xE2, 0x28, 0x66, };
-  static uint16_t peer_ediv = 0x7A5E;
-  static ble_random_part_t peer_random = { 0x6B, 0x61, 0x4E, 0xEE, 0x54, 0x36, 0x91, 0x3F, };
+  static ble_random_number_t peer_ltk = { 0x3B, 0xA0, 0x6C, 0x91, 0xDD, 0x2E, 0x8A, 0x19, 0xCB, 0xE6, 0x5F, 0xD5, 0x12, 0x3A, 0xF6, 0x4C, };
+  static uint16_t peer_ediv = 0x2087;
+  static ble_random_part_t peer_random = { 0xE9, 0x9B, 0x95, 0xCE, 0x1E, 0x2F, 0x06, 0x09, };
 
   float sfloat_to_float(uint8_t *bytes) {
     if (bytes[1] == 0x07 && bytes[0] == 0xFE) return INFINITY;
@@ -139,147 +139,192 @@ thing ANDUA651BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
       transition -> Notify event Connecter?Failure
     }
     
-    state Sync
+    composite state Sync init ReadBattery
     {
       on entry do
         print "[INFO]: Syncing with A&D UA-651BLE...\n"
-        
-        print "[INFO]: Requesting indications of Blood Pressure Measurement...\n"
-        var AttributeValue : GATTData
-        ''&AttributeValue&'.length = 2;'
-        ''&AttributeValue&'.bytes[0] = 0x02;'
-        ''&AttributeValue&'.bytes[1] = 0x00;'
-        ATT!ATTWriteRequest(ConnectedHandle, BloodPressureConfigurationHandle, AttributeValue)
-
-        print "[INFO]: Reading battery percentage...\n"
-        ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
       end
       
-      internal event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
-        var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
-        'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
-        //Bloodpressure!BatteryPercentage(Percent)
-      end
+      state ReadBattery
+      {
+        on entry do
+          print "[INFO]: Reading battery percentage...\n"
+          ATT!ATTReadRequest(ConnectedHandle, BatteryValueHandle)
+        end
+
+        transition -> TimeSync event e:ATT?ATTReadResponse guard (e.ConnectionHandle == ConnectedHandle) action do
+          var Percent : Byte = ''&e.AttributeValue&'.bytes[0]'
+          'printf("[INFO]: Got battery percentage - %u%%\n", '&Percent&');'
+          //Weightscale!BatteryPercentage(Percent)
+        end
+
+        internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
+          print "[ERROR]: Could not read battery percentage!\n"
+          Connecter!Stop()
+        end
+      }
       
-      internal event e:ATT?ATTReadError guard (e.ConnectionHandle == ConnectedHandle) action do
-        print "[ERROR]: Could not read battery percentage!\n"
-        Connecter!Stop()
-      end
-      
-      internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
-        print "[ERROR]: Could not set indications of Blood Pressure Measurement!\n"
-        Connecter!Stop()
-      end
-      
-      internal event e:ATT?ATTHandleValueIndication guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == BloodPressureValueHandle) action do
-        '
-          uint8_t length = '&e.AttributeValue&'.length;
-          uint8_t *data  = '&e.AttributeValue&'.bytes;
-          uint8_t index = 7;
-        '
-        /* Decode the data */
-        var UnitsKPA : Boolean = 'data[0] & 0x01'
-        var HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'
-        var HasPulseRate : Boolean = '(data[0] & 0x04) >> 2'
-        var HasUserID : Boolean = '(data[0] & 0x08) >> 3'
-        var HasMeasurementStatus : Boolean = '(data[0] & 0x10) >> 4'
-
-        /* Blood pressure measurement */
-        var Systolic : Float = 'sfloat_to_float(&data[1])'
-        var Diastolic : Float = 'sfloat_to_float(&data[3])'
-        var MeanArterial : Float = 'sfloat_to_float(&data[5])'
-
-        /* Timestamp */
-        var Year : UInt = 0
-        var Month : Byte = 0
-        var Day : Byte = 0
-        var Hour : Byte = 0
-        var Minute : Byte = 0
-        var Second : Byte = 0
-        if (HasTimestamp) do
-          Year = '*(uint16_t*)&data[index+0]'
-          Month = 'data[index+2]'
-          Day = 'data[index+3]'
-          Hour = 'data[index+4]'
-          Minute = 'data[index+5]'
-          Second = 'data[index+6]'
-          'index = index+7;'
-        end
-
-        /* Pulse rate */
-        var Pulse : Float = 0
-        if (HasPulseRate) do
-          Pulse = 'sfloat_to_float(&data[index])'
-          'index = index+2;'
-        end
-
-        /* User ID */
-        var UserID : Byte = 0
-        if (HasUserID) do
-          UserID = 'data[index]'
-          'index = index+1;'
-        end
-
-        /* Measurement Status */
-        var BodyMovement : Boolean = false
-        var CuffFit : Boolean = false
-        var IrregularPulse : Boolean = false
-        var PulseRate : Byte = 0
-        var MeasurementPosition : Boolean = false
-        if (HasMeasurementStatus) do
-          BodyMovement = 'data[index] & 0x01'
-          CuffFit = '(data[index] & 0x02) >> 1'
-          IrregularPulse = '(data[index] & 0x04) >> 2'
-          PulseRate = '(data[index] & 0x18) >> 3'
-          MeasurementPosition = '(data[index] & 0x20) >> 5'
-        end
-
-        // Print the measurement
-        print "[INFO]: Got Blood Pressure measurement - "
-        'printf("%.0f/%.0f (%.0f) ",'&Systolic&', '&Diastolic&', '&MeanArterial&');'
-        if (UnitsKPA) print "kPa "
-        else print "mmHg "
-        if (HasPulseRate) do
-          'printf("%.0fBPM ",'&Pulse&');'
-        end
-        if (HasTimestamp) do
-          'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
-        end
-        if (HasMeasurementStatus) do
-          print "- "
-          if (IrregularPulse) print "Irregular pulse detected "
-          else print "Normal pulse detected "
-        end
-
-        print "\n"
-
-        ATT!ATTHandleValueConfirmation(e.ConnectionHandle)
-        
-        /* Send to Tellu */
-        if (HasTimestamp and '!isnan('&Systolic&')') do
-          // Convert to DateTime
-          var ObservationTime : DateTime = 0
+      state TimeSync
+      {
+        on entry do
+          print "[INFO]: Synchronizing the time...\n"
+          var AttributeValue : GATTData
+          // Read the UTC time
           '
-            struct tm timebuf;
-            timebuf.tm_year = '&Year&'-1900;
-            timebuf.tm_mon = '&Month&'-1;
-            timebuf.tm_mday = '&Day&';
-            timebuf.tm_hour = '&Hour&';
-            timebuf.tm_min = '&Minute&';
-            timebuf.tm_sec = '&Second&';
+            time_t utc = time(NULL);
+            struct tm *ptm = gmtime(&utc);
           '
-          ObservationTime = 'timegm(&timebuf)'
-          // Convert to Ints
-          var HealthPressureDiastolic : Int = Diastolic
-          var HealthPressureMean : Int = MeanArterial
-          var HealthPressureSystolic : Int = Systolic
-          var HealthPulseRate : Int = Pulse
-          //Send
-          Tellu!TelluCloudBloodPressure(ObservationTime, HealthPressureDiastolic, HealthPressureMean, HealthPressureSystolic, HealthPulseRate)
-          
-          GotMeasurement = true
+          // Write into ATT value
+          '
+            '&AttributeValue&'.length = 7;
+            *((uint16_t*)&'&AttributeValue&'.bytes[0]) = ptm->tm_year+1900;
+            *((uint8_t*)&'&AttributeValue&'.bytes[2]) = ptm->tm_mon+1;
+            *((uint8_t*)&'&AttributeValue&'.bytes[3]) = ptm->tm_mday;
+            *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour;
+            *((uint8_t*)&'&AttributeValue&'.bytes[5]) = ptm->tm_min;
+            *((uint8_t*)&'&AttributeValue&'.bytes[6]) = ptm->tm_sec;
+          '
+          ATT!ATTWriteRequest(ConnectedHandle, '0x0017', AttributeValue)
         end
-      end
+
+        transition -> GetValues event e:ATT?ATTWriteResponse action do
+          print "[INFO]: Time synchronization successfull!\n"
+        end
+
+        internal event e:ATT?ATTWriteError action do
+          print "[ERROR]: Time synchronization failed. Error code: "
+          'printf("%2.2X", '&e.Error&');'
+          print "!!\n"
+          Connecter!Stop()
+        end
+      }
+      
+      state GetValues
+      {        
+        on entry do
+          print "[INFO]: Requesting indications of Blood Pressure Measurement...\n"
+          var AttributeValue : GATTData
+          ''&AttributeValue&'.length = 2;'
+          ''&AttributeValue&'.bytes[0] = 0x02;'
+          ''&AttributeValue&'.bytes[1] = 0x00;'
+          ATT!ATTWriteRequest(ConnectedHandle, BloodPressureConfigurationHandle, AttributeValue)
+        end
+        
+        internal event e:ATT?ATTWriteError guard (e.ConnectionHandle == ConnectedHandle) action do
+          print "[ERROR]: Could not set indications of Blood Pressure Measurement!\n"
+          Connecter!Stop()
+        end
+        
+        internal event e:ATT?ATTHandleValueIndication guard (e.ConnectionHandle == ConnectedHandle and e.AttributeHandle == BloodPressureValueHandle) action do
+          '
+            uint8_t length = '&e.AttributeValue&'.length;
+            uint8_t *data  = '&e.AttributeValue&'.bytes;
+            uint8_t index = 7;
+          '
+          /* Decode the data */
+          var UnitsKPA : Boolean = 'data[0] & 0x01'
+          var HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'
+          var HasPulseRate : Boolean = '(data[0] & 0x04) >> 2'
+          var HasUserID : Boolean = '(data[0] & 0x08) >> 3'
+          var HasMeasurementStatus : Boolean = '(data[0] & 0x10) >> 4'
+
+          /* Blood pressure measurement */
+          var Systolic : Float = 'sfloat_to_float(&data[1])'
+          var Diastolic : Float = 'sfloat_to_float(&data[3])'
+          var MeanArterial : Float = 'sfloat_to_float(&data[5])'
+
+          /* Timestamp */
+          var Year : UInt = 0
+          var Month : Byte = 0
+          var Day : Byte = 0
+          var Hour : Byte = 0
+          var Minute : Byte = 0
+          var Second : Byte = 0
+          if (HasTimestamp) do
+            Year = '*(uint16_t*)&data[index+0]'
+            Month = 'data[index+2]'
+            Day = 'data[index+3]'
+            Hour = 'data[index+4]'
+            Minute = 'data[index+5]'
+            Second = 'data[index+6]'
+            'index = index+7;'
+          end
+
+          /* Pulse rate */
+          var Pulse : Float = 0
+          if (HasPulseRate) do
+            Pulse = 'sfloat_to_float(&data[index])'
+            'index = index+2;'
+          end
+
+          /* User ID */
+          var UserID : Byte = 0
+          if (HasUserID) do
+            UserID = 'data[index]'
+            'index = index+1;'
+          end
+
+          /* Measurement Status */
+          var BodyMovement : Boolean = false
+          var CuffFit : Boolean = false
+          var IrregularPulse : Boolean = false
+          var PulseRate : Byte = 0
+          var MeasurementPosition : Boolean = false
+          if (HasMeasurementStatus) do
+            BodyMovement = 'data[index] & 0x01'
+            CuffFit = '(data[index] & 0x02) >> 1'
+            IrregularPulse = '(data[index] & 0x04) >> 2'
+            PulseRate = '(data[index] & 0x18) >> 3'
+            MeasurementPosition = '(data[index] & 0x20) >> 5'
+          end
+
+          // Print the measurement
+          print "[INFO]: Got Blood Pressure measurement - "
+          'printf("%.0f/%.0f (%.0f) ",'&Systolic&', '&Diastolic&', '&MeanArterial&');'
+          if (UnitsKPA) print "kPa "
+          else print "mmHg "
+          if (HasPulseRate) do
+            'printf("%.0fBPM ",'&Pulse&');'
+          end
+          if (HasTimestamp) do
+            'printf("%u.%u.%u %u:%u:%u ",'&Day&', '&Month&', '&Year&', '&Hour&', '&Minute&', '&Second&');'
+          end
+          if (HasMeasurementStatus) do
+            print "- "
+            if (IrregularPulse) print "Irregular pulse detected "
+            else print "Normal pulse detected "
+          end
+
+          print "\n"
+
+          ATT!ATTHandleValueConfirmation(e.ConnectionHandle)
+
+          /* Send to Tellu */
+          if (HasTimestamp and '!isnan('&Systolic&')') do
+            // Convert to DateTime
+            var ObservationTime : DateTime = 0
+            '
+              struct tm timebuf;
+              timebuf.tm_year = '&Year&'-1900;
+              timebuf.tm_mon = '&Month&'-1;
+              timebuf.tm_mday = '&Day&';
+              timebuf.tm_hour = '&Hour&';
+              timebuf.tm_min = '&Minute&';
+              timebuf.tm_sec = '&Second&';
+            '
+            ObservationTime = 'timegm(&timebuf)'
+            // Convert to Ints
+            var HealthPressureDiastolic : Int = Diastolic
+            var HealthPressureMean : Int = MeanArterial
+            var HealthPressureSystolic : Int = Systolic
+            var HealthPulseRate : Int = Pulse
+            //Send
+            Tellu!TelluCloudBloodPressure(ObservationTime, HealthPressureDiastolic, HealthPressureMean, HealthPressureSystolic, HealthPulseRate)
+
+            GotMeasurement = true
+          end
+        end
+      }
       
       transition -> Notify event Connecter?Stopped
       transition -> Notify event Connecter?Failure

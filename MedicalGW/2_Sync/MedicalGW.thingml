@@ -165,16 +165,16 @@ thing Main includes BLEInitialiser, BLEScanner, ExitHandlerMsgs, ANDUC352BLE, AN
 
 /* MQTT protocols for each device */
 protocol MQTT2 @serializer "PosixTelluCloudSerializerPlugin"
-  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
-  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  //@mqtt_broker_address "10.218.149.140" @trace_level "2"
   @tellucloud_deviceid "5C:31:3E:5F:00:7A"
   @mqtt_publish_topic "5C:31:3E:5F:00:7A/smarttracker/mass"
-  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttRequestWeightScaleMeasurement"
-  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttConfirmWeightScaleMeasurement";
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttRequestWeightMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttConfirmWeightMeasurement";
   
 protocol MQTT1 @serializer "PosixTelluCloudSerializerPlugin"
-  //@mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
-  @mqtt_broker_address "10.218.149.140" @trace_level "2"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  //@mqtt_broker_address "10.218.149.140" @trace_level "2"
   @tellucloud_deviceid "5C:31:3E:00:4B:6B"
   @mqtt_publish_topic "5C:31:3E:00:4B:6B/smarttracker/health.pressure"
   @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttRequestBloodPressureMeasurement"
@@ -239,5 +239,6 @@ configuration MedicalGW
   
   /* ----- BLE CONNECTION PARAMETERS ----- */
   //set hci.Device = "B8:27:EB:03:FA:CD" // TELENOR
-  set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+  //set hci.Device = "B8:27:EB:7E:4A:75" // NEW
+  set hci.Device = "hci0"
 }

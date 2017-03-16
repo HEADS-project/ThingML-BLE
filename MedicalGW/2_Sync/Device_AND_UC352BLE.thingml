@@ -20,9 +20,9 @@ thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
   #include <bluetooth/bluetooth.h>
 "
 @c_global "
-  static ble_random_number_t peer_ltk = { 0xEB, 0x62, 0x86, 0x0E, 0x18, 0x20, 0x25, 0x8A, 0xCA, 0x18, 0x9C, 0xD5, 0x6D, 0x69, 0xAE, 0x6E, };
-  static uint16_t peer_ediv = 0x627E;
-  static ble_random_part_t peer_random = { 0xDE, 0x2B, 0x79, 0x5A, 0x5B, 0x21, 0x51, 0x3A, };
+  static ble_random_number_t peer_ltk = { 0xAD, 0x6F, 0x72, 0xBE, 0x9B, 0x27, 0x3D, 0xAA, 0xCF, 0x12, 0xAC, 0x95, 0xD2, 0x3D, 0x99, 0xDF, };
+  static uint16_t peer_ediv = 0xAD69;
+  static ble_random_part_t peer_random = { 0x12, 0x3E, 0xA5, 0x8F, 0xA2, 0x78, 0x12, 0x3B, };
 "
 {
   property AddressType : BLEAddressType = BLEAddressType:PUBLIC
@@ -51,13 +51,13 @@ thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
   
   
   message TelluCloudWeightScale(observationTime : DateTime, mass : Float) @tellucloud_type "observation";
-  message MqttRequestWeightScaleMeasurement();
-  message MqttConfirmWeightScaleMeasurement();
+  message MqttRequestWeightMeasurement();
+  message MqttConfirmWeightMeasurement();
   
   required port Tellu
   {
     sends TelluCloudWeightScale
-    receives MqttRequestWeightScaleMeasurement, MqttConfirmWeightScaleMeasurement
+    receives MqttRequestWeightMeasurement, MqttConfirmWeightMeasurement
   }
   
   property DoSync : Boolean
@@ -92,11 +92,11 @@ thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
       end
       
       // If we get requests or confirmations here, jump straight to the Notify state
-      internal event Tellu?MqttRequestWeightScaleMeasurement action do
+      internal event Tellu?MqttRequestWeightMeasurement action do
         GotRequest = true
         ANDUC352BLE!WantsToConnect()
       end
-      internal event Tellu?MqttConfirmWeightScaleMeasurement action do
+      internal event Tellu?MqttConfirmWeightMeasurement action do
         GotStored = true
         ANDUC352BLE!WantsToConnect()
       end
@@ -164,7 +164,7 @@ thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
             *((uint16_t*)&'&AttributeValue&'.bytes[0]) = ptm->tm_year+1900;
             *((uint8_t*)&'&AttributeValue&'.bytes[2]) = ptm->tm_mon+1;
             *((uint8_t*)&'&AttributeValue&'.bytes[3]) = ptm->tm_mday;
-            *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour+1;
+            *((uint8_t*)&'&AttributeValue&'.bytes[4]) = ptm->tm_hour;
             *((uint8_t*)&'&AttributeValue&'.bytes[5]) = ptm->tm_min;
             *((uint8_t*)&'&AttributeValue&'.bytes[6]) = ptm->tm_sec;
           '
@@ -344,7 +344,7 @@ thing ANDUC352BLEImpl includes BLEScanner, BLEConnecter, BLENotifier, DeviceMsgs
     }
     
     // Store requests and confirmations, we will eventually get to Notify
-    internal event Tellu?MqttRequestWeightScaleMeasurement action GotRequest = true
-    internal event Tellu?MqttConfirmWeightScaleMeasurement action GotStored = true
+    internal event Tellu?MqttRequestWeightMeasurement action GotRequest = true
+    internal event Tellu?MqttConfirmWeightMeasurement action GotStored = true
   }
 }
