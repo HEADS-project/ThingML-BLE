@@ -1,0 +1,11 @@
+datatype Byte<1> @c_type "uint8_t" @type_checker "Integer"
+datatype Int<2> @c_type "int16_t" @type_checker "Integer"
+datatype Long<4> @c_type "uint32_t" @type_checker "Integer"
+
+thing fragment Msgs {
+	message MessageOne(A : Byte, B : Byte) @code "100"
+	message MessageTwo(A : Byte, B : Int) @code "101"
+	message MessageThree(ID : Byte, A : Int, B : Int) @code "2000"
+}
+
+protocol Serial @serial_baudrate "9600" @serial_path_to_device "/dev/ttyS0" @serializer "binary";

@@ -1,0 +1,90 @@
+import "Common.thingml"
+
+thing Sender includes Msgs {
+	required port Serial {
+		sends MessageOne, MessageTwo
+		receives MessageThree
+	}
+	
+	message Start(id : Byte, time : Long) @timer_start "true";
+	message Cancel(id : Byte) @timer_cancel "true";
+	message Timeout(id : Byte) @timeout "true";
+	
+	required port Clock {
+		sends Start, Cancel
+		receives Timeout
+	}
+	
+	statechart init Wait {
+		state Wait {
+			on entry do
+				print "Ready...\n"
+				Clock!Start(0, 1000)
+			end
+			
+			transition -> SendOne event e : Clock?Timeout guard e.id == 0
+		}
+		
+		state SendOne {
+			on entry Clock!Start(1, 1000)
+			
+			internal event e : Clock?Timeout guard e.id == 1 action do
+				var A : Byte = 1
+				var B : Byte = 100
+				
+				print "Sending MessageOne("
+				print A
+				print ", "
+				print B
+				print ")\n"
+				
+				Serial!MessageOne(A, B)
+			end
+			
+			transition -> SendTwo event m : Serial?MessageThree action do
+				print "Received Message:"
+				print m.ID
+				print " ("
+				print m.A
+				print ", "
+				print m.B
+				print ")\n"
+			end
+		}
+		
+		state SendTwo {
+			on entry Clock!Start(2, 1000)
+			
+			internal event e : Clock?Timeout guard e.id == 2 action do
+				var A : Byte = 1
+				var B : Int = -1
+				
+				print "Sending MessageTwo("
+				print A
+				print ", "
+				print B
+				print ")\n"
+				
+				Serial!MessageTwo(A, B)
+			end
+			
+			transition -> SendOne event m : Serial?MessageThree action do
+				print "Received Message:"
+				print m.ID
+				print " ("
+				print m.A
+				print ", "
+				print m.B
+				print ")\n"
+			end
+		}
+	}
+}
+
+protocol Timer;
+
+configuration Main {
+	instance s : Sender
+	connector s.Serial over Serial
+	connector s.Clock over Timer
+}

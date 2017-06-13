@@ -1,0 +1,25 @@
+import "Common.thingml"
+
+thing Receiver includes Msgs {
+	required port Serial {
+		receives MessageOne, MessageTwo
+		sends MessageThree
+	}
+	
+	statechart init Wait {
+		state Wait {			
+			internal event m : Serial?MessageOne action do
+				Serial!MessageThree(1, m.A, m.B)
+			end
+			
+			internal event m : Serial?MessageTwo action do
+				Serial!MessageThree(2, m.A, m.B)
+			end
+		}
+	}
+}
+
+configuration Main {
+	instance r : Receiver
+	connector r.Serial over Serial
+}
