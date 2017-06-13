@@ -73,45 +73,45 @@ uint16_t id_clock;
 // Variables for the current instance state
 int NeoPixelNotifierGW_NeoPixelStateChart_State;
 // Variables for the properties of the instance
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var;
-uint8_t NeoPixelNotifierGW_neopixel_logo_first_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_counter_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_b_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_breath_speed_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_r_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var;
-uint8_t NeoPixelNotifierGW_neopixel_ring_last_var;
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_maxcount_var;
-uint8_t NeoPixelNotifierGW_ring_brightness_divider_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_maxangle_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_PULSE_counter_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_counter_var;
-uint8_t NeoPixelNotifierGW_neopixel_logo_last_var;
+uint8_t NeoPixelNotifierGW_neopixel_pin_var;
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_maxcount_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_g_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BREATH_counter_var;
 int16_t NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_angle_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_PULSE_maxcount_var;
+uint8_t NeoPixelNotifierGW_ring_brightness_divider_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_g_var;
 int8_t NeoPixelNotifierGW_NeoPixelStateChart_rotate_speed_var;
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BREATH_maxcount_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_PULSE_maxcount_var;
-uint8_t NeoPixelNotifierGW_neopixel_pin_var;
-uint8_t NeoPixelNotifierGW_neopixel_total_count_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_r_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_maxcount_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_counter_var;
+uint8_t NeoPixelNotifierGW_neopixel_logo_last_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_maxangle_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_counter_var;
 uint8_t NeoPixelNotifierGW_neopixel_ring_first_var;
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_BREATH_counter_var;
+uint8_t NeoPixelNotifierGW_neopixel_ring_last_var;
+uint8_t NeoPixelNotifierGW_neopixel_logo_first_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_color_b_var;
+uint8_t NeoPixelNotifierGW_neopixel_total_count_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_PULSE_counter_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var;
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_breath_speed_var;
 
 };
 // Declaration of prototypes outgoing messages:
 void NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(int state, struct NeoPixelNotifierGW_Instance *_instance);
+void NeoPixelNotifierGW_handle_ctrl_setLogoColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
+void NeoPixelNotifierGW_handle_ctrl_blink(struct NeoPixelNotifierGW_Instance *_instance);
 void NeoPixelNotifierGW_handle_ctrl_off(struct NeoPixelNotifierGW_Instance *_instance);
 void NeoPixelNotifierGW_handle_ctrl_setColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
-void NeoPixelNotifierGW_handle_ctrl_breath(struct NeoPixelNotifierGW_Instance *_instance);
-void NeoPixelNotifierGW_handle_ctrl_setRingColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
-void NeoPixelNotifierGW_handle_ctrl_blink(struct NeoPixelNotifierGW_Instance *_instance);
 void NeoPixelNotifierGW_handle_ctrl_pulse(struct NeoPixelNotifierGW_Instance *_instance);
-void NeoPixelNotifierGW_handle_ctrl_rotate(struct NeoPixelNotifierGW_Instance *_instance, int8_t speed);
-void NeoPixelNotifierGW_handle_ctrl_solid(struct NeoPixelNotifierGW_Instance *_instance);
-void NeoPixelNotifierGW_handle_ctrl_setLogoColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
 void NeoPixelNotifierGW_handle_ctrl_blink_logo(struct NeoPixelNotifierGW_Instance *_instance);
+void NeoPixelNotifierGW_handle_ctrl_setRingColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
+void NeoPixelNotifierGW_handle_ctrl_solid(struct NeoPixelNotifierGW_Instance *_instance);
+void NeoPixelNotifierGW_handle_ctrl_rotate(struct NeoPixelNotifierGW_Instance *_instance, int8_t speed);
+void NeoPixelNotifierGW_handle_ctrl_breath(struct NeoPixelNotifierGW_Instance *_instance);
 void NeoPixelNotifierGW_handle_clock_fps_clock(struct NeoPixelNotifierGW_Instance *_instance);
 // Declaration of callbacks for incoming messages:
 
@@ -410,14 +410,6 @@ case NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BREATH_STATE:{
 break;
 }
 case NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE:{
-;uint8_t i = _instance->NeoPixelNotifierGW_neopixel_logo_first_var;
-;uint32_t color = f_NeoPixelNotifierGW_getColor(_instance, _instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var, _instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var, _instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var);
-while(i <= _instance->NeoPixelNotifierGW_neopixel_logo_last_var) {
-f_NeoPixelNotifierGW_setPixelColor(_instance, i, color);
-i = i + 1;
-
-}
-f_NeoPixelNotifierGW_updateNeopixels(_instance);
 break;
 }
 case NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKALL_STATE:{
@@ -463,6 +455,36 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
+void NeoPixelNotifierGW_handle_ctrl_setLogoColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+if (1) {
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var = red;
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var = green;
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var = blue;
+NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+void NeoPixelNotifierGW_handle_ctrl_blink(struct NeoPixelNotifierGW_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKALL_STATE;
+NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKALL_STATE, _instance);
+NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
 void NeoPixelNotifierGW_handle_ctrl_off(struct NeoPixelNotifierGW_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
@@ -536,15 +558,31 @@ _instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var = blue;
 NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
-void NeoPixelNotifierGW_handle_ctrl_breath(struct NeoPixelNotifierGW_Instance *_instance) {
+void NeoPixelNotifierGW_handle_ctrl_pulse(struct NeoPixelNotifierGW_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BREATH_STATE;
-NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BREATH_STATE, _instance);
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE;
+NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE, _instance);
+NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
+void NeoPixelNotifierGW_handle_ctrl_blink_logo(struct NeoPixelNotifierGW_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKLOGO_STATE;
+NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKLOGO_STATE, _instance);
 NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -566,31 +604,15 @@ _instance->NeoPixelNotifierGW_NeoPixelStateChart_color_b_var = blue / _instance-
 NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
-void NeoPixelNotifierGW_handle_ctrl_blink(struct NeoPixelNotifierGW_Instance *_instance) {
+void NeoPixelNotifierGW_handle_ctrl_solid(struct NeoPixelNotifierGW_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKALL_STATE;
-NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKALL_STATE, _instance);
-NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
-void NeoPixelNotifierGW_handle_ctrl_pulse(struct NeoPixelNotifierGW_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE;
-NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE, _instance);
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_SOLID_STATE;
+NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_SOLID_STATE, _instance);
 NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -615,45 +637,15 @@ NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixelNotifierGW_handle_ctrl_solid(struct NeoPixelNotifierGW_Instance *_instance) {
+void NeoPixelNotifierGW_handle_ctrl_breath(struct NeoPixelNotifierGW_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_SOLID_STATE;
-NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_SOLID_STATE, _instance);
-NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
-void NeoPixelNotifierGW_handle_ctrl_setLogoColor(struct NeoPixelNotifierGW_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-if (1) {
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var = red;
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var = green;
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var = blue;
-NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-void NeoPixelNotifierGW_handle_ctrl_blink_logo(struct NeoPixelNotifierGW_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelNotifierGW_NeoPixelStateChart_OnExit(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKLOGO_STATE;
-NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BLINKLOGO_STATE, _instance);
+_instance->NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BREATH_STATE;
+NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_BREATH_STATE, _instance);
 NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
@@ -714,8 +706,8 @@ else if (_instance->NeoPixelNotifierGW_NeoPixelStateChart_State == NEOPIXELNOTIF
 if (NeoPixelNotifierGW_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 ;uint8_t bright = f_NeoPixelNotifierGW_breath_brightness(_instance, _instance->NeoPixelNotifierGW_NeoPixelStateChart_BREATH_counter_var, _instance->NeoPixelNotifierGW_NeoPixelStateChart_BREATH_maxcount_var);
 ;uint32_t color = f_NeoPixelNotifierGW_getColor(_instance, (_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var * bright) / 256, (_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var * bright) / 256, (_instance->NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var * bright) / 256);
-;uint8_t i = _instance->NeoPixelNotifierGW_neopixel_logo_first_var;
-while(i <= _instance->NeoPixelNotifierGW_neopixel_logo_last_var) {
+;uint8_t i = _instance->NeoPixelNotifierGW_neopixel_ring_first_var;
+while(i <= _instance->NeoPixelNotifierGW_neopixel_ring_last_var) {
 f_NeoPixelNotifierGW_setPixelColor(_instance, i, color);
 i = i + 1;
 
@@ -1015,7 +1007,7 @@ break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_GREEN_STATE:{
 f_NeoPixelNotifierGWTest_neo_solid(_instance, 0, 255, 32);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 1000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 2000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_OFF_STATE:{
@@ -1025,37 +1017,37 @@ break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_BREATH_STATE:{
 f_NeoPixelNotifierGWTest_neo_standby(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 5000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 7000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_PULSE_STATE:{
 f_NeoPixelNotifierGWTest_neo_requested(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 5000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 7000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_PUMP_STATE:{
 f_NeoPixelNotifierGWTest_neo_measuring1(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 2000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 3000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_MEASURE_STATE:{
 f_NeoPixelNotifierGWTest_neo_measuring2(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 2000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 3000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_BLINK_STATE:{
 f_NeoPixelNotifierGWTest_neo_bluetooth(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 3000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 4000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_GWOK_STATE:{
 f_NeoPixelNotifierGWTest_neo_gateway_ack(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 2000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 3000);
 break;
 }
 case NEOPIXELNOTIFIERGWTEST_TEST_TELLUERR_STATE:{
 f_NeoPixelNotifierGWTest_neo_tellucloud_error(_instance);
-NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 2000);
+NeoPixelNotifierGWTest_send_clock_timer_start(_instance, 0, 3000);
 break;
 }
 default: break;
@@ -1338,7 +1330,7 @@ if (external_NeoPixelNotifierGWTest_send_neopixels_blink_logo_listener != 0x0) e
 
 
 /*****************************************************************************
- * Definitions for configuration : TestNeoPixelNotifier
+ * Definitions for configuration : TestNeoPixelNotifierGW
  *****************************************************************************/
 
 //Declaration of instance variables
@@ -1352,72 +1344,12 @@ struct NeoPixelNotifierGWTest_Instance test_var;
 // Variables for the sessions of the instance
 
 
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::off
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_off(struct NeoPixelNotifierGWTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setLogoColor
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_setLogoColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
+if ( fifo_byte_available() > 7 ) {
 
 _fifo_enqueue( (3 >> 8) & 0xFF );
 _fifo_enqueue( 3 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setColor
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_setColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
-if ( fifo_byte_available() > 7 ) {
-
-_fifo_enqueue( (4 >> 8) & 0xFF );
-_fifo_enqueue( 4 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-
-// parameter red
-union u_red_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_red;
-u_red.p = red;
-_fifo_enqueue(u_red.bytebuffer[0] & 0xFF );
-
-// parameter green
-union u_green_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_green;
-u_green.p = green;
-_fifo_enqueue(u_green.bytebuffer[0] & 0xFF );
-
-// parameter blue
-union u_blue_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_blue;
-u_blue.p = blue;
-_fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
-}
-}
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::breath
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_breath(struct NeoPixelNotifierGWTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (5 >> 8) & 0xFF );
-_fifo_enqueue( 5 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setRingColor
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_setRingColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
-if ( fifo_byte_available() > 7 ) {
-
-_fifo_enqueue( (6 >> 8) & 0xFF );
-_fifo_enqueue( 6 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
@@ -1452,64 +1384,32 @@ _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 void enqueue_NeoPixelNotifierGWTest_send_neopixels_blink(struct NeoPixelNotifierGWTest_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
-_fifo_enqueue( (7 >> 8) & 0xFF );
-_fifo_enqueue( 7 & 0xFF );
+_fifo_enqueue( (4 >> 8) & 0xFF );
+_fifo_enqueue( 4 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_neopixels & 0xFF );
 }
 }
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::pulse
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_pulse(struct NeoPixelNotifierGWTest_Instance *_instance){
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::off
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_off(struct NeoPixelNotifierGWTest_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
-_fifo_enqueue( (8 >> 8) & 0xFF );
-_fifo_enqueue( 8 & 0xFF );
+_fifo_enqueue( (5 >> 8) & 0xFF );
+_fifo_enqueue( 5 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_neopixels & 0xFF );
 }
 }
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::rotate
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_rotate(struct NeoPixelNotifierGWTest_Instance *_instance, int8_t speed){
-if ( fifo_byte_available() > 5 ) {
-
-_fifo_enqueue( (9 >> 8) & 0xFF );
-_fifo_enqueue( 9 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-
-// parameter speed
-union u_speed_t {
-int8_t p;
-byte bytebuffer[1];
-} u_speed;
-u_speed.p = speed;
-_fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
-}
-}
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::solid
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_solid(struct NeoPixelNotifierGWTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (10 >> 8) & 0xFF );
-_fifo_enqueue( 10 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_neopixels & 0xFF );
-}
-}
-// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setLogoColor
-void enqueue_NeoPixelNotifierGWTest_send_neopixels_setLogoColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setColor
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_setColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
 
-_fifo_enqueue( (11 >> 8) & 0xFF );
-_fifo_enqueue( 11 & 0xFF );
+_fifo_enqueue( (6 >> 8) & 0xFF );
+_fifo_enqueue( 6 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
@@ -1540,8 +1440,100 @@ u_blue.p = blue;
 _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 }
 }
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::pulse
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_pulse(struct NeoPixelNotifierGWTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (7 >> 8) & 0xFF );
+_fifo_enqueue( 7 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
 // Enqueue of messages NeoPixelNotifierGWTest::neopixels::blink_logo
 void enqueue_NeoPixelNotifierGWTest_send_neopixels_blink_logo(struct NeoPixelNotifierGWTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (8 >> 8) & 0xFF );
+_fifo_enqueue( 8 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::setRingColor
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_setRingColor(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
+if ( fifo_byte_available() > 7 ) {
+
+_fifo_enqueue( (9 >> 8) & 0xFF );
+_fifo_enqueue( 9 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+
+// parameter red
+union u_red_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_red;
+u_red.p = red;
+_fifo_enqueue(u_red.bytebuffer[0] & 0xFF );
+
+// parameter green
+union u_green_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_green;
+u_green.p = green;
+_fifo_enqueue(u_green.bytebuffer[0] & 0xFF );
+
+// parameter blue
+union u_blue_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_blue;
+u_blue.p = blue;
+_fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::rotate
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_rotate(struct NeoPixelNotifierGWTest_Instance *_instance, int8_t speed){
+if ( fifo_byte_available() > 5 ) {
+
+_fifo_enqueue( (10 >> 8) & 0xFF );
+_fifo_enqueue( 10 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+
+// parameter speed
+union u_speed_t {
+int8_t p;
+byte bytebuffer[1];
+} u_speed;
+u_speed.p = speed;
+_fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::solid
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_solid(struct NeoPixelNotifierGWTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (11 >> 8) & 0xFF );
+_fifo_enqueue( 11 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_neopixels >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_neopixels & 0xFF );
+}
+}
+// Enqueue of messages NeoPixelNotifierGWTest::neopixels::breath
+void enqueue_NeoPixelNotifierGWTest_send_neopixels_breath(struct NeoPixelNotifierGWTest_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (12 >> 8) & 0xFF );
@@ -1555,9 +1547,9 @@ _fifo_enqueue( _instance->id_neopixels & 0xFF );
 
 
 //New dispatcher for messages
-void dispatch_setColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
+void dispatch_setLogoColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
 if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_setColor(&neo_var, param_red, param_green, param_blue);
+NeoPixelNotifierGW_handle_ctrl_setLogoColor(&neo_var, param_red, param_green, param_blue);
 
 }
 
@@ -1575,29 +1567,9 @@ NeoPixelNotifierGW_handle_ctrl_blink(&neo_var);
 
 
 //New dispatcher for messages
-void dispatch_pulse(uint16_t sender) {
-if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_pulse(&neo_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
 void dispatch_timer_timeout(uint16_t sender, uint8_t param_id) {
 if (sender == timer2_instance.listener_id) {
 NeoPixelNotifierGWTest_handle_clock_timer_timeout(&test_var, param_id);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_rotate(uint16_t sender, int8_t param_speed) {
-if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_rotate(&neo_var, param_speed);
 
 }
 
@@ -1615,9 +1587,9 @@ NeoPixelNotifierGW_handle_ctrl_off(&neo_var);
 
 
 //New dispatcher for messages
-void dispatch_fps_clock(uint16_t sender) {
-if (sender == timer2_instance.listener_id) {
-NeoPixelNotifierGW_handle_clock_fps_clock(&neo_var);
+void dispatch_blink_logo(uint16_t sender) {
+if (sender == test_var.id_neopixels) {
+NeoPixelNotifierGW_handle_ctrl_blink_logo(&neo_var);
 
 }
 
@@ -1625,9 +1597,9 @@ NeoPixelNotifierGW_handle_clock_fps_clock(&neo_var);
 
 
 //New dispatcher for messages
-void dispatch_breath(uint16_t sender) {
-if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_breath(&neo_var);
+void dispatch_fps_clock(uint16_t sender) {
+if (sender == timer2_instance.listener_id) {
+NeoPixelNotifierGW_handle_clock_fps_clock(&neo_var);
 
 }
 
@@ -1645,6 +1617,36 @@ NeoPixelNotifierGW_handle_ctrl_setRingColor(&neo_var, param_red, param_green, pa
 
 
 //New dispatcher for messages
+void dispatch_breath(uint16_t sender) {
+if (sender == test_var.id_neopixels) {
+NeoPixelNotifierGW_handle_ctrl_breath(&neo_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_setColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
+if (sender == test_var.id_neopixels) {
+NeoPixelNotifierGW_handle_ctrl_setColor(&neo_var, param_red, param_green, param_blue);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_pulse(uint16_t sender) {
+if (sender == test_var.id_neopixels) {
+NeoPixelNotifierGW_handle_ctrl_pulse(&neo_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
 void dispatch_solid(uint16_t sender) {
 if (sender == test_var.id_neopixels) {
 NeoPixelNotifierGW_handle_ctrl_solid(&neo_var);
@@ -1655,19 +1657,9 @@ NeoPixelNotifierGW_handle_ctrl_solid(&neo_var);
 
 
 //New dispatcher for messages
-void dispatch_setLogoColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
+void dispatch_rotate(uint16_t sender, int8_t param_speed) {
 if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_setLogoColor(&neo_var, param_red, param_green, param_blue);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_blink_logo(uint16_t sender) {
-if (sender == test_var.id_neopixels) {
-NeoPixelNotifierGW_handle_ctrl_blink_logo(&neo_var);
+NeoPixelNotifierGW_handle_ctrl_rotate(&neo_var, param_speed);
 
 }
 
@@ -1687,132 +1679,6 @@ code += fifo_dequeue();
 // Switch to call the appropriate handler
 switch(code) {
 case 3:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_off = 2;
-dispatch_off((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 2:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_fps_clock = 2;
-dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 4:{
-byte mbuf[7 - 2];
-while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_setColor = 2;
-union u_setColor_red_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_red;
-u_setColor_red.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-union u_setColor_green_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_green;
-u_setColor_green.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-union u_setColor_blue_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setColor_blue;
-u_setColor_blue.bytebuffer[0] = mbuf[mbufi_setColor + 0];
-mbufi_setColor += 1;
-dispatch_setColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_setColor_red.p /* red */ ,
- u_setColor_green.p /* green */ ,
- u_setColor_blue.p /* blue */ );
-break;
-}
-case 5:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_breath = 2;
-dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 6:{
-byte mbuf[7 - 2];
-while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_setRingColor = 2;
-union u_setRingColor_red_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setRingColor_red;
-u_setRingColor_red.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
-mbufi_setRingColor += 1;
-union u_setRingColor_green_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setRingColor_green;
-u_setRingColor_green.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
-mbufi_setRingColor += 1;
-union u_setRingColor_blue_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_setRingColor_blue;
-u_setRingColor_blue.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
-mbufi_setRingColor += 1;
-dispatch_setRingColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_setRingColor_red.p /* red */ ,
- u_setRingColor_green.p /* green */ ,
- u_setRingColor_blue.p /* blue */ );
-break;
-}
-case 7:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_blink = 2;
-dispatch_blink((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 8:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_pulse = 2;
-dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 1:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_timer_timeout = 2;
-union u_timer_timeout_id_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_timer_timeout_id;
-u_timer_timeout_id.bytebuffer[0] = mbuf[mbufi_timer_timeout + 0];
-mbufi_timer_timeout += 1;
-dispatch_timer_timeout((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_timer_timeout_id.p /* id */ );
-break;
-}
-case 9:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_rotate = 2;
-union u_rotate_speed_t {
-int8_t p;
-byte bytebuffer[1];
-} u_rotate_speed;
-u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
-mbufi_rotate += 1;
-dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_rotate_speed.p /* speed */ );
-break;
-}
-case 10:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_solid = 2;
-dispatch_solid((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 11:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_setLogoColor = 2;
@@ -1840,25 +1706,151 @@ dispatch_setLogoColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_setLogoColor_blue.p /* blue */ );
 break;
 }
-case 12:{
+case 4:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_blink = 2;
+dispatch_blink((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 1:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_timer_timeout = 2;
+union u_timer_timeout_id_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_timer_timeout_id;
+u_timer_timeout_id.bytebuffer[0] = mbuf[mbufi_timer_timeout + 0];
+mbufi_timer_timeout += 1;
+dispatch_timer_timeout((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_timer_timeout_id.p /* id */ );
+break;
+}
+case 5:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_off = 2;
+dispatch_off((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 6:{
+byte mbuf[7 - 2];
+while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_setColor = 2;
+union u_setColor_red_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_red;
+u_setColor_red.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+union u_setColor_green_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_green;
+u_setColor_green.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+union u_setColor_blue_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setColor_blue;
+u_setColor_blue.bytebuffer[0] = mbuf[mbufi_setColor + 0];
+mbufi_setColor += 1;
+dispatch_setColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_setColor_red.p /* red */ ,
+ u_setColor_green.p /* green */ ,
+ u_setColor_blue.p /* blue */ );
+break;
+}
+case 7:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_pulse = 2;
+dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 8:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_blink_logo = 2;
 dispatch_blink_logo((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
+case 2:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_fps_clock = 2;
+dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 9:{
+byte mbuf[7 - 2];
+while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_setRingColor = 2;
+union u_setRingColor_red_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setRingColor_red;
+u_setRingColor_red.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
+mbufi_setRingColor += 1;
+union u_setRingColor_green_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setRingColor_green;
+u_setRingColor_green.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
+mbufi_setRingColor += 1;
+union u_setRingColor_blue_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_setRingColor_blue;
+u_setRingColor_blue.bytebuffer[0] = mbuf[mbufi_setRingColor + 0];
+mbufi_setRingColor += 1;
+dispatch_setRingColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_setRingColor_red.p /* red */ ,
+ u_setRingColor_green.p /* green */ ,
+ u_setRingColor_blue.p /* blue */ );
+break;
+}
+case 10:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_rotate = 2;
+union u_rotate_speed_t {
+int8_t p;
+byte bytebuffer[1];
+} u_rotate_speed;
+u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
+mbufi_rotate += 1;
+dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_rotate_speed.p /* speed */ );
+break;
+}
+case 11:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_solid = 2;
+dispatch_solid((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 12:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_breath = 2;
+dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
 }
 return 1;
 }
 
-void forward_NeoPixelNotifierGWTest_send_clock_timer_cancel(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t id){
-if(_instance->id_clock == test_var.id_clock) {
-forward_timer2_NeoPixelNotifierGWTest_send_clock_timer_cancel(_instance, id);
-}
-}
 void forward_NeoPixelNotifierGWTest_send_clock_timer_start(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t id, uint32_t time){
 if(_instance->id_clock == test_var.id_clock) {
 forward_timer2_NeoPixelNotifierGWTest_send_clock_timer_start(_instance, id, time);
+}
+}
+void forward_NeoPixelNotifierGWTest_send_clock_timer_cancel(struct NeoPixelNotifierGWTest_Instance *_instance, uint8_t id){
+if(_instance->id_clock == test_var.id_clock) {
+forward_timer2_NeoPixelNotifierGWTest_send_clock_timer_cancel(_instance, id);
 }
 }
 
@@ -1867,12 +1859,12 @@ void externalMessageEnqueue(uint8_t * msg, uint8_t msgSize, uint16_t listener_id
 if ((msgSize >= 2) && (msg != NULL)) {
 uint8_t msgSizeOK = 0;
 switch(msg[0] * 256 + msg[1]) {
-case 2:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
 case 1:
 if(msgSize == 3) {
+msgSizeOK = 1;}
+break;
+case 2:
+if(msgSize == 2) {
 msgSizeOK = 1;}
 break;
 }
@@ -1893,7 +1885,7 @@ if ( fifo_byte_available() > (msgSize + 2) ) {
 }
 }
 
-void initialize_configuration_TestNeoPixelNotifier() {
+void initialize_configuration_TestNeoPixelNotifierGW() {
 // Initialize connectors
 register_external_NeoPixelNotifierGWTest_send_clock_timer_start_listener(&forward_NeoPixelNotifierGWTest_send_clock_timer_start);
 register_external_NeoPixelNotifierGWTest_send_clock_timer_cancel_listener(&forward_NeoPixelNotifierGWTest_send_clock_timer_cancel);
@@ -1924,31 +1916,31 @@ neo_var.active = true;
 neo_var.id_ctrl = add_instance( (void*) &neo_var);
 neo_var.id_clock = add_instance( (void*) &neo_var);
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_State = NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_PULSE_STATE;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var = 10;
-neo_var.NeoPixelNotifierGW_neopixel_logo_first_var = 8;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_counter_var = 0;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_b_var = 0;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_breath_speed_var = 100;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_r_var = 100;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var = 100;
-neo_var.NeoPixelNotifierGW_neopixel_ring_last_var = 7;
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
-neo_var.NeoPixelNotifierGW_ring_brightness_divider_var = 1;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_maxangle_var = 200;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_PULSE_counter_var = 0;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_counter_var = 0;
-neo_var.NeoPixelNotifierGW_neopixel_logo_last_var = 9;
+neo_var.NeoPixelNotifierGW_neopixel_pin_var = 7;
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_l_color_b_var = 0;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_maxcount_var = 22;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_g_var = 10;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BREATH_counter_var = 0;
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_angle_var = 0;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_PULSE_maxcount_var = 100;
+neo_var.NeoPixelNotifierGW_ring_brightness_divider_var = 1;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_l_color_r_var = 100;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_g_var = 10;
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_rotate_speed_var = 4;
 neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BREATH_maxcount_var = 186;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_PULSE_maxcount_var = 100;
-neo_var.NeoPixelNotifierGW_neopixel_pin_var = 7;
-neo_var.NeoPixelNotifierGW_neopixel_total_count_var = 10;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_r_var = 100;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_maxcount_var = 22;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKLOGO_counter_var = 0;
+neo_var.NeoPixelNotifierGW_neopixel_logo_last_var = 2;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_ROTATE_maxangle_var = 200;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BLINKALL_counter_var = 0;
 neo_var.NeoPixelNotifierGW_neopixel_ring_first_var = 0;
-neo_var.NeoPixelNotifierGW_NeoPixelStateChart_BREATH_counter_var = 0;
+neo_var.NeoPixelNotifierGW_neopixel_ring_last_var = 0;
+neo_var.NeoPixelNotifierGW_neopixel_logo_first_var = 1;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_color_b_var = 0;
+neo_var.NeoPixelNotifierGW_neopixel_total_count_var = 3;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_PULSE_counter_var = 0;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_l_color_g_var = 10;
+neo_var.NeoPixelNotifierGW_NeoPixelStateChart_breath_speed_var = 100;
 
 NeoPixelNotifierGW_NeoPixelStateChart_OnEntry(NEOPIXELNOTIFIERGW_NEOPIXELSTATECHART_STATE, &neo_var);
 // Init the ID, state variables and properties for instance test
@@ -1964,7 +1956,7 @@ NeoPixelNotifierGWTest_Test_OnEntry(NEOPIXELNOTIFIERGWTEST_TEST_STATE, &test_var
 
 
 void setup() {
-initialize_configuration_TestNeoPixelNotifier();
+initialize_configuration_TestNeoPixelNotifierGW();
 
 }
 
