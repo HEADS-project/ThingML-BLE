@@ -1,7 +1,5 @@
-import "NeoPixelScale.thingml"
+import "NeoPixelNotifier.thingml"
 import "BLEGateway.thingml"
-
-
 
 thing fragment ScaleSensorMsgs {
 	message power_off()
@@ -83,7 +81,7 @@ thing ScaleSensor includes ScaleSensorMsgs, TimerMsgs {
 	} 
 }
 
-thing BLENotifier includes NeoPixelMsgs, ScaleSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
+thing BLENotifier includes NeoPixelNotifierClient, ScaleSensorMsgs, TimerMsgs, GatewayCommandMsgs { 
 
 	required port gateway {
 		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color
@@ -93,44 +91,10 @@ thing BLENotifier includes NeoPixelMsgs, ScaleSensorMsgs, TimerMsgs, GatewayComm
 		receives power_off, standby_heartbeat, measuring, step_off, bluetooth_activity
 	}
 	
-	required port neopixels {
-		sends setColor, off, pulse, rotate, breath, solid
-	}
-	
 	required port clock {
 		receives timer_timeout
 		sends timer_start, timer_cancel
 	}
-	
-	function breath() do
-		neopixels!off()
-		neopixels!setColor(0, 50, 255)
-		neopixels!breath()
-	end
-	
-	function pulse() do
-		neopixels!off()
-		neopixels!setColor(255, 32, 0)
-		neopixels!pulse()
-	end
-	
-	function pump() do
-		neopixels!off()
-		neopixels!setColor(255, 32, 0)
-		neopixels!rotate(12)
-	end
-	
-	function measure() do
-		neopixels!off()
-		neopixels!setColor(160, 140, 0)
-		neopixels!rotate(-2)
-	end
-	
-	function solid(r : UInt8, g : UInt8, b : UInt8) do
-		neopixels!off()
-		neopixels!setColor(r, g, b)
-		neopixels!solid()
-	end
 
 	statechart BLENotifierSC init Init {
 	
@@ -138,29 +102,29 @@ thing BLENotifier includes NeoPixelMsgs, ScaleSensorMsgs, TimerMsgs, GatewayComm
 	
 		state Init {
 			on entry do
-				solid(0, 128, 32)
+				neo_solid(0, 128, 32)
 				clock!timer_start(0, 1000)
 			end
 			
-			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action neo_standby()
 		}
 	
 		state Ready {
-			internal event gateway?request_measurement action pulse()
-			transition -> Measuring event sensor?measuring action pump()
+			internal event gateway?request_measurement action neo_requested()
+			transition -> Measuring event sensor?measuring action neo_measuring1()
 		}
 		
 		state Measuring {
-			internal event sensor?step_off action measure()
-			internal event sensor?measuring action pump()
+			internal event sensor?step_off action neo_measuring2()
+			internal event sensor?measuring action neo_measuring1()
 			transition -> WaitGatewayAck event sensor?bluetooth_activity
-			transition -> Ready event sensor?power_off action pulse()
+			transition -> Ready event sensor?power_off action neo_requested()
 		}
 		
 		state WaitGatewayAck {
 			on entry do
-				solid(128, 128, 0)
-				clock!timer_start(0, 5000)
+				neo_bluetooth()
+				clock!timer_start(0, 10000)
 			end
 			
 			transition -> GatewayError event t:clock?timer_timeout guard t.id == 0
@@ -170,32 +134,39 @@ thing BLENotifier includes NeoPixelMsgs, ScaleSensorMsgs, TimerMsgs, GatewayComm
 		
 		state GatewayError {
 			on entry do
-				solid(255, 0, 0)
+				neo_gateway_error()
 				clock!timer_start(0, 2000)
 			end
 			
-			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action pulse()
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action neo_requested()
 		}
 		
 		state WaitServerAck {
 			on entry do
-				neopixels!off()
-				neopixels!setColor(0, 255, 32)
-				neopixels!rotate(25)
-				clock!timer_start(0, 5000)
+				neo_gateway_ack()
+				clock!timer_start(0, 10000)
 			end
 			
 			transition -> ServerError event t:clock?timer_timeout guard t.id == 0
-			transition -> Ready event gateway?measurement_stored action breath()
+			transition -> ServerSuccess event gateway?measurement_stored 
 		}
 		
 		state ServerError {
 			on entry do
-				neopixels!setColor(255, 32, 0)
-				clock!timer_start(0, 2000)
+				neo_tellucloud_error()
+				clock!timer_start(0, 3000)
 			end
 			
-			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action breath()
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action neo_standby()
+		}
+		
+		state ServerSuccess {
+			on entry do
+				neo_tellucloud_ack()
+				clock!timer_start(0, 3000)
+			end
+			
+			transition -> Ready event t:clock?timer_timeout guard t.id == 0 action neo_standby()
 		}
 		
 	}
@@ -207,7 +178,15 @@ configuration BLEScaleNotifier
 {
 	instance notifier : BLENotifier
 	instance uart : Serial
-	instance neopixels : NeoPixelScale
+	instance neopixels : NeoPixelNotifier
+	set neopixels.neopixel_pin = 7
+	set neopixels.neopixel_total_count = 28
+	set neopixels.neopixel_logo_first = 24
+	set neopixels.neopixel_logo_last = 27
+	set neopixels.neopixel_ring_first = 0
+	set neopixels.neopixel_ring_last = 23
+	set neopixels.ring_brightness_divider = 6
+	
 	instance sensor : ScaleSensor
 	instance gwcmd : GatewayCommandParser
 	

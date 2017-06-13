@@ -1,0 +1,234 @@
+import "_Timer.thingml"
+
+object ArduinoServo
+	@c_type "Servo"
+	@c_byte_size "2";
+
+thing fragment HouseMsgs {
+	message openDoor(id : UInt8);
+	message closeDoor(id : UInt8);
+	message setLight(id : UInt8, v : UInt8);
+}
+
+thing Door includes HouseMsgs, TimerMsgs 
+@c_header "#include <Servo.h>"
+{
+	
+	readonly property ID 		: UInt8 = 1		// The ID of this door in the house
+	readonly property servo_pin	: UInt8 = 9		// The Arduino pin to which the servo is connected
+	readonly property vOPEN 	: UInt8 = 130	// The servo value for the door to be open
+	readonly property vCLOSE 	: UInt8 = 40	// The servo value for the door to be close
+	
+	property servo : ArduinoServo
+	
+	provided port cmds {
+		receives openDoor, closeDoor
+	}
+	
+	required port clock {
+		receives clock_25ms
+	}
+	
+	statechart DoorSC init CLOSING {
+		
+		property servo_value : UInt8 = vOPEN
+		
+		state CLOSING {
+			on entry do 
+				''&servo&'.attach('&servo_pin&');'
+				''&servo&'.write('&servo_value&');'
+			end
+			on exit ''&servo&'.detach();'
+			
+			internal event clock?clock_25ms guard servo_value > vCLOSE action do
+				servo_value = servo_value - 2
+				''&servo&'.write('&servo_value&');'
+			end
+			
+			transition -> CLOSED guard servo_value <= vCLOSE
+			transition -> OPENING event c : cmds?openDoor guard (c.id == ID or c.id == 0) 
+		}
+		
+		state CLOSED {
+			transition -> OPENING event c : cmds?openDoor guard (c.id == ID or c.id == 0) 
+		}
+		
+		state OPENING {
+			on entry ''&servo&'.attach('&servo_pin&');'
+			on exit ''&servo&'.detach();'
+			
+			internal event clock?clock_25ms guard servo_value < vOPEN action do
+				servo_value = servo_value + 2
+				''&servo&'.write('&servo_value&');'
+			end
+			
+			transition -> OPENED guard servo_value >= vOPEN
+			transition -> CLOSING event c : cmds?closeDoor guard (c.id == ID or c.id == 0) 
+		}
+		
+		state OPENED {
+			transition -> CLOSING event c : cmds?closeDoor guard (c.id == ID or c.id == 0) 
+		}
+		
+	}
+}
+
+thing Light includes HouseMsgs {
+	
+	provided port cmds {
+		receives setLight
+	}
+	
+	readonly property ID 			: UInt8 = 1		// The ID of this light in the house
+	readonly property digital_pin	: UInt8 = 2		// The Arduino pin controlling the light
+	
+	
+	statechart LightSC init OFF {
+		
+		on entry 'pinMode('&digital_pin&', OUTPUT);'
+		
+		state OFF {
+			on entry 'digitalWrite('&digital_pin&', LOW);'
+			transition -> ON event c : cmds?setLight guard (c.id == ID or c.id == 0) and c.v > 0
+		}
+		
+		state ON {
+			on entry 'digitalWrite('&digital_pin&', HIGH);'
+			transition -> OFF event c : cmds?setLight guard (c.id == ID or c.id == 0) and c.v == 0
+		}	
+	}
+}
+
+thing House includes HouseMsgs {
+	
+	provided port housecontrol {
+		receives setLight, openDoor, closeDoor
+	}
+	
+	required port housebus {
+		sends setLight, openDoor, closeDoor
+	}
+	
+	statechart House init Ready {
+		state Ready {
+			internal event c : housecontrol?setLight action housebus!setLight(c.id, c.v)
+			internal event c : housecontrol?openDoor action housebus!openDoor(c.id)
+			internal event c : housecontrol?closeDoor action housebus!closeDoor(c.id)
+		}
+	}
+}
+
+
+thing HouseTest includes HouseMsgs, TimerMsgs {
+	
+	required port timer {
+		sends timer_start
+		receives timer_timeout
+	}
+	
+	required port house {
+		sends setLight, openDoor, closeDoor
+	}
+	
+	readonly property NB_LIGHTS : UInt8 = 4
+	readonly property NB_DOORS : UInt8 = 2
+	
+	statechart HouseTest init Init {
+		
+		state Init {
+			on entry do
+				timer!timer_start(0, 2000)
+				house!closeDoor(0) 		// Close all doors
+				house!setLight(0, 0)	// Turn off all lights
+			end
+			transition -> LightsOn event timer?timer_timeout
+		}
+		
+		state LightsOn {
+			property light : UInt8
+			on entry do 
+				light = 1
+				timer!timer_start(0, 500)
+			end
+			
+			internal event timer?timer_timeout guard light <= NB_LIGHTS action do
+				house!setLight(light, 1)
+				light = light + 1
+				timer!timer_start(0, 500)
+			end
+			
+			transition -> OpenDoors event timer?timer_timeout guard light > NB_LIGHTS
+		}
+		
+		state OpenDoors {
+			property door : UInt8
+			on entry do 
+				door = 1
+				timer!timer_start(0, 500)
+			end
+			
+			internal event timer?timer_timeout guard door <= NB_DOORS action do
+				house!openDoor(door)
+				door = door + 1
+				timer!timer_start(0, 2000)
+			end
+			
+			transition -> Wait event timer?timer_timeout guard door > NB_DOORS
+		}
+		
+		state Wait {
+			on entry timer!timer_start(0, 2000)
+			transition -> Init event timer?timer_timeout
+		}
+	}
+}
+
+protocol Timer;
+
+configuration HouseTestCfg {
+	
+	instance bedroomLight : Light
+		set bedroomLight.ID 			= 1
+		set bedroomLight.digital_pin 	= 2
+		
+	instance upstairsLight : Light
+		set upstairsLight.ID 			= 2
+		set upstairsLight.digital_pin 	= 3
+		
+	instance downstairsLight : Light
+		set downstairsLight.ID 			= 3
+		set downstairsLight.digital_pin = 4
+		
+	instance bathroomLight : Light
+		set bathroomLight.ID 			= 4
+		set bathroomLight.digital_pin 	= 5
+		
+	instance bedroomDoor : Door
+		set bedroomDoor.ID				= 1
+		set bedroomDoor.servo_pin		= 9
+		set bedroomDoor.vOPEN			= 135
+		set bedroomDoor.vCLOSE			= 25
+	connector bedroomDoor.clock over Timer //@hardware_timer "1"
+		
+	instance bathroomDoor : Door
+		set bathroomDoor.ID				= 2
+		set bathroomDoor.servo_pin		= 10
+		set bathroomDoor.vOPEN			= 130
+		set bathroomDoor.vCLOSE			= 40
+	connector bathroomDoor.clock over Timer //@hardware_timer "1"
+		
+	instance house : House
+	
+	connector house.housebus => bedroomLight.cmds
+	connector house.housebus => upstairsLight.cmds
+	connector house.housebus => downstairsLight.cmds
+	connector house.housebus => bathroomLight.cmds
+	connector house.housebus => bedroomDoor.cmds
+	connector house.housebus => bathroomDoor.cmds
+	
+	instance test : HouseTest
+	
+	connector test.house => house.housecontrol
+	connector test.timer over Timer //@hardware_timer "1"
+	
+}

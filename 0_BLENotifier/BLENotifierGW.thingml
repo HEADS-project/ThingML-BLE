@@ -1,0 +1,75 @@
+import "NeoPixelNotifierGW.thingml"
+import "BLEGateway.thingml"
+
+
+thing BLENotifierGW includes NeoPixelNotifierGWClient, TimerMsgs, GatewayCommandMsgs { 
+
+	required port gateway {
+		receives request_measurement, measurement_received, bad_measurement, measurement_stored, set_base_color, cancel_request
+	}
+	
+
+	required port clock {
+		receives timer_timeout
+		sends timer_start, timer_cancel
+	}
+
+	statechart BLENotifierSC init Init {
+	
+		internal event c:gateway?set_base_color action neopixels!setColor(c.r, c.g, c.b)
+	
+		state Init {
+			on entry do
+				neo_solid(0, 128, 32)
+				clock!timer_start(0, 1000)
+			end
+			
+			transition -> OnCradle event t:clock?timer_timeout guard t.id == 0 action neo_standby()
+		}
+	
+		composite state OnCradle init StdBy keeps history {
+		
+		
+			state StdBy {
+				on entry neo_standby()
+				transition -> Red event gateway?request_measurement 
+			}
+		
+			state Red {
+				on entry neo_requested()
+				transition -> StdBy event gateway?cancel_request 
+			}
+
+		}
+		
+		state OffCradle {
+			on entry neo_measuring2()
+
+		}
+		
+		
+	}
+}
+
+
+configuration BLEGWNotifier
+{
+	instance notifier : BLENotifierGW
+	instance uart : Serial
+	instance neopixels : NeoPixelNotifierGW
+	set neopixels.neopixel_pin = 7
+	set neopixels.neopixel_total_count = 3
+	set neopixels.neopixel_logo_first = 1
+	set neopixels.neopixel_logo_last = 2
+	set neopixels.neopixel_ring_first = 0
+	set neopixels.neopixel_ring_last = 0
+	
+	instance gwcmd : GatewayCommandParser
+	
+	connector notifier.neopixels => neopixels.ctrl
+	connector gwcmd.bletx => uart.tx
+	connector gwcmd.blerx => uart.rx
+	connector notifier.gateway => gwcmd.gateway
+	connector neopixels.clock over Timer
+	connector notifier.clock over Timer
+}
