@@ -16,8 +16,8 @@ thing Door includes HouseMsgs, TimerMsgs
 	
 	readonly property ID 		: UInt8 = 1		// The ID of this door in the house
 	readonly property servo_pin	: UInt8 = 9		// The Arduino pin to which the servo is connected
-	readonly property vOPEN 	: UInt8 = 40	// The servo value for the door to be open
-	readonly property vCLOSE 	: UInt8 = 130	// The servo value for the door to be close
+	readonly property vOPEN 	: UInt8 = 130	// The servo value for the door to be open
+	readonly property vCLOSE 	: UInt8 = 40	// The servo value for the door to be close
 	
 	property servo : ArduinoServo
 	
@@ -34,15 +34,18 @@ thing Door includes HouseMsgs, TimerMsgs
 		property servo_value : UInt8 = vOPEN
 		
 		state CLOSING {
-			on entry ''&servo&'.attach('&servo_pin&');'
+			on entry do 
+				''&servo&'.attach('&servo_pin&');'
+				''&servo&'.write('&servo_value&');'
+			end
 			on exit ''&servo&'.detach();'
 			
-			internal event clock?clock_25ms guard servo_value < vCLOSE action do
-				servo_value = servo_value + 1
+			internal event clock?clock_25ms guard servo_value > vCLOSE action do
+				servo_value = servo_value - 2
 				''&servo&'.write('&servo_value&');'
 			end
 			
-			transition -> CLOSED guard servo_value >= vCLOSE
+			transition -> CLOSED guard servo_value <= vCLOSE
 			transition -> OPENING event c : cmds?openDoor guard (c.id == ID or c.id == 0) 
 		}
 		
@@ -54,12 +57,12 @@ thing Door includes HouseMsgs, TimerMsgs
 			on entry ''&servo&'.attach('&servo_pin&');'
 			on exit ''&servo&'.detach();'
 			
-			internal event clock?clock_25ms guard servo_value > vOPEN action do
-				servo_value = servo_value - 1
+			internal event clock?clock_25ms guard servo_value < vOPEN action do
+				servo_value = servo_value + 2
 				''&servo&'.write('&servo_value&');'
 			end
 			
-			transition -> OPENED guard servo_value <= vOPEN
+			transition -> OPENED guard servo_value >= vOPEN
 			transition -> CLOSING event c : cmds?closeDoor guard (c.id == ID or c.id == 0) 
 		}
 		
@@ -180,6 +183,7 @@ thing HouseTest includes HouseMsgs, TimerMsgs {
 	}
 }
 
+protocol Timer;
 
 configuration HouseTestCfg {
 	
@@ -203,13 +207,15 @@ configuration HouseTestCfg {
 		set bedroomDoor.ID				= 1
 		set bedroomDoor.servo_pin		= 9
 		set bedroomDoor.vOPEN			= 135
-		set bedroomDoor.vCLOSE			= 35
+		set bedroomDoor.vCLOSE			= 25
+	connector bedroomDoor.clock over Timer //@hardware_timer "1"
 		
 	instance bathroomDoor : Door
-		set bedroomDoor.ID				= 2
-		set bedroomDoor.servo_pin		= 10
-		set bedroomDoor.vOPEN			= 130
-		set bedroomDoor.vCLOSE			= 40
+		set bathroomDoor.ID				= 2
+		set bathroomDoor.servo_pin		= 10
+		set bathroomDoor.vOPEN			= 130
+		set bathroomDoor.vCLOSE			= 40
+	connector bathroomDoor.clock over Timer //@hardware_timer "1"
 		
 	instance house : House
 	
@@ -223,4 +229,6 @@ configuration HouseTestCfg {
 	instance test : HouseTest
 	
 	connector test.house => house.housecontrol
+	connector test.timer over Timer //@hardware_timer "1"
+	
 }
