@@ -1,0 +1,15 @@
+@startuml
+caption Datatypes used in configuration LocalTryggiTest
+class UInt32 <<(D,#D2E524)4>> {
+}
+note bottom of UInt32 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"uint32_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"4"</color>\n
+class Int16 <<(D,#D2E524)2>> {
+}
+note bottom of Int16 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"int16_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"2"</color>\n
+class UInt8 <<(D,#D2E524)1>> {
+}
+note bottom of UInt8 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class Int8 <<(D,#D2E524)1>> {
+}
+note bottom of Int8 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"int8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+@enduml

@@ -1,0 +1,15 @@
+@startuml
+caption Instances and Connectors in configuration LocalTryggiTest
+component tryggi<<PIM>>
+component test<<PIM>>
+component neo_head<<PSM>>
+component neo_heart<<PSM>>
+boundary Timer
+tryggi -(0- neo_heart : heart => ctrl
+test -(0- tryggi : tryggi => ctrl
+tryggi -(0- neo_head : head => ctrl
+tryggi .. Timer : timer
+neo_head .. Timer : clock
+neo_heart .. Timer : clock
+test .. Timer : clock
+@enduml

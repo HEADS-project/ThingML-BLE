@@ -1,0 +1,24 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing Tryggi
+[*] --> TryggiSC
+state TryggiSC{
+state WaitingForPing{
+	WaitingForPing : entry / neo_ping_lost()\n
+
+WaitingForPing --> Connected : ctrl?ping_tryggy\naction got_ping()\n
+}
+state Connected{
+	Connected : entry / neo_standby()\n
+
+Connected --> WaitingForPing : e:timer?timer_timeout[timer_timeout.id == TIMERID]
+	Connected : ctrl?ping_tryggy / \naction got_ping()\n
+	Connected : ctrl?bluetooth_act / \naction neo_bluetooth_act()\n
+	Connected : ctrl?tellucloud_act / \naction neo_tellucloud_act()\n
+	Connected : ctrl?show_error / \naction neo_error()\n
+	Connected : ctrl?show_standby / \naction neo_standby()\n
+	Connected : ctrl?show_success / \naction neo_success()\n
+}
+[*] --> WaitingForPing
+}
+@enduml

@@ -1,0 +1,119 @@
+@startuml
+caption Things used in configuration LocalTryggiTest
+class Tryggi <<(T,#5BBF09)PIM>> {
+..Properties..
+-TIMERID : UInt8 = 2
+..Port ctrl..
+>>ping_tryggy
+>>bluetooth_act
+>>tellucloud_act
+>>show_success
+>>show_error
+>>show_standby
+<<pong_tryggy
+..Port timer..
+>>timer_timeout
+<<timer_start
+<<timer_cancel
+..Port head..
+<<setColor
+<<off
+<<pulse
+<<rotate
+<<breath
+<<solid
+<<blink
+..Port heart..
+<<setColor
+<<off
+<<pulse
+<<rotate
+<<breath
+<<solid
+<<blink
+..Functions..
+-neo_standby() : void
+-neo_ping_lost() : void
+-neo_success() : void
+-neo_error() : void
+-neo_bluetooth_act() : void
+-neo_tellucloud_act() : void
+-got_ping() : void
+}
+class TryggiMsgs <<(F,#BC74ED)Fragment>> {
+..Messages..
+-ping_tryggy()
+-pong_tryggy()
+-bluetooth_act()
+-tellucloud_act()
+-show_success()
+-show_error()
+-show_standby()
+}
+class NeoPixelGroupMsgs <<(F,#BC74ED)Fragment>> {
+..Messages..
+-off()
+-setColor(red : UInt8green : UInt8blue : UInt8)
+-solid()
+-pulse()
+-blink()
+-breath()
+-rotate(speed : Int8)
+}
+class TimerMsgs <<(F,#BC74ED)Fragment>> {
+..Messages..
+-timer_start(id : UInt8time : UInt32)
+-timer_cancel(id : UInt8)
+-timer_timeout(id : UInt8)
+-io_clock()
+-fps_clock()
+-ui_clock()
+}
+class TryggiTest <<(T,#5BBF09)PIM>> {
+..Port clock..
+>>timer_timeout
+<<timer_start
+..Port tryggi..
+>>pong_tryggy
+<<ping_tryggy
+<<bluetooth_act
+<<tellucloud_act
+<<show_success
+<<show_error
+<<show_standby
+}
+class NeoPixelGroup <<(T,#F94918)PSM>> {
+..Properties..
+-neopixel_pin : UInt8 = 7
+-neopixel_total_count : UInt8 = 4
+-neopixel_first : UInt8 = 0
+-neopixel_last : UInt8 = 2
+..Port ctrl..
+>>setColor
+>>solid
+>>pulse
+>>off
+>>breath
+>>rotate
+>>blink
+..Port clock..
+>>fps_clock
+..Functions..
+-setPixelColor(pixel : UInt8color : UInt32) : void
+-getColor(red : UInt8green : UInt8blue : UInt8) : UInt32
+-updateNeopixels() : void
+-breath_brightness(time : UInt8max : UInt8) : UInt8
+-rotate_brightness(angle : UInt8max : UInt8) : UInt8
+-pulse_brightness(time : UInt8) : UInt8
+-blink_brightness(time : UInt8) : UInt8
+-initializeNeopixels() : void
+}
+note left of NeoPixelGroup : <b>@c_global</b> <color:royalBlue>"\n#include <Adafruit_NeoPixel.h>\nAdafruit_NeoPixel strip;\n\n#define BREATH_LEN 36\nuint8_t breath[] = {0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 8, 11, 14, 18, 23, 29, 36, 43, 52, 61, 72, 83, 96, 110, 124, 140, 155, 171, 186, 202, 216, 228, 238, 247, 252, 255};\n\n#define PULSE_LEN 37\nuint8_t pulse[] =  {32, 40, 50, 55, 50, 32, 32, 32, 20, 10, 20, 40, 80, 160, 230, 255, 230, 160, 80, 40, 20, 10, 5, 2, 0, 6, 16, 30, 32, 32, 40, 48, 55, 60, 50, 36, 32};\n\n#define BLINK_LEN 11\nuint8_t blink[] =  {0, 6, 24, 52, 88, 127, 166, 202, 230, 248, 255};\n\n#define ROTATE_LEN 10\nuint8_t rotatep[] =  {0, 0, 255, 0, 0, 0, 0, 255, 0, 0};\n\n// Input a value 0 to 255 to get a color value.\n// The colours are a transition r - g - b - back to r.\nuint32_t Wheel(byte WheelPos) {\n  WheelPos = 255 - WheelPos;\n  if(WheelPos < 85) {\n    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);\n  }\n  if(WheelPos < 170) {\n    WheelPos -= 85;\n    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);\n  }\n  WheelPos -= 170;\n  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);\n}\n"</color>\n
+TryggiMsgs <|-- Tryggi
+NeoPixelGroupMsgs <|-- Tryggi
+TimerMsgs <|-- Tryggi
+TryggiMsgs <|-- TryggiTest
+TimerMsgs <|-- TryggiTest
+NeoPixelGroupMsgs <|-- NeoPixelGroup
+TimerMsgs <|-- NeoPixelGroup
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing TryggiTest
+[*] --> TryggiTestSC
+state TryggiTestSC{
+state DISCONNECTED{
+	DISCONNECTED : entry / clock!timer_start(...)\n
+
+DISCONNECTED --> CONNECTED : clock?timer_timeout
+}
+state CONNECTED{
+	CONNECTED : entry / do \nclock!timer_start(...)\ntryggi!ping_tryggy()\nend\n
+
+CONNECTED --> BLUETOOTH : clock?timer_timeout
+}
+state BLUETOOTH{
+	BLUETOOTH : entry / do \nclock!timer_start(...)\ntryggi!ping_tryggy()\ntryggi!bluetooth_act()\nend\n
+
+BLUETOOTH --> SUCCESS : clock?timer_timeout
+}
+state SUCCESS{
+	SUCCESS : entry / do \nclock!timer_start(...)\ntryggi!ping_tryggy()\ntryggi!show_success()\nend\n
+
+SUCCESS --> TELLU : clock?timer_timeout
+}
+state TELLU{
+	TELLU : entry / do \nclock!timer_start(...)\ntryggi!ping_tryggy()\ntryggi!tellucloud_act()\nend\n
+
+TELLU --> ERROR : clock?timer_timeout
+}
+state ERROR{
+	ERROR : entry / do \nclock!timer_start(...)\ntryggi!show_error()\nend\n
+
+ERROR --> STDBY : clock?timer_timeout
+}
+state STDBY{
+	STDBY : entry / do \nclock!timer_start(...)\ntryggi!show_standby()\nend\n
+
+STDBY --> DISCONNECTED : clock?timer_timeout
+}
+[*] --> DISCONNECTED
+}
+@enduml

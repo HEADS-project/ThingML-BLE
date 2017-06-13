@@ -1,0 +1,212 @@
+import "NeoPixelGroup.thingml"
+
+thing fragment TryggiMsgs {
+	message ping_tryggy();
+	message pong_tryggy();
+	
+	message bluetooth_act();
+	message tellucloud_act();
+	
+	message show_success();
+	message show_error();
+	
+	message clear_status();
+}
+
+
+thing Tryggi includes TryggiMsgs, NeoPixelGroupMsgs, TimerMsgs {
+	
+	readonly property TIMERID : UInt8 = 2
+	
+	provided port ctrl {
+		sends pong_tryggy
+		receives ping_tryggy, bluetooth_act, tellucloud_act, show_success, show_error, clear_status
+	}
+	
+	required port timer {
+		sends timer_start, timer_cancel
+		receives timer_timeout
+	}
+	
+	required port head {
+		sends setColor, off, pulse, rotate, breath, solid, blink
+	}
+	required port heart {
+		sends setColor, off, pulse, rotate, breath, solid, blink
+	}
+	
+	function neo_standby() do
+		head!off()
+		heart!off()
+		heart!setColor(0, 255, 40)
+		heart!pulse()
+	end
+	
+	function neo_clear_status() do
+		head!off()
+	end
+	
+	
+	
+	function neo_ping_lost() do
+		head!off()
+		heart!off()
+		heart!setColor(255, 32, 0)
+		heart!blink()
+	end
+	
+	function neo_success() do
+		head!off()
+		head!setColor(0, 255, 40)
+		head!solid()
+	end
+	
+	function neo_error() do
+		head!off()
+		head!setColor(255, 40, 0)
+		head!solid()
+	end
+	
+	function neo_bluetooth_act() do
+		head!off()
+		head!setColor(0, 50, 255)
+		head!blink()
+	end
+	
+	function neo_tellucloud_act() do
+		head!off()
+		head!setColor(160, 140, 0)
+		head!blink()
+	end
+	
+	function got_ping() do
+		timer!timer_cancel(TIMERID)
+		ctrl!pong_tryggy()
+		timer!timer_start(TIMERID, 5000)
+	end
+	
+	statechart TryggiSC init WaitingForPing {
+		
+		state WaitingForPing {
+			on entry neo_ping_lost()
+			transition -> Connected event ctrl?ping_tryggy action got_ping()
+		}
+		
+		state Connected {
+			on entry neo_standby()
+			
+			internal event ctrl?ping_tryggy action got_ping()
+			
+			transition -> WaitingForPing event e:timer?timer_timeout guard e.id == TIMERID
+			
+			internal event ctrl?bluetooth_act action neo_bluetooth_act()
+			internal event ctrl?tellucloud_act action neo_tellucloud_act()
+			internal event ctrl?show_error action neo_error()
+			internal event ctrl?clear_status action neo_clear_status()
+			internal event ctrl?show_success action neo_success()
+		}
+	}
+}
+
+
+thing TryggiTest includes TryggiMsgs, TimerMsgs {
+	
+	required port clock {
+		receives timer_timeout
+		sends timer_start
+	}
+	
+	required port tryggi {
+		sends ping_tryggy, bluetooth_act, tellucloud_act, show_success, show_error, clear_status
+		receives pong_tryggy
+	}
+	
+	statechart TryggiTestSC init DISCONNECTED {
+		
+		state DISCONNECTED {
+			on entry clock!timer_start(0,3000)
+			transition -> CONNECTED event clock?timer_timeout
+		}
+		
+		state CONNECTED {
+			on entry do 
+				clock!timer_start(0,4000)
+				tryggi!ping_tryggy()
+			end
+			transition -> BLUETOOTH event clock?timer_timeout
+		}
+		
+		state BLUETOOTH {
+			on entry do 
+				clock!timer_start(0,2500)
+				tryggi!ping_tryggy()
+				tryggi!bluetooth_act()
+			end
+			transition -> SUCCESS event clock?timer_timeout
+		}
+		
+		state SUCCESS {
+			on entry do 
+				clock!timer_start(0,1500)
+				tryggi!ping_tryggy()
+				tryggi!show_success()
+			end
+			transition -> TELLU event clock?timer_timeout
+		}
+		
+		state TELLU {
+			on entry do 
+				clock!timer_start(0,2500)
+				tryggi!ping_tryggy()
+				tryggi!tellucloud_act()
+			end
+			transition -> ERROR event clock?timer_timeout
+		}
+		
+		// Stop sending the pig from here. the tryggy should show that it is disconnected after 5 sec
+		
+		state ERROR { 
+			on entry do 
+				clock!timer_start(0,1500)
+				tryggi!show_error()
+			end
+			transition -> STDBY event clock?timer_timeout
+		}
+		
+		state STDBY {
+			on entry do 
+				clock!timer_start(0,5000)
+				tryggi!clear_status()
+			end
+			transition -> DISCONNECTED event clock?timer_timeout
+		}
+	}
+}
+
+
+
+configuration LocalTryggiTest {
+	
+	instance tryggi : Tryggi
+	connector tryggi.timer over Timer
+	
+	instance neo_head : NeoPixelGroup
+	set neo_head.neopixel_pin = 7
+	set neo_head.neopixel_first = 1
+	set neo_head.neopixel_last = 2
+	connector neo_head.clock over Timer
+	connector tryggi.head => neo_head.ctrl
+	
+	instance neo_heart : NeoPixelGroup
+	set neo_heart.neopixel_pin = 7
+	set neo_heart.neopixel_first = 0
+	set neo_heart.neopixel_last = 0
+	connector neo_heart.clock over Timer
+	connector tryggi.heart => neo_heart.ctrl
+	
+	instance test : TryggiTest
+	connector test.clock over Timer
+	connector test.tryggi => tryggi.ctrl
+
+}
+

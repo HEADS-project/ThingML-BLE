@@ -14,9 +14,9 @@ uint16_t id_house;
 int HouseTest_HouseTest_State;
 // Variables for the properties of the instance
 uint8_t HouseTest_HouseTest_OpenDoors_door_var;
-uint8_t HouseTest_NB_LIGHTS_var;
-uint8_t HouseTest_HouseTest_LightsOn_light_var;
 uint8_t HouseTest_NB_DOORS_var;
+uint8_t HouseTest_HouseTest_LightsOn_light_var;
+uint8_t HouseTest_NB_LIGHTS_var;
 
 };
 // Declaration of prototypes outgoing messages:
@@ -59,9 +59,9 @@ int House_House_State;
 };
 // Declaration of prototypes outgoing messages:
 void House_House_OnEntry(int state, struct House_Instance *_instance);
-void House_handle_housecontrol_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v);
 void House_handle_housecontrol_openDoor(struct House_Instance *_instance, uint8_t id);
 void House_handle_housecontrol_closeDoor(struct House_Instance *_instance, uint8_t id);
+void House_handle_housecontrol_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v);
 // Declaration of callbacks for incoming messages:
 void register_House_send_housebus_setLight_listener(void (*_listener)(struct House_Instance *, uint8_t, uint8_t));
 void register_external_House_send_housebus_setLight_listener(void (*_listener)(struct House_Instance *, uint8_t, uint8_t));
@@ -117,19 +117,19 @@ uint16_t id_clock;
 // Variables for the current instance state
 int Door_DoorSC_State;
 // Variables for the properties of the instance
-uint8_t Door_DoorSC_servo_value_var;
-uint8_t Door_vCLOSE_var;
+uint8_t Door_vOPEN_var;
+uint8_t Door_ID_var;
 uint8_t Door_servo_pin_var;
 Servo Door_servo_var;
-uint8_t Door_ID_var;
-uint8_t Door_vOPEN_var;
+uint8_t Door_vCLOSE_var;
+uint8_t Door_DoorSC_servo_value_var;
 
 };
 // Declaration of prototypes outgoing messages:
 void Door_DoorSC_OnEntry(int state, struct Door_Instance *_instance);
-void Door_handle_clock_clock_25ms(struct Door_Instance *_instance);
 void Door_handle_cmds_openDoor(struct Door_Instance *_instance, uint8_t id);
 void Door_handle_cmds_closeDoor(struct Door_Instance *_instance, uint8_t id);
+void Door_handle_clock_clock_25ms(struct Door_Instance *_instance);
 // Declaration of callbacks for incoming messages:
 
 // Definition of the states:
@@ -216,20 +216,6 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void House_handle_housecontrol_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v) {
-if(!(_instance->active)) return;
-//Region House
-uint8_t House_House_State_event_consumed = 0;
-if (_instance->House_House_State == HOUSE_HOUSE_READY_STATE) {
-if (House_House_State_event_consumed == 0 && 1) {
-House_send_housebus_setLight(_instance, id, v);
-House_House_State_event_consumed = 1;
-}
-}
-//End Region House
-//End dsregion House
-//Session list: 
-}
 void House_handle_housecontrol_openDoor(struct House_Instance *_instance, uint8_t id) {
 if(!(_instance->active)) return;
 //Region House
@@ -251,6 +237,20 @@ uint8_t House_House_State_event_consumed = 0;
 if (_instance->House_House_State == HOUSE_HOUSE_READY_STATE) {
 if (House_House_State_event_consumed == 0 && 1) {
 House_send_housebus_closeDoor(_instance, id);
+House_House_State_event_consumed = 1;
+}
+}
+//End Region House
+//End dsregion House
+//Session list: 
+}
+void House_handle_housecontrol_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v) {
+if(!(_instance->active)) return;
+//Region House
+uint8_t House_House_State_event_consumed = 0;
+if (_instance->House_House_State == HOUSE_HOUSE_READY_STATE) {
+if (House_House_State_event_consumed == 0 && 1) {
+House_send_housebus_setLight(_instance, id, v);
 House_House_State_event_consumed = 1;
 }
 }
@@ -793,28 +793,6 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void Door_handle_clock_clock_25ms(struct Door_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region DoorSC
-uint8_t Door_DoorSC_State_event_consumed = 0;
-if (_instance->Door_DoorSC_State == DOOR_DOORSC_CLOSING_STATE) {
-if (Door_DoorSC_State_event_consumed == 0 && _instance->Door_DoorSC_servo_value_var > _instance->Door_vCLOSE_var) {
-_instance->Door_DoorSC_servo_value_var = _instance->Door_DoorSC_servo_value_var - 2;
-_instance->Door_servo_var.write(_instance->Door_DoorSC_servo_value_var);
-Door_DoorSC_State_event_consumed = 1;
-}
-}
-else if (_instance->Door_DoorSC_State == DOOR_DOORSC_OPENING_STATE) {
-if (Door_DoorSC_State_event_consumed == 0 && _instance->Door_DoorSC_servo_value_var < _instance->Door_vOPEN_var) {
-_instance->Door_DoorSC_servo_value_var = _instance->Door_DoorSC_servo_value_var + 2;
-_instance->Door_servo_var.write(_instance->Door_DoorSC_servo_value_var);
-Door_DoorSC_State_event_consumed = 1;
-}
-}
-//End Region DoorSC
-//End dsregion DoorSC
-//Session list: 
-}
 void Door_handle_cmds_openDoor(struct Door_Instance *_instance, uint8_t id) {
 if(!(_instance->active)) return;
 //Region DoorSC
@@ -863,6 +841,28 @@ Door_DoorSC_State_event_consumed = 1;
 //End dsregion DoorSC
 //Session list: 
 }
+void Door_handle_clock_clock_25ms(struct Door_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region DoorSC
+uint8_t Door_DoorSC_State_event_consumed = 0;
+if (_instance->Door_DoorSC_State == DOOR_DOORSC_CLOSING_STATE) {
+if (Door_DoorSC_State_event_consumed == 0 && _instance->Door_DoorSC_servo_value_var > _instance->Door_vCLOSE_var) {
+_instance->Door_DoorSC_servo_value_var = _instance->Door_DoorSC_servo_value_var - 2;
+_instance->Door_servo_var.write(_instance->Door_DoorSC_servo_value_var);
+Door_DoorSC_State_event_consumed = 1;
+}
+}
+else if (_instance->Door_DoorSC_State == DOOR_DOORSC_OPENING_STATE) {
+if (Door_DoorSC_State_event_consumed == 0 && _instance->Door_DoorSC_servo_value_var < _instance->Door_vOPEN_var) {
+_instance->Door_DoorSC_servo_value_var = _instance->Door_DoorSC_servo_value_var + 2;
+_instance->Door_servo_var.write(_instance->Door_DoorSC_servo_value_var);
+Door_DoorSC_State_event_consumed = 1;
+}
+}
+//End Region DoorSC
+//End dsregion DoorSC
+//Session list: 
+}
 int Door_handle_empty_event(struct Door_Instance *_instance) {
  uint8_t empty_event_consumed = 0;
 if(!(_instance->active)) return 0;
@@ -904,21 +904,21 @@ return empty_event_consumed;
 // Variables for the properties of the instance
 struct Door_Instance bathroomDoor_var;
 // Variables for the sessions of the instance
-//Instance bedroomDoor
-// Variables for the properties of the instance
-struct Door_Instance bedroomDoor_var;
-// Variables for the sessions of the instance
-//Instance bathroomLight
-// Variables for the properties of the instance
-struct Light_Instance bathroomLight_var;
-// Variables for the sessions of the instance
 //Instance downstairsLight
 // Variables for the properties of the instance
 struct Light_Instance downstairsLight_var;
 // Variables for the sessions of the instance
-//Instance house
+//Instance bedroomDoor
 // Variables for the properties of the instance
-struct House_Instance house_var;
+struct Door_Instance bedroomDoor_var;
+// Variables for the sessions of the instance
+//Instance bedroomLight
+// Variables for the properties of the instance
+struct Light_Instance bedroomLight_var;
+// Variables for the sessions of the instance
+//Instance bathroomLight
+// Variables for the properties of the instance
+struct Light_Instance bathroomLight_var;
 // Variables for the sessions of the instance
 //Instance test
 // Variables for the properties of the instance
@@ -928,22 +928,62 @@ struct HouseTest_Instance test_var;
 // Variables for the properties of the instance
 struct Light_Instance upstairsLight_var;
 // Variables for the sessions of the instance
-//Instance bedroomLight
+//Instance house
 // Variables for the properties of the instance
-struct Light_Instance bedroomLight_var;
+struct House_Instance house_var;
 // Variables for the sessions of the instance
 
 
-// Enqueue of messages House::housebus::setLight
-void enqueue_House_send_housebus_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v){
-if ( fifo_byte_available() > 6 ) {
+// Enqueue of messages HouseTest::house::openDoor
+void enqueue_HouseTest_send_house_openDoor(struct HouseTest_Instance *_instance, uint8_t id){
+if ( fifo_byte_available() > 5 ) {
 
 _fifo_enqueue( (3 >> 8) & 0xFF );
 _fifo_enqueue( 3 & 0xFF );
 
 // ID of the source port of the instance
-_fifo_enqueue( (_instance->id_housebus >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_housebus & 0xFF );
+_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_house & 0xFF );
+
+// parameter id
+union u_id_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_id;
+u_id.p = id;
+_fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages HouseTest::house::closeDoor
+void enqueue_HouseTest_send_house_closeDoor(struct HouseTest_Instance *_instance, uint8_t id){
+if ( fifo_byte_available() > 5 ) {
+
+_fifo_enqueue( (4 >> 8) & 0xFF );
+_fifo_enqueue( 4 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_house & 0xFF );
+
+// parameter id
+union u_id_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_id;
+u_id.p = id;
+_fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages HouseTest::house::setLight
+void enqueue_HouseTest_send_house_setLight(struct HouseTest_Instance *_instance, uint8_t id, uint8_t v){
+if ( fifo_byte_available() > 6 ) {
+
+_fifo_enqueue( (5 >> 8) & 0xFF );
+_fifo_enqueue( 5 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_house & 0xFF );
 
 // parameter id
 union u_id_t {
@@ -966,8 +1006,8 @@ _fifo_enqueue(u_v.bytebuffer[0] & 0xFF );
 void enqueue_House_send_housebus_openDoor(struct House_Instance *_instance, uint8_t id){
 if ( fifo_byte_available() > 5 ) {
 
-_fifo_enqueue( (4 >> 8) & 0xFF );
-_fifo_enqueue( 4 & 0xFF );
+_fifo_enqueue( (3 >> 8) & 0xFF );
+_fifo_enqueue( 3 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_housebus >> 8) & 0xFF );
@@ -986,8 +1026,8 @@ _fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
 void enqueue_House_send_housebus_closeDoor(struct House_Instance *_instance, uint8_t id){
 if ( fifo_byte_available() > 5 ) {
 
-_fifo_enqueue( (5 >> 8) & 0xFF );
-_fifo_enqueue( 5 & 0xFF );
+_fifo_enqueue( (4 >> 8) & 0xFF );
+_fifo_enqueue( 4 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_housebus >> 8) & 0xFF );
@@ -1002,16 +1042,16 @@ u_id.p = id;
 _fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages HouseTest::house::setLight
-void enqueue_HouseTest_send_house_setLight(struct HouseTest_Instance *_instance, uint8_t id, uint8_t v){
+// Enqueue of messages House::housebus::setLight
+void enqueue_House_send_housebus_setLight(struct House_Instance *_instance, uint8_t id, uint8_t v){
 if ( fifo_byte_available() > 6 ) {
 
-_fifo_enqueue( (3 >> 8) & 0xFF );
-_fifo_enqueue( 3 & 0xFF );
+_fifo_enqueue( (5 >> 8) & 0xFF );
+_fifo_enqueue( 5 & 0xFF );
 
 // ID of the source port of the instance
-_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_house & 0xFF );
+_fifo_enqueue( (_instance->id_housebus >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_housebus & 0xFF );
 
 // parameter id
 union u_id_t {
@@ -1030,70 +1070,13 @@ u_v.p = v;
 _fifo_enqueue(u_v.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages HouseTest::house::openDoor
-void enqueue_HouseTest_send_house_openDoor(struct HouseTest_Instance *_instance, uint8_t id){
-if ( fifo_byte_available() > 5 ) {
-
-_fifo_enqueue( (4 >> 8) & 0xFF );
-_fifo_enqueue( 4 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_house & 0xFF );
-
-// parameter id
-union u_id_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_id;
-u_id.p = id;
-_fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
-}
-}
-// Enqueue of messages HouseTest::house::closeDoor
-void enqueue_HouseTest_send_house_closeDoor(struct HouseTest_Instance *_instance, uint8_t id){
-if ( fifo_byte_available() > 5 ) {
-
-_fifo_enqueue( (5 >> 8) & 0xFF );
-_fifo_enqueue( 5 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_house >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_house & 0xFF );
-
-// parameter id
-union u_id_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_id;
-u_id.p = id;
-_fifo_enqueue(u_id.bytebuffer[0] & 0xFF );
-}
-}
-
-
-//New dispatcher for messages
-void dispatch_setLight(uint16_t sender, uint8_t param_id, uint8_t param_v) {
-if (sender == house_var.id_housebus) {
-Light_handle_cmds_setLight(&downstairsLight_var, param_id, param_v);
-Light_handle_cmds_setLight(&upstairsLight_var, param_id, param_v);
-Light_handle_cmds_setLight(&bedroomLight_var, param_id, param_v);
-Light_handle_cmds_setLight(&bathroomLight_var, param_id, param_v);
-
-}
-if (sender == test_var.id_house) {
-House_handle_housecontrol_setLight(&house_var, param_id, param_v);
-
-}
-
-}
 
 
 //New dispatcher for messages
 void dispatch_openDoor(uint16_t sender, uint8_t param_id) {
 if (sender == house_var.id_housebus) {
-Door_handle_cmds_openDoor(&bathroomDoor_var, param_id);
 Door_handle_cmds_openDoor(&bedroomDoor_var, param_id);
+Door_handle_cmds_openDoor(&bathroomDoor_var, param_id);
 
 }
 if (sender == test_var.id_house) {
@@ -1107,8 +1090,8 @@ House_handle_housecontrol_openDoor(&house_var, param_id);
 //New dispatcher for messages
 void dispatch_closeDoor(uint16_t sender, uint8_t param_id) {
 if (sender == house_var.id_housebus) {
-Door_handle_cmds_closeDoor(&bathroomDoor_var, param_id);
 Door_handle_cmds_closeDoor(&bedroomDoor_var, param_id);
+Door_handle_cmds_closeDoor(&bathroomDoor_var, param_id);
 
 }
 if (sender == test_var.id_house) {
@@ -1120,13 +1103,16 @@ House_handle_housecontrol_closeDoor(&house_var, param_id);
 
 
 //New dispatcher for messages
-void dispatch_clock_25ms(uint16_t sender) {
-if (sender == timer2_instance.listener_id) {
-Door_handle_clock_clock_25ms(&bathroomDoor_var);
+void dispatch_setLight(uint16_t sender, uint8_t param_id, uint8_t param_v) {
+if (sender == house_var.id_housebus) {
+Light_handle_cmds_setLight(&downstairsLight_var, param_id, param_v);
+Light_handle_cmds_setLight(&upstairsLight_var, param_id, param_v);
+Light_handle_cmds_setLight(&bathroomLight_var, param_id, param_v);
+Light_handle_cmds_setLight(&bedroomLight_var, param_id, param_v);
 
 }
-if (sender == timer2_instance.listener_id) {
-Door_handle_clock_clock_25ms(&bedroomDoor_var);
+if (sender == test_var.id_house) {
+House_handle_housecontrol_setLight(&house_var, param_id, param_v);
 
 }
 
@@ -1137,6 +1123,20 @@ Door_handle_clock_clock_25ms(&bedroomDoor_var);
 void dispatch_timer_timeout(uint16_t sender, uint8_t param_id) {
 if (sender == timer2_instance.listener_id) {
 HouseTest_handle_timer_timer_timeout(&test_var, param_id);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_clock_25ms(uint16_t sender) {
+if (sender == timer2_instance.listener_id) {
+Door_handle_clock_clock_25ms(&bedroomDoor_var);
+
+}
+if (sender == timer2_instance.listener_id) {
+Door_handle_clock_clock_25ms(&bathroomDoor_var);
 
 }
 
@@ -1156,6 +1156,34 @@ code += fifo_dequeue();
 // Switch to call the appropriate handler
 switch(code) {
 case 3:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_openDoor = 2;
+union u_openDoor_id_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_openDoor_id;
+u_openDoor_id.bytebuffer[0] = mbuf[mbufi_openDoor + 0];
+mbufi_openDoor += 1;
+dispatch_openDoor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_openDoor_id.p /* id */ );
+break;
+}
+case 4:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_closeDoor = 2;
+union u_closeDoor_id_t {
+uint8_t p;
+byte bytebuffer[1];
+} u_closeDoor_id;
+u_closeDoor_id.bytebuffer[0] = mbuf[mbufi_closeDoor + 0];
+mbufi_closeDoor += 1;
+dispatch_closeDoor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_closeDoor_id.p /* id */ );
+break;
+}
+case 5:{
 byte mbuf[6 - 2];
 while (mbufi < (6 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_setLight = 2;
@@ -1174,34 +1202,6 @@ mbufi_setLight += 1;
 dispatch_setLight((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_setLight_id.p /* id */ ,
  u_setLight_v.p /* v */ );
-break;
-}
-case 4:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_openDoor = 2;
-union u_openDoor_id_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_openDoor_id;
-u_openDoor_id.bytebuffer[0] = mbuf[mbufi_openDoor + 0];
-mbufi_openDoor += 1;
-dispatch_openDoor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_openDoor_id.p /* id */ );
-break;
-}
-case 5:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_closeDoor = 2;
-union u_closeDoor_id_t {
-uint8_t p;
-byte bytebuffer[1];
-} u_closeDoor_id;
-u_closeDoor_id.bytebuffer[0] = mbuf[mbufi_closeDoor + 0];
-mbufi_closeDoor += 1;
-dispatch_closeDoor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_closeDoor_id.p /* id */ );
 break;
 }
 case 2:{
@@ -1269,12 +1269,12 @@ if ( fifo_byte_available() > (msgSize + 2) ) {
 void initialize_configuration_HouseTestCfg() {
 // Initialize connectors
 register_external_HouseTest_send_timer_timer_start_listener(&forward_HouseTest_send_timer_timer_start);
-register_House_send_housebus_setLight_listener(&enqueue_House_send_housebus_setLight);
-register_House_send_housebus_openDoor_listener(&enqueue_House_send_housebus_openDoor);
-register_House_send_housebus_closeDoor_listener(&enqueue_House_send_housebus_closeDoor);
 register_HouseTest_send_house_setLight_listener(&enqueue_HouseTest_send_house_setLight);
 register_HouseTest_send_house_openDoor_listener(&enqueue_HouseTest_send_house_openDoor);
 register_HouseTest_send_house_closeDoor_listener(&enqueue_HouseTest_send_house_closeDoor);
+register_House_send_housebus_setLight_listener(&enqueue_House_send_housebus_setLight);
+register_House_send_housebus_openDoor_listener(&enqueue_House_send_housebus_openDoor);
+register_House_send_housebus_closeDoor_listener(&enqueue_House_send_housebus_closeDoor);
 
 // Init the ID, state variables and properties for external connector timer2
 // Init the ID, state variables and properties for external connector timer2
@@ -1293,33 +1293,13 @@ bathroomDoor_var.active = true;
 bathroomDoor_var.id_cmds = add_instance( (void*) &bathroomDoor_var);
 bathroomDoor_var.id_clock = add_instance( (void*) &bathroomDoor_var);
 bathroomDoor_var.Door_DoorSC_State = DOOR_DOORSC_CLOSING_STATE;
-bathroomDoor_var.Door_DoorSC_servo_value_var = 130;
-bathroomDoor_var.Door_vCLOSE_var = 40;
-bathroomDoor_var.Door_servo_pin_var = 10;
-bathroomDoor_var.Door_ID_var = 2;
 bathroomDoor_var.Door_vOPEN_var = 130;
+bathroomDoor_var.Door_ID_var = 2;
+bathroomDoor_var.Door_servo_pin_var = 10;
+bathroomDoor_var.Door_vCLOSE_var = 40;
+bathroomDoor_var.Door_DoorSC_servo_value_var = 130;
 
 Door_DoorSC_OnEntry(DOOR_DOORSC_STATE, &bathroomDoor_var);
-// Init the ID, state variables and properties for instance bedroomDoor
-bedroomDoor_var.active = true;
-bedroomDoor_var.id_cmds = add_instance( (void*) &bedroomDoor_var);
-bedroomDoor_var.id_clock = add_instance( (void*) &bedroomDoor_var);
-bedroomDoor_var.Door_DoorSC_State = DOOR_DOORSC_CLOSING_STATE;
-bedroomDoor_var.Door_DoorSC_servo_value_var = 135;
-bedroomDoor_var.Door_vCLOSE_var = 25;
-bedroomDoor_var.Door_servo_pin_var = 9;
-bedroomDoor_var.Door_ID_var = 1;
-bedroomDoor_var.Door_vOPEN_var = 135;
-
-Door_DoorSC_OnEntry(DOOR_DOORSC_STATE, &bedroomDoor_var);
-// Init the ID, state variables and properties for instance bathroomLight
-bathroomLight_var.active = true;
-bathroomLight_var.id_cmds = add_instance( (void*) &bathroomLight_var);
-bathroomLight_var.Light_LightSC_State = LIGHT_LIGHTSC_OFF_STATE;
-bathroomLight_var.Light_ID_var = 4;
-bathroomLight_var.Light_digital_pin_var = 5;
-
-Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &bathroomLight_var);
 // Init the ID, state variables and properties for instance downstairsLight
 downstairsLight_var.active = true;
 downstairsLight_var.id_cmds = add_instance( (void*) &downstairsLight_var);
@@ -1328,14 +1308,18 @@ downstairsLight_var.Light_ID_var = 3;
 downstairsLight_var.Light_digital_pin_var = 4;
 
 Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &downstairsLight_var);
-// Init the ID, state variables and properties for instance upstairsLight
-upstairsLight_var.active = true;
-upstairsLight_var.id_cmds = add_instance( (void*) &upstairsLight_var);
-upstairsLight_var.Light_LightSC_State = LIGHT_LIGHTSC_OFF_STATE;
-upstairsLight_var.Light_ID_var = 2;
-upstairsLight_var.Light_digital_pin_var = 3;
+// Init the ID, state variables and properties for instance bedroomDoor
+bedroomDoor_var.active = true;
+bedroomDoor_var.id_cmds = add_instance( (void*) &bedroomDoor_var);
+bedroomDoor_var.id_clock = add_instance( (void*) &bedroomDoor_var);
+bedroomDoor_var.Door_DoorSC_State = DOOR_DOORSC_CLOSING_STATE;
+bedroomDoor_var.Door_vOPEN_var = 135;
+bedroomDoor_var.Door_ID_var = 1;
+bedroomDoor_var.Door_servo_pin_var = 9;
+bedroomDoor_var.Door_vCLOSE_var = 25;
+bedroomDoor_var.Door_DoorSC_servo_value_var = 135;
 
-Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &upstairsLight_var);
+Door_DoorSC_OnEntry(DOOR_DOORSC_STATE, &bedroomDoor_var);
 // Init the ID, state variables and properties for instance bedroomLight
 bedroomLight_var.active = true;
 bedroomLight_var.id_cmds = add_instance( (void*) &bedroomLight_var);
@@ -1344,6 +1328,22 @@ bedroomLight_var.Light_ID_var = 1;
 bedroomLight_var.Light_digital_pin_var = 2;
 
 Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &bedroomLight_var);
+// Init the ID, state variables and properties for instance bathroomLight
+bathroomLight_var.active = true;
+bathroomLight_var.id_cmds = add_instance( (void*) &bathroomLight_var);
+bathroomLight_var.Light_LightSC_State = LIGHT_LIGHTSC_OFF_STATE;
+bathroomLight_var.Light_ID_var = 4;
+bathroomLight_var.Light_digital_pin_var = 5;
+
+Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &bathroomLight_var);
+// Init the ID, state variables and properties for instance upstairsLight
+upstairsLight_var.active = true;
+upstairsLight_var.id_cmds = add_instance( (void*) &upstairsLight_var);
+upstairsLight_var.Light_LightSC_State = LIGHT_LIGHTSC_OFF_STATE;
+upstairsLight_var.Light_ID_var = 2;
+upstairsLight_var.Light_digital_pin_var = 3;
+
+Light_LightSC_OnEntry(LIGHT_LIGHTSC_STATE, &upstairsLight_var);
 // Init the ID, state variables and properties for instance house
 house_var.active = true;
 house_var.id_housecontrol = add_instance( (void*) &house_var);
@@ -1356,8 +1356,8 @@ test_var.active = true;
 test_var.id_timer = add_instance( (void*) &test_var);
 test_var.id_house = add_instance( (void*) &test_var);
 test_var.HouseTest_HouseTest_State = HOUSETEST_HOUSETEST_INIT_STATE;
-test_var.HouseTest_NB_LIGHTS_var = 4;
 test_var.HouseTest_NB_DOORS_var = 2;
+test_var.HouseTest_NB_LIGHTS_var = 4;
 
 HouseTest_HouseTest_OnEntry(HOUSETEST_HOUSETEST_STATE, &test_var);
 }

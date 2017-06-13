@@ -1,0 +1,49 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing NeoPixelGroup
+[*] --> NeoPixelStateChart
+state NeoPixelStateChart{
+state OFF{
+	OFF : entry / do \nvar i : UInt8 = neopixel_first\nvar color : UInt32 = getColor(...)\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\nend\n
+
+OFF --> SOLID : ctrl?solid
+
+OFF --> PULSE : ctrl?pulse
+
+OFF --> BLINKALL : ctrl?blink
+
+OFF --> BREATH : ctrl?breath
+
+OFF --> ROTATE : m:ctrl?rotate\naction rotate_speed = rotate.speed\n
+}
+state SOLID{
+
+SOLID --> OFF : ctrl?off
+	SOLID : clock?fps_clock / \naction do \nvar rcolor : UInt32 = getColor(...)\nvar i : UInt8 = neopixel_first\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\nend\n
+}
+state ROTATE{
+	ROTATE : entry / do \nvar i : UInt8 = neopixel_first\nvar color : UInt32 = getColor(...)\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\nend\n
+
+ROTATE --> OFF : ctrl?off
+	ROTATE : clock?fps_clock / \naction do \nvar i : UInt8 = neopixel_first\nwhile(i <= neopixel_last) do\ndo \nvar pangle : UInt16 = angle + (i * maxangle) / (neopixel_last - neopixel_first + 1)\npangle = pangle % maxangle\nvar bright : UInt8 = rotate_brightness(...)\nvar color : UInt32 = getColor(...)\nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\nangle = angle + rotate_speed\nif(angle < 0) do\nangle = maxangle + angle\nend\nif(angle > maxangle - 1) do\nangle = angle - maxangle\nend\nend\n
+}
+state BREATH{
+
+BREATH --> OFF : ctrl?off
+	BREATH : clock?fps_clock / \naction do \nvar bright : UInt8 = breath_brightness(...)\nvar color : UInt32 = getColor(...)\nvar i : UInt8 = neopixel_first\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\ncounter = counter + 1\nif(counter == maxcount) do\ncounter = 0\nend\nend\n
+}
+state PULSE{
+
+PULSE --> OFF : ctrl?off
+	PULSE : clock?fps_clock / \naction do \nvar bright : UInt8 = pulse_brightness(counter)\nvar color : UInt32 = getColor(...)\nvar i : UInt8 = neopixel_first\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\ncounter = counter + 1\nif(counter == maxcount) do\ncounter = 0\nend\nend\n
+}
+state BLINKALL{
+
+BLINKALL --> OFF : ctrl?off
+	BLINKALL : clock?fps_clock / \naction do \nvar bright : UInt8 = blink_brightness(counter)\nvar rcolor : UInt32 = getColor(...)\nvar i : UInt8 = neopixel_first\nwhile(i <= neopixel_last) do\ndo \nsetPixelColor(...)\ni = i + 1\nend\nend\nupdateNeopixels()\ncounter = counter + 1\nif(counter == maxcount) do\ncounter = 0\nend\nend\n
+}
+[*] --> PULSE
+	NeoPixelStateChart : entry / initializeNeopixels()\n
+	NeoPixelStateChart : c:ctrl?setColor / \naction do \ncolor_r = setColor.red\ncolor_g = setColor.green\ncolor_b = setColor.blue\nend\n
+}
+@enduml
