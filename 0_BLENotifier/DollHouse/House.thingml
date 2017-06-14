@@ -1,14 +1,9 @@
 import "_Timer.thingml"
+import "HouseMessages.thingml"
 
 object ArduinoServo
 	@c_type "Servo"
 	@c_byte_size "2";
-
-thing fragment HouseMsgs {
-	message openDoor(id : UInt8);
-	message closeDoor(id : UInt8);
-	message setLight(id : UInt8, v : UInt8);
-}
 
 thing Door includes HouseMsgs, TimerMsgs 
 @c_header "#include <Servo.h>"
@@ -102,7 +97,8 @@ thing Light includes HouseMsgs {
 thing House includes HouseMsgs {
 	
 	provided port housecontrol {
-		receives setLight, openDoor, closeDoor
+		receives serSetLight, serOpenDoor, serCloseDoor
+		sends serAcknowledge
 	}
 	
 	required port housebus {
@@ -111,81 +107,25 @@ thing House includes HouseMsgs {
 	
 	statechart House init Ready {
 		state Ready {
-			internal event c : housecontrol?setLight action housebus!setLight(c.id, c.v)
-			internal event c : housecontrol?openDoor action housebus!openDoor(c.id)
-			internal event c : housecontrol?closeDoor action housebus!closeDoor(c.id)
-		}
-	}
-}
-
-
-thing HouseTest includes HouseMsgs, TimerMsgs {
-	
-	required port timer {
-		sends timer_start
-		receives timer_timeout
-	}
-	
-	required port house {
-		sends setLight, openDoor, closeDoor
-	}
-	
-	readonly property NB_LIGHTS : UInt8 = 4
-	readonly property NB_DOORS : UInt8 = 2
-	
-	statechart HouseTest init Init {
-		
-		state Init {
-			on entry do
-				timer!timer_start(0, 2000)
-				house!closeDoor(0) 		// Close all doors
-				house!setLight(0, 0)	// Turn off all lights
+			internal event c : housecontrol?serSetLight action do
+				housecontrol!serAcknowledge(1)
+				housebus!setLight(c.id, c.v)
 			end
-			transition -> LightsOn event timer?timer_timeout
-		}
-		
-		state LightsOn {
-			property light : UInt8
-			on entry do 
-				light = 1
-				timer!timer_start(0, 500)
+			internal event c : housecontrol?serOpenDoor action do
+				housecontrol!serAcknowledge(2)
+				housebus!openDoor(c.id)
 			end
-			
-			internal event timer?timer_timeout guard light <= NB_LIGHTS action do
-				house!setLight(light, 1)
-				light = light + 1
-				timer!timer_start(0, 500)
+			internal event c : housecontrol?serCloseDoor action do
+				housecontrol!serAcknowledge(3)
+				housebus!closeDoor(c.id)
 			end
-			
-			transition -> OpenDoors event timer?timer_timeout guard light > NB_LIGHTS
-		}
-		
-		state OpenDoors {
-			property door : UInt8
-			on entry do 
-				door = 1
-				timer!timer_start(0, 500)
-			end
-			
-			internal event timer?timer_timeout guard door <= NB_DOORS action do
-				house!openDoor(door)
-				door = door + 1
-				timer!timer_start(0, 2000)
-			end
-			
-			transition -> Wait event timer?timer_timeout guard door > NB_DOORS
-		}
-		
-		state Wait {
-			on entry timer!timer_start(0, 2000)
-			transition -> Init event timer?timer_timeout
 		}
 	}
 }
 
 protocol Timer;
 
-configuration HouseTestCfg {
+configuration HouseArduinoCfg {
 	
 	instance bedroomLight : Light
 		set bedroomLight.ID 			= 1
@@ -208,14 +148,14 @@ configuration HouseTestCfg {
 		set bedroomDoor.servo_pin		= 9
 		set bedroomDoor.vOPEN			= 135
 		set bedroomDoor.vCLOSE			= 25
-	connector bedroomDoor.clock over Timer //@hardware_timer "1"
+	connector bedroomDoor.clock over Timer
 		
 	instance bathroomDoor : Door
 		set bathroomDoor.ID				= 2
 		set bathroomDoor.servo_pin		= 10
 		set bathroomDoor.vOPEN			= 130
 		set bathroomDoor.vCLOSE			= 40
-	connector bathroomDoor.clock over Timer //@hardware_timer "1"
+	connector bathroomDoor.clock over Timer
 		
 	instance house : House
 	
@@ -226,9 +166,6 @@ configuration HouseTestCfg {
 	connector house.housebus => bedroomDoor.cmds
 	connector house.housebus => bathroomDoor.cmds
 	
-	instance test : HouseTest
-	
-	connector test.house => house.housecontrol
-	connector test.timer over Timer //@hardware_timer "1"
-	
+	connector house.housecontrol over Serial
+
 }

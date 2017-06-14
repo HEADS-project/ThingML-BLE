@@ -1,0 +1,167 @@
+import "HouseMessages.thingml"
+
+thing fragment MQTT {
+	function SendObservation(Room : String, Type : String, Status : String, Topic : Byte) do
+		'
+			time_t rawtime;
+  			struct tm * timeinfo;
+  			char timebuf[100];
+  			time(&rawtime);
+  			timeinfo = gmtime(&rawtime);
+  			strftime(timebuf,100,"%FT%T.000Z",timeinfo);
+		
+			const char* msgformat = "{\"deviceId\":\"home1_%s\",\"observationTime\":\"%s\",\"observations\":[{\"%s\":\"%s\"}]}";
+			char msg[1024];
+			int len = snprintf(msg, 1024, msgformat, '&Room&', timebuf, '&Type&', '&Status&');
+			MQTT1_send_message(msg, len, '&Topic&');
+		'
+	end
+	
+	function SendLightUpdate(LightNum : UInt8, LightState : UInt8) do
+		if (LightNum == 1) do
+			// Master bedroom
+			if (LightState == 0) do
+				SendObservation("masterbedroom","lamp","off", 3)
+				SendObservation("masterbedroom","light","off", 2)
+			end else do
+				SendObservation("masterbedroom","lamp","on", 3)
+				SendObservation("masterbedroom","light","on", 2)
+			end
+		end else if (LightNum == 2) do
+			// Living room
+			if (LightState == 0) do
+				SendObservation("living","lamp","off", 9)
+				SendObservation("living","light","off", 5)
+			end else do
+				SendObservation("living","lamp","on", 9)
+				SendObservation("living","light","on", 5)
+			end
+		end else if (LightNum == 3) do
+			// Kitchen
+			if (LightState == 0) do
+				SendObservation("kitchen","lamp","off", 8)
+				SendObservation("kitchen","light","off", 0)
+			end else do
+				SendObservation("kitchen","lamp","on", 8)
+				SendObservation("kitchen","light","on", 0)
+			end
+		end else if (LightNum == 4) do
+			// Toilet
+			if (LightState == 0) do
+				SendObservation("toilet1","lamp","off", 1)
+				SendObservation("toilet1","light","off", 7)
+			end else do
+				SendObservation("toilet1","lamp","on", 1)
+				SendObservation("toilet1","light","on", 7)
+			end
+		end
+	end
+	
+	// ID mappings: room - telluid - arduinoid
+	// Kitchen/Downstairs - 4 - 3
+	// Living room/Upstairs - 5 - 2
+	// Bedroom - 6 - 1
+	// Bathroom - 7 - 4
+	
+	message switch(nodeId : UInt8, command : UInt8)
+	required port broker {
+		receives switch
+	}
+}
+
+
+thing HouseGW includes HouseMsgs, MQTT {
+	
+	required port house {
+		sends serSetLight, serOpenDoor, serCloseDoor
+		receives serAcknowledge
+	}
+	
+	statechart HouseGW init Reset {
+		state Reset {
+			on entry do
+				print "Resetting house - closing all doors...\n"
+				house!serCloseDoor(0) // Close all doors
+			end
+						
+			internal event a : house?serAcknowledge guard (a.code == 3) action do
+				print "                - turning on all lights...\n"
+				house!serSetLight(0, 1) // Turn on all lights
+			end
+			
+			transition -> Forward event a : house?serAcknowledge guard (a.code == 1) action
+				print "Done!\n"
+		}
+		
+		composite state Forward init WaitForCommand {
+			property LightNum : UInt8 = 0
+			property LightState : UInt8 = 0
+			
+			state WaitForCommand {
+				transition -> WaitForLightAcknowledgement event s : broker?switch
+				guard (s.nodeId == 4) // Kitchen
+				action do
+					print "Updating light in the kitchen...\n"
+					LightNum = 3
+					LightState = s.command
+					house!serSetLight(LightNum, LightState)
+				end
+				
+				transition -> WaitForLightAcknowledgement event s : broker?switch
+				guard (s.nodeId == 5) // Living room
+				action do
+					print "Updating light in the living room...\n"
+					LightNum = 2
+					LightState = s.command
+					house!serSetLight(LightNum, LightState)
+				end
+				
+				transition -> WaitForLightAcknowledgement event s : broker?switch
+				guard (s.nodeId == 6) // Master bedroom
+				action do
+					print "Updating light in the master bedroom...\n"
+					LightNum = 1
+					LightState = s.command
+					house!serSetLight(LightNum, LightState)
+				end
+				
+				transition -> WaitForLightAcknowledgement event s : broker?switch
+				guard (s.nodeId == 7) // Toilet
+				action do
+					print "Updating light in the toilet...\n"
+					LightNum = 4
+					LightState = s.command
+					house!serSetLight(LightNum, LightState)
+				end
+			}
+			
+			state WaitForLightAcknowledgement {
+				transition -> WaitForCommand event a : house?serAcknowledge
+				guard (a.code == 1) // Set light acknowledged
+				action do
+					print "Light update acknowledged!\n"
+					SendLightUpdate(LightNum, LightState)
+				end
+			}
+		}
+	}
+}
+
+protocol MQTT1 @serializer "PosixJSONSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_subscribe_topic "hjemme1"
+  @mqtt_publish_topic "home1_kitchen/smarttracker/lamp"
+  @mqtt_publish_topic "home1_kitchen/smarttracker/light"
+  @mqtt_publish_topic "home1_living/smarttracker/lamp"
+  @mqtt_publish_topic "home1_living/smarttracker/light"
+  @mqtt_publish_topic "home1_toilet1/smarttracker/lamp"
+  @mqtt_publish_topic "home1_toilet1/smarttracker/light"
+  @mqtt_publish_topic "home1_masterbedroom/smarttracker/lamp"
+  @mqtt_publish_topic "home1_masterbedroom/smarttracker/light";
+  
+configuration HouseGWRPi {
+	instance gw : HouseGW
+	
+	connector gw.broker over MQTT1
+	connector gw.house over Serial
+}

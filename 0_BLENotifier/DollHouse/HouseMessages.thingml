@@ -1,0 +1,13 @@
+import "_Datatypes.thingml"
+
+thing fragment HouseMsgs {
+	message openDoor(id : UInt8);
+	message closeDoor(id : UInt8);
+	message setLight(id : UInt8, v : UInt8);
+	message serOpenDoor(id : UInt8) @code "200";
+	message serCloseDoor(id : UInt8) @code "201";
+	message serSetLight(id : UInt8, v : UInt8) @code "202";
+	message serAcknowledge(code : UInt8) @code "203"
+}
+
+protocol Serial @serial_baudrate "9600" @serial_path_to_device "/dev/ttyS0" @serializer "binary";

@@ -1,0 +1,94 @@
+import "_Timer.thingml"
+import "HouseMessages.thingml"
+
+
+thing HouseTest includes HouseMsgs, TimerMsgs {
+	
+	required port timer {
+		sends timer_start
+		receives timer_timeout
+	}
+	
+	required port house {
+		sends serSetLight, serOpenDoor, serCloseDoor
+		receives serAcknowledge
+	}
+	
+	readonly property NB_LIGHTS : UInt8 = 4
+	readonly property NB_DOORS : UInt8 = 2
+	
+	statechart HouseTest init SerialWait {
+		state SerialWait {
+			on entry do
+				timer!timer_start(0, 2000)
+				print "Wait for serial...\n"
+			end
+			transition -> Init event timer?timer_timeout
+		}
+		
+		state Init {
+			on entry do
+				timer!timer_start(0, 2000)
+				print "?CloseAllDoors\n"
+				house!serCloseDoor(0) 		// Close all doors
+				print "?TurnOffAllLights\n"
+				house!serSetLight(0, 0)	// Turn off all lights
+			end
+			transition -> LightsOn event timer?timer_timeout
+		}
+		
+		state LightsOn {
+			property light : UInt8
+			on entry do 
+				light = 1
+				timer!timer_start(0, 500)
+			end
+			
+			internal event timer?timer_timeout guard light <= NB_LIGHTS action do
+				print "?SetLight\n"
+				house!serSetLight(light, 1)
+				light = light + 1
+				timer!timer_start(0, 500)
+			end
+			
+			transition -> OpenDoors event timer?timer_timeout guard light > NB_LIGHTS
+		}
+		
+		state OpenDoors {
+			property door : UInt8
+			on entry do 
+				door = 1
+				timer!timer_start(0, 500)
+			end
+			
+			internal event timer?timer_timeout guard door <= NB_DOORS action do
+				print "?OpenDoor\n"
+				house!serOpenDoor(door)
+				door = door + 1
+				timer!timer_start(0, 2000)
+			end
+			
+			transition -> Wait event timer?timer_timeout guard door > NB_DOORS
+		}
+		
+		state Wait {
+			on entry timer!timer_start(0, 2000)
+			transition -> Init event timer?timer_timeout
+		}
+		
+		internal event a : house?serAcknowledge action do
+			print "Acknowledged "
+			print a.code
+			print "\n"
+		end
+	}
+}
+
+protocol Timer;
+
+configuration HouseRPiCfg {
+	instance test : HouseTest
+	
+	connector test.timer over Timer
+	connector test.house over Serial	
+}
