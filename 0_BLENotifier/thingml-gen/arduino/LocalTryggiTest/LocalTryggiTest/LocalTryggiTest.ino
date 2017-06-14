@@ -13,35 +13,35 @@ uint16_t id_clock;
 // Variables for the current instance state
 int NeoPixelGroup_NeoPixelStateChart_State;
 // Variables for the properties of the instance
-int8_t NeoPixelGroup_NeoPixelStateChart_rotate_speed_var;
-uint8_t NeoPixelGroup_neopixel_first_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var;
 uint8_t NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var;
-uint8_t NeoPixelGroup_neopixel_total_count_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var;
+uint8_t NeoPixelGroup_neopixel_first_var;
 uint8_t NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_color_r_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_color_g_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_color_b_var;
-int16_t NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var;
-uint8_t NeoPixelGroup_neopixel_last_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_breath_speed_var;
-uint8_t NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var;
 uint8_t NeoPixelGroup_neopixel_pin_var;
+uint8_t NeoPixelGroup_neopixel_last_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_color_b_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_color_r_var;
+int8_t NeoPixelGroup_NeoPixelStateChart_rotate_speed_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_color_g_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_breath_speed_var;
+int16_t NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var;
+uint8_t NeoPixelGroup_neopixel_total_count_var;
 uint8_t NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var;
+uint8_t NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var;
 
 };
 // Declaration of prototypes outgoing messages:
 void NeoPixelGroup_NeoPixelStateChart_OnEntry(int state, struct NeoPixelGroup_Instance *_instance);
 void NeoPixelGroup_handle_clock_fps_clock(struct NeoPixelGroup_Instance *_instance);
-void NeoPixelGroup_handle_ctrl_off(struct NeoPixelGroup_Instance *_instance);
-void NeoPixelGroup_handle_ctrl_rotate(struct NeoPixelGroup_Instance *_instance, int8_t speed);
-void NeoPixelGroup_handle_ctrl_blink(struct NeoPixelGroup_Instance *_instance);
-void NeoPixelGroup_handle_ctrl_pulse(struct NeoPixelGroup_Instance *_instance);
-void NeoPixelGroup_handle_ctrl_breath(struct NeoPixelGroup_Instance *_instance);
 void NeoPixelGroup_handle_ctrl_solid(struct NeoPixelGroup_Instance *_instance);
 void NeoPixelGroup_handle_ctrl_setColor(struct NeoPixelGroup_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue);
+void NeoPixelGroup_handle_ctrl_breath(struct NeoPixelGroup_Instance *_instance);
+void NeoPixelGroup_handle_ctrl_off(struct NeoPixelGroup_Instance *_instance);
+void NeoPixelGroup_handle_ctrl_blink(struct NeoPixelGroup_Instance *_instance);
+void NeoPixelGroup_handle_ctrl_pulse(struct NeoPixelGroup_Instance *_instance);
+void NeoPixelGroup_handle_ctrl_rotate(struct NeoPixelGroup_Instance *_instance, int8_t speed);
 // Declaration of callbacks for incoming messages:
 
 // Definition of the states:
@@ -76,13 +76,13 @@ uint8_t Tryggi_TIMERID_var;
 };
 // Declaration of prototypes outgoing messages:
 void Tryggi_TryggiSC_OnEntry(int state, struct Tryggi_Instance *_instance);
-void Tryggi_handle_timer_timer_timeout(struct Tryggi_Instance *_instance, uint8_t id);
 void Tryggi_handle_ctrl_ping_tryggy(struct Tryggi_Instance *_instance);
-void Tryggi_handle_ctrl_bluetooth_act(struct Tryggi_Instance *_instance);
 void Tryggi_handle_ctrl_show_error(struct Tryggi_Instance *_instance);
+void Tryggi_handle_ctrl_clear_status(struct Tryggi_Instance *_instance);
+void Tryggi_handle_ctrl_bluetooth_act(struct Tryggi_Instance *_instance);
 void Tryggi_handle_ctrl_show_success(struct Tryggi_Instance *_instance);
 void Tryggi_handle_ctrl_tellucloud_act(struct Tryggi_Instance *_instance);
-void Tryggi_handle_ctrl_clear_status(struct Tryggi_Instance *_instance);
+void Tryggi_handle_timer_timer_timeout(struct Tryggi_Instance *_instance, uint8_t id);
 // Declaration of callbacks for incoming messages:
 void register_Tryggi_send_ctrl_pong_tryggy_listener(void (*_listener)(struct Tryggi_Instance *));
 void register_external_Tryggi_send_ctrl_pong_tryggy_listener(void (*_listener)(struct Tryggi_Instance *));
@@ -625,10 +625,6 @@ timer2_tic_flags &= 0b11111110;
 }
 
 }
-// Forwarding of messages timer2::TryggiTest::clock::timer_start
-void forward_timer2_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
-timer2_timer_start(id, time);}
-
 // Forwarding of messages timer2::Tryggi::timer::timer_start
 void forward_timer2_Tryggi_send_timer_timer_start(struct Tryggi_Instance *_instance, uint8_t id, uint32_t time){
 timer2_timer_start(id, time);}
@@ -636,6 +632,10 @@ timer2_timer_start(id, time);}
 // Forwarding of messages timer2::Tryggi::timer::timer_cancel
 void forward_timer2_Tryggi_send_timer_timer_cancel(struct Tryggi_Instance *_instance, uint8_t id){
 timer2_timer_cancel(id);}
+
+// Forwarding of messages timer2::TryggiTest::clock::timer_start
+void forward_timer2_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
+timer2_timer_start(id, time);}
 
 /*****************************************************************************
  * Implementation for type : NeoPixelGroup
@@ -953,6 +953,52 @@ NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
+void NeoPixelGroup_handle_ctrl_solid(struct NeoPixelGroup_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelGroup_NeoPixelStateChart_State == NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelGroup_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelGroup_NeoPixelStateChart_OnExit(NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_SOLID_STATE;
+NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_SOLID_STATE, _instance);
+NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
+void NeoPixelGroup_handle_ctrl_setColor(struct NeoPixelGroup_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+if (1) {
+_instance->NeoPixelGroup_NeoPixelStateChart_color_r_var = red;
+_instance->NeoPixelGroup_NeoPixelStateChart_color_g_var = green;
+_instance->NeoPixelGroup_NeoPixelStateChart_color_b_var = blue;
+NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+void NeoPixelGroup_handle_ctrl_breath(struct NeoPixelGroup_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region NeoPixelStateChart
+uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
+if (_instance->NeoPixelGroup_NeoPixelStateChart_State == NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE) {
+if (NeoPixelGroup_NeoPixelStateChart_State_event_consumed == 0 && 1) {
+NeoPixelGroup_NeoPixelStateChart_OnExit(NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE, _instance);
+_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_BREATH_STATE;
+NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_BREATH_STATE, _instance);
+NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
+}
+}
+//End Region NeoPixelStateChart
+//End dsregion NeoPixelStateChart
+//Session list: 
+}
 void NeoPixelGroup_handle_ctrl_off(struct NeoPixelGroup_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
@@ -1001,23 +1047,6 @@ NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixelGroup_handle_ctrl_rotate(struct NeoPixelGroup_Instance *_instance, int8_t speed) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelGroup_NeoPixelStateChart_State == NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelGroup_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelGroup_NeoPixelStateChart_OnExit(NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_ROTATE_STATE;
-_instance->NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = speed;
-NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_ROTATE_STATE, _instance);
-NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
 void NeoPixelGroup_handle_ctrl_blink(struct NeoPixelGroup_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
@@ -1050,51 +1079,22 @@ NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
 //End dsregion NeoPixelStateChart
 //Session list: 
 }
-void NeoPixelGroup_handle_ctrl_breath(struct NeoPixelGroup_Instance *_instance) {
+void NeoPixelGroup_handle_ctrl_rotate(struct NeoPixelGroup_Instance *_instance, int8_t speed) {
 if(!(_instance->active)) return;
 //Region NeoPixelStateChart
 uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
 if (_instance->NeoPixelGroup_NeoPixelStateChart_State == NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE) {
 if (NeoPixelGroup_NeoPixelStateChart_State_event_consumed == 0 && 1) {
 NeoPixelGroup_NeoPixelStateChart_OnExit(NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_BREATH_STATE;
-NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_BREATH_STATE, _instance);
+_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_ROTATE_STATE;
+_instance->NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = speed;
+NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_ROTATE_STATE, _instance);
 NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
 }
 }
 //End Region NeoPixelStateChart
 //End dsregion NeoPixelStateChart
 //Session list: 
-}
-void NeoPixelGroup_handle_ctrl_solid(struct NeoPixelGroup_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
-if (_instance->NeoPixelGroup_NeoPixelStateChart_State == NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE) {
-if (NeoPixelGroup_NeoPixelStateChart_State_event_consumed == 0 && 1) {
-NeoPixelGroup_NeoPixelStateChart_OnExit(NEOPIXELGROUP_NEOPIXELSTATECHART_OFF_STATE, _instance);
-_instance->NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_SOLID_STATE;
-NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_SOLID_STATE, _instance);
-NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
-}
-}
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-}
-void NeoPixelGroup_handle_ctrl_setColor(struct NeoPixelGroup_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue) {
-if(!(_instance->active)) return;
-//Region NeoPixelStateChart
-uint8_t NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 0;
-//End Region NeoPixelStateChart
-//End dsregion NeoPixelStateChart
-//Session list: 
-if (1) {
-_instance->NeoPixelGroup_NeoPixelStateChart_color_r_var = red;
-_instance->NeoPixelGroup_NeoPixelStateChart_color_g_var = green;
-_instance->NeoPixelGroup_NeoPixelStateChart_color_b_var = blue;
-NeoPixelGroup_NeoPixelStateChart_State_event_consumed = 1;
-}
 }
 
 // Observers for outgoing messages:
@@ -1140,7 +1140,7 @@ void f_Tryggi_got_ping(struct Tryggi_Instance *_instance);
 void f_Tryggi_neo_standby(struct Tryggi_Instance *_instance) {
 Tryggi_send_head_off(_instance);
 Tryggi_send_heart_off(_instance);
-Tryggi_send_heart_setColor(_instance, 0, 255, 40);
+Tryggi_send_heart_setColor(_instance, 0, 40, 255);
 Tryggi_send_heart_pulse(_instance);
 }
 // Definition of function neo_clear_status
@@ -1223,22 +1223,6 @@ default: break;
 }
 
 // Event Handlers for incoming messages:
-void Tryggi_handle_timer_timer_timeout(struct Tryggi_Instance *_instance, uint8_t id) {
-if(!(_instance->active)) return;
-//Region TryggiSC
-uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
-if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
-if (Tryggi_TryggiSC_State_event_consumed == 0 && id == _instance->Tryggi_TIMERID_var) {
-Tryggi_TryggiSC_OnExit(TRYGGI_TRYGGISC_CONNECTED_STATE, _instance);
-_instance->Tryggi_TryggiSC_State = TRYGGI_TRYGGISC_WAITINGFORPING_STATE;
-Tryggi_TryggiSC_OnEntry(TRYGGI_TRYGGISC_WAITINGFORPING_STATE, _instance);
-Tryggi_TryggiSC_State_event_consumed = 1;
-}
-}
-//End Region TryggiSC
-//End dsregion TryggiSC
-//Session list: 
-}
 void Tryggi_handle_ctrl_ping_tryggy(struct Tryggi_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region TryggiSC
@@ -1262,20 +1246,6 @@ Tryggi_TryggiSC_State_event_consumed = 1;
 //End dsregion TryggiSC
 //Session list: 
 }
-void Tryggi_handle_ctrl_bluetooth_act(struct Tryggi_Instance *_instance) {
-if(!(_instance->active)) return;
-//Region TryggiSC
-uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
-if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
-if (Tryggi_TryggiSC_State_event_consumed == 0 && 1) {
-f_Tryggi_neo_bluetooth_act(_instance);
-Tryggi_TryggiSC_State_event_consumed = 1;
-}
-}
-//End Region TryggiSC
-//End dsregion TryggiSC
-//Session list: 
-}
 void Tryggi_handle_ctrl_show_error(struct Tryggi_Instance *_instance) {
 if(!(_instance->active)) return;
 //Region TryggiSC
@@ -1283,6 +1253,34 @@ uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
 if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
 if (Tryggi_TryggiSC_State_event_consumed == 0 && 1) {
 f_Tryggi_neo_error(_instance);
+Tryggi_TryggiSC_State_event_consumed = 1;
+}
+}
+//End Region TryggiSC
+//End dsregion TryggiSC
+//Session list: 
+}
+void Tryggi_handle_ctrl_clear_status(struct Tryggi_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region TryggiSC
+uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
+if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
+if (Tryggi_TryggiSC_State_event_consumed == 0 && 1) {
+f_Tryggi_neo_clear_status(_instance);
+Tryggi_TryggiSC_State_event_consumed = 1;
+}
+}
+//End Region TryggiSC
+//End dsregion TryggiSC
+//Session list: 
+}
+void Tryggi_handle_ctrl_bluetooth_act(struct Tryggi_Instance *_instance) {
+if(!(_instance->active)) return;
+//Region TryggiSC
+uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
+if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
+if (Tryggi_TryggiSC_State_event_consumed == 0 && 1) {
+f_Tryggi_neo_bluetooth_act(_instance);
 Tryggi_TryggiSC_State_event_consumed = 1;
 }
 }
@@ -1318,13 +1316,15 @@ Tryggi_TryggiSC_State_event_consumed = 1;
 //End dsregion TryggiSC
 //Session list: 
 }
-void Tryggi_handle_ctrl_clear_status(struct Tryggi_Instance *_instance) {
+void Tryggi_handle_timer_timer_timeout(struct Tryggi_Instance *_instance, uint8_t id) {
 if(!(_instance->active)) return;
 //Region TryggiSC
 uint8_t Tryggi_TryggiSC_State_event_consumed = 0;
 if (_instance->Tryggi_TryggiSC_State == TRYGGI_TRYGGISC_CONNECTED_STATE) {
-if (Tryggi_TryggiSC_State_event_consumed == 0 && 1) {
-f_Tryggi_neo_clear_status(_instance);
+if (Tryggi_TryggiSC_State_event_consumed == 0 && id == _instance->Tryggi_TIMERID_var) {
+Tryggi_TryggiSC_OnExit(TRYGGI_TRYGGISC_CONNECTED_STATE, _instance);
+_instance->Tryggi_TryggiSC_State = TRYGGI_TRYGGISC_WAITINGFORPING_STATE;
+Tryggi_TryggiSC_OnEntry(TRYGGI_TRYGGISC_WAITINGFORPING_STATE, _instance);
 Tryggi_TryggiSC_State_event_consumed = 1;
 }
 }
@@ -1566,182 +1566,42 @@ if (external_Tryggi_send_heart_blink_listener != 0x0) external_Tryggi_send_heart
  *****************************************************************************/
 
 //Declaration of instance variables
-//Instance neo_head
-// Variables for the properties of the instance
-struct NeoPixelGroup_Instance neo_head_var;
-// Variables for the sessions of the instance
-//Instance test
-// Variables for the properties of the instance
-struct TryggiTest_Instance test_var;
-// Variables for the sessions of the instance
 //Instance neo_heart
 // Variables for the properties of the instance
 struct NeoPixelGroup_Instance neo_heart_var;
+// Variables for the sessions of the instance
+//Instance neo_head
+// Variables for the properties of the instance
+struct NeoPixelGroup_Instance neo_head_var;
 // Variables for the sessions of the instance
 //Instance tryggi
 // Variables for the properties of the instance
 struct Tryggi_Instance tryggi_var;
 // Variables for the sessions of the instance
+//Instance test
+// Variables for the properties of the instance
+struct TryggiTest_Instance test_var;
+// Variables for the sessions of the instance
 
 
-// Enqueue of messages TryggiTest::tryggi::ping_tryggy
-void enqueue_TryggiTest_send_tryggi_ping_tryggy(struct TryggiTest_Instance *_instance){
+// Enqueue of messages Tryggi::ctrl::pong_tryggy
+void enqueue_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
 _fifo_enqueue( (3 >> 8) & 0xFF );
 _fifo_enqueue( 3 & 0xFF );
 
 // ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages TryggiTest::tryggi::bluetooth_act
-void enqueue_TryggiTest_send_tryggi_bluetooth_act(struct TryggiTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (4 >> 8) & 0xFF );
-_fifo_enqueue( 4 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages TryggiTest::tryggi::show_error
-void enqueue_TryggiTest_send_tryggi_show_error(struct TryggiTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (5 >> 8) & 0xFF );
-_fifo_enqueue( 5 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages TryggiTest::tryggi::show_success
-void enqueue_TryggiTest_send_tryggi_show_success(struct TryggiTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (6 >> 8) & 0xFF );
-_fifo_enqueue( 6 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages TryggiTest::tryggi::tellucloud_act
-void enqueue_TryggiTest_send_tryggi_tellucloud_act(struct TryggiTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (7 >> 8) & 0xFF );
-_fifo_enqueue( 7 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages TryggiTest::tryggi::clear_status
-void enqueue_TryggiTest_send_tryggi_clear_status(struct TryggiTest_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (8 >> 8) & 0xFF );
-_fifo_enqueue( 8 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_tryggi & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::ctrl::pong_tryggy
-void enqueue_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (9 >> 8) & 0xFF );
-_fifo_enqueue( 9 & 0xFF );
-
-// ID of the source port of the instance
 _fifo_enqueue( (_instance->id_ctrl >> 8) & 0xFF );
 _fifo_enqueue( _instance->id_ctrl & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::head::off
-void enqueue_Tryggi_send_head_off(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (10 >> 8) & 0xFF );
-_fifo_enqueue( 10 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_head & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::head::rotate
-void enqueue_Tryggi_send_head_rotate(struct Tryggi_Instance *_instance, int8_t speed){
-if ( fifo_byte_available() > 5 ) {
-
-_fifo_enqueue( (11 >> 8) & 0xFF );
-_fifo_enqueue( 11 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_head & 0xFF );
-
-// parameter speed
-union u_speed_t {
-int8_t p;
-byte bytebuffer[1];
-} u_speed;
-u_speed.p = speed;
-_fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::head::blink
-void enqueue_Tryggi_send_head_blink(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (12 >> 8) & 0xFF );
-_fifo_enqueue( 12 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_head & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::head::pulse
-void enqueue_Tryggi_send_head_pulse(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (13 >> 8) & 0xFF );
-_fifo_enqueue( 13 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_head & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::head::breath
-void enqueue_Tryggi_send_head_breath(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (14 >> 8) & 0xFF );
-_fifo_enqueue( 14 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_head & 0xFF );
 }
 }
 // Enqueue of messages Tryggi::head::solid
 void enqueue_Tryggi_send_head_solid(struct Tryggi_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
-_fifo_enqueue( (15 >> 8) & 0xFF );
-_fifo_enqueue( 15 & 0xFF );
+_fifo_enqueue( (4 >> 8) & 0xFF );
+_fifo_enqueue( 4 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
@@ -1752,8 +1612,8 @@ _fifo_enqueue( _instance->id_head & 0xFF );
 void enqueue_Tryggi_send_head_setColor(struct Tryggi_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
 
-_fifo_enqueue( (16 >> 8) & 0xFF );
-_fifo_enqueue( 16 & 0xFF );
+_fifo_enqueue( (5 >> 8) & 0xFF );
+_fifo_enqueue( 5 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
@@ -1784,28 +1644,64 @@ u_blue.p = blue;
 _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages Tryggi::heart::off
-void enqueue_Tryggi_send_heart_off(struct Tryggi_Instance *_instance){
+// Enqueue of messages Tryggi::head::breath
+void enqueue_Tryggi_send_head_breath(struct Tryggi_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (6 >> 8) & 0xFF );
+_fifo_enqueue( 6 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_head & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::head::off
+void enqueue_Tryggi_send_head_off(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (7 >> 8) & 0xFF );
+_fifo_enqueue( 7 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_head & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::head::blink
+void enqueue_Tryggi_send_head_blink(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (8 >> 8) & 0xFF );
+_fifo_enqueue( 8 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_head & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::head::pulse
+void enqueue_Tryggi_send_head_pulse(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (9 >> 8) & 0xFF );
+_fifo_enqueue( 9 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_head & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::head::rotate
+void enqueue_Tryggi_send_head_rotate(struct Tryggi_Instance *_instance, int8_t speed){
+if ( fifo_byte_available() > 5 ) {
 
 _fifo_enqueue( (10 >> 8) & 0xFF );
 _fifo_enqueue( 10 & 0xFF );
 
 // ID of the source port of the instance
-_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_heart & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::heart::rotate
-void enqueue_Tryggi_send_heart_rotate(struct Tryggi_Instance *_instance, int8_t speed){
-if ( fifo_byte_available() > 5 ) {
-
-_fifo_enqueue( (11 >> 8) & 0xFF );
-_fifo_enqueue( 11 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_heart & 0xFF );
+_fifo_enqueue( (_instance->id_head >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_head & 0xFF );
 
 // parameter speed
 union u_speed_t {
@@ -1816,48 +1712,12 @@ u_speed.p = speed;
 _fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
 }
 }
-// Enqueue of messages Tryggi::heart::blink
-void enqueue_Tryggi_send_heart_blink(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (12 >> 8) & 0xFF );
-_fifo_enqueue( 12 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_heart & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::heart::pulse
-void enqueue_Tryggi_send_heart_pulse(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (13 >> 8) & 0xFF );
-_fifo_enqueue( 13 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_heart & 0xFF );
-}
-}
-// Enqueue of messages Tryggi::heart::breath
-void enqueue_Tryggi_send_heart_breath(struct Tryggi_Instance *_instance){
-if ( fifo_byte_available() > 4 ) {
-
-_fifo_enqueue( (14 >> 8) & 0xFF );
-_fifo_enqueue( 14 & 0xFF );
-
-// ID of the source port of the instance
-_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
-_fifo_enqueue( _instance->id_heart & 0xFF );
-}
-}
 // Enqueue of messages Tryggi::heart::solid
 void enqueue_Tryggi_send_heart_solid(struct Tryggi_Instance *_instance){
 if ( fifo_byte_available() > 4 ) {
 
-_fifo_enqueue( (15 >> 8) & 0xFF );
-_fifo_enqueue( 15 & 0xFF );
+_fifo_enqueue( (4 >> 8) & 0xFF );
+_fifo_enqueue( 4 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
@@ -1868,8 +1728,8 @@ _fifo_enqueue( _instance->id_heart & 0xFF );
 void enqueue_Tryggi_send_heart_setColor(struct Tryggi_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
 
-_fifo_enqueue( (16 >> 8) & 0xFF );
-_fifo_enqueue( 16 & 0xFF );
+_fifo_enqueue( (5 >> 8) & 0xFF );
+_fifo_enqueue( 5 & 0xFF );
 
 // ID of the source port of the instance
 _fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
@@ -1900,12 +1760,223 @@ u_blue.p = blue;
 _fifo_enqueue(u_blue.bytebuffer[0] & 0xFF );
 }
 }
+// Enqueue of messages Tryggi::heart::breath
+void enqueue_Tryggi_send_heart_breath(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (6 >> 8) & 0xFF );
+_fifo_enqueue( 6 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_heart & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::heart::off
+void enqueue_Tryggi_send_heart_off(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (7 >> 8) & 0xFF );
+_fifo_enqueue( 7 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_heart & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::heart::blink
+void enqueue_Tryggi_send_heart_blink(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (8 >> 8) & 0xFF );
+_fifo_enqueue( 8 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_heart & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::heart::pulse
+void enqueue_Tryggi_send_heart_pulse(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (9 >> 8) & 0xFF );
+_fifo_enqueue( 9 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_heart & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::heart::rotate
+void enqueue_Tryggi_send_heart_rotate(struct Tryggi_Instance *_instance, int8_t speed){
+if ( fifo_byte_available() > 5 ) {
+
+_fifo_enqueue( (10 >> 8) & 0xFF );
+_fifo_enqueue( 10 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_heart >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_heart & 0xFF );
+
+// parameter speed
+union u_speed_t {
+int8_t p;
+byte bytebuffer[1];
+} u_speed;
+u_speed.p = speed;
+_fifo_enqueue(u_speed.bytebuffer[0] & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::ping_tryggy
+void enqueue_TryggiTest_send_tryggi_ping_tryggy(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (11 >> 8) & 0xFF );
+_fifo_enqueue( 11 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::show_error
+void enqueue_TryggiTest_send_tryggi_show_error(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (12 >> 8) & 0xFF );
+_fifo_enqueue( 12 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::clear_status
+void enqueue_TryggiTest_send_tryggi_clear_status(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (13 >> 8) & 0xFF );
+_fifo_enqueue( 13 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::bluetooth_act
+void enqueue_TryggiTest_send_tryggi_bluetooth_act(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (14 >> 8) & 0xFF );
+_fifo_enqueue( 14 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::show_success
+void enqueue_TryggiTest_send_tryggi_show_success(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (15 >> 8) & 0xFF );
+_fifo_enqueue( 15 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::tellucloud_act
+void enqueue_TryggiTest_send_tryggi_tellucloud_act(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (16 >> 8) & 0xFF );
+_fifo_enqueue( 16 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
 
 
 //New dispatcher for messages
-void dispatch_bluetooth_act(uint16_t sender) {
+void dispatch_ping_tryggy(uint16_t sender) {
 if (sender == test_var.id_tryggi) {
-Tryggi_handle_ctrl_bluetooth_act(&tryggi_var);
+Tryggi_handle_ctrl_ping_tryggy(&tryggi_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_solid(uint16_t sender) {
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_solid(&neo_heart_var);
+
+}
+if (sender == tryggi_var.id_head) {
+NeoPixelGroup_handle_ctrl_solid(&neo_head_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_show_error(uint16_t sender) {
+if (sender == test_var.id_tryggi) {
+Tryggi_handle_ctrl_show_error(&tryggi_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_breath(uint16_t sender) {
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_breath(&neo_heart_var);
+
+}
+if (sender == tryggi_var.id_head) {
+NeoPixelGroup_handle_ctrl_breath(&neo_head_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_pong_tryggy(uint16_t sender) {
+if (sender == tryggi_var.id_ctrl) {
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_blink(uint16_t sender) {
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_blink(&neo_heart_var);
+
+}
+if (sender == tryggi_var.id_head) {
+NeoPixelGroup_handle_ctrl_blink(&neo_head_var);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_clear_status(uint16_t sender) {
+if (sender == test_var.id_tryggi) {
+Tryggi_handle_ctrl_clear_status(&tryggi_var);
 
 }
 
@@ -1927,23 +1998,9 @@ NeoPixelGroup_handle_ctrl_pulse(&neo_head_var);
 
 
 //New dispatcher for messages
-void dispatch_fps_clock(uint16_t sender) {
-if (sender == timer2_instance.listener_id) {
-NeoPixelGroup_handle_clock_fps_clock(&neo_heart_var);
-
-}
-if (sender == timer2_instance.listener_id) {
-NeoPixelGroup_handle_clock_fps_clock(&neo_head_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_clear_status(uint16_t sender) {
+void dispatch_tellucloud_act(uint16_t sender) {
 if (sender == test_var.id_tryggi) {
-Tryggi_handle_ctrl_clear_status(&tryggi_var);
+Tryggi_handle_ctrl_tellucloud_act(&tryggi_var);
 
 }
 
@@ -1951,13 +2008,13 @@ Tryggi_handle_ctrl_clear_status(&tryggi_var);
 
 
 //New dispatcher for messages
-void dispatch_solid(uint16_t sender) {
+void dispatch_rotate(uint16_t sender, int8_t param_speed) {
 if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_solid(&neo_heart_var);
+NeoPixelGroup_handle_ctrl_rotate(&neo_heart_var, param_speed);
 
 }
 if (sender == tryggi_var.id_head) {
-NeoPixelGroup_handle_ctrl_solid(&neo_head_var);
+NeoPixelGroup_handle_ctrl_rotate(&neo_head_var, param_speed);
 
 }
 
@@ -1981,21 +2038,11 @@ NeoPixelGroup_handle_ctrl_setColor(&neo_head_var, param_red, param_green, param_
 //New dispatcher for messages
 void dispatch_timer_timeout(uint16_t sender, uint8_t param_id) {
 if (sender == timer2_instance.listener_id) {
-TryggiTest_handle_clock_timer_timeout(&test_var, param_id);
-
-}
-if (sender == timer2_instance.listener_id) {
 Tryggi_handle_timer_timer_timeout(&tryggi_var, param_id);
 
 }
-
-}
-
-
-//New dispatcher for messages
-void dispatch_ping_tryggy(uint16_t sender) {
-if (sender == test_var.id_tryggi) {
-Tryggi_handle_ctrl_ping_tryggy(&tryggi_var);
+if (sender == timer2_instance.listener_id) {
+TryggiTest_handle_clock_timer_timeout(&test_var, param_id);
 
 }
 
@@ -2017,27 +2064,13 @@ NeoPixelGroup_handle_ctrl_off(&neo_head_var);
 
 
 //New dispatcher for messages
-void dispatch_rotate(uint16_t sender, int8_t param_speed) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_rotate(&neo_heart_var, param_speed);
+void dispatch_fps_clock(uint16_t sender) {
+if (sender == timer2_instance.listener_id) {
+NeoPixelGroup_handle_clock_fps_clock(&neo_head_var);
 
 }
-if (sender == tryggi_var.id_head) {
-NeoPixelGroup_handle_ctrl_rotate(&neo_head_var, param_speed);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_blink(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_blink(&neo_heart_var);
-
-}
-if (sender == tryggi_var.id_head) {
-NeoPixelGroup_handle_ctrl_blink(&neo_head_var);
+if (sender == timer2_instance.listener_id) {
+NeoPixelGroup_handle_clock_fps_clock(&neo_heart_var);
 
 }
 
@@ -2045,18 +2078,9 @@ NeoPixelGroup_handle_ctrl_blink(&neo_head_var);
 
 
 //New dispatcher for messages
-void dispatch_pong_tryggy(uint16_t sender) {
-if (sender == tryggi_var.id_ctrl) {
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_show_error(uint16_t sender) {
+void dispatch_bluetooth_act(uint16_t sender) {
 if (sender == test_var.id_tryggi) {
-Tryggi_handle_ctrl_show_error(&tryggi_var);
+Tryggi_handle_ctrl_bluetooth_act(&tryggi_var);
 
 }
 
@@ -2067,30 +2091,6 @@ Tryggi_handle_ctrl_show_error(&tryggi_var);
 void dispatch_show_success(uint16_t sender) {
 if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_show_success(&tryggi_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_breath(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_breath(&neo_heart_var);
-
-}
-if (sender == tryggi_var.id_head) {
-NeoPixelGroup_handle_ctrl_breath(&neo_head_var);
-
-}
-
-}
-
-
-//New dispatcher for messages
-void dispatch_tellucloud_act(uint16_t sender) {
-if (sender == test_var.id_tryggi) {
-Tryggi_handle_ctrl_tellucloud_act(&tryggi_var);
 
 }
 
@@ -2109,42 +2109,84 @@ code += fifo_dequeue();
 
 // Switch to call the appropriate handler
 switch(code) {
+case 11:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_ping_tryggy = 2;
+dispatch_ping_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
 case 4:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_bluetooth_act = 2;
-dispatch_bluetooth_act((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 13:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_pulse = 2;
-dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 8:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_clear_status = 2;
-dispatch_clear_status((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 2:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_fps_clock = 2;
-dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 15:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_solid = 2;
 dispatch_solid((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
+case 12:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_show_error = 2;
+dispatch_show_error((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 6:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_breath = 2;
+dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 3:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_pong_tryggy = 2;
+dispatch_pong_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 8:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_blink = 2;
+dispatch_blink((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 13:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_clear_status = 2;
+dispatch_clear_status((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 9:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_pulse = 2;
+dispatch_pulse((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
 case 16:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_tellucloud_act = 2;
+dispatch_tellucloud_act((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
+case 10:{
+byte mbuf[5 - 2];
+while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_rotate = 2;
+union u_rotate_speed_t {
+int8_t p;
+byte bytebuffer[1];
+} u_rotate_speed;
+u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
+mbufi_rotate += 1;
+dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
+ u_rotate_speed.p /* speed */ );
+break;
+}
+case 5:{
 byte mbuf[7 - 2];
 while (mbufi < (7 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_setColor = 2;
@@ -2172,13 +2214,6 @@ dispatch_setColor((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_setColor_blue.p /* blue */ );
 break;
 }
-case 3:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_ping_tryggy = 2;
-dispatch_ping_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
 case 1:{
 byte mbuf[5 - 2];
 while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
@@ -2193,81 +2228,46 @@ dispatch_timer_timeout((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_timer_timeout_id.p /* id */ );
 break;
 }
-case 10:{
+case 7:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_off = 2;
 dispatch_off((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
-case 11:{
-byte mbuf[5 - 2];
-while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_rotate = 2;
-union u_rotate_speed_t {
-int8_t p;
-byte bytebuffer[1];
-} u_rotate_speed;
-u_rotate_speed.bytebuffer[0] = mbuf[mbufi_rotate + 0];
-mbufi_rotate += 1;
-dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
- u_rotate_speed.p /* speed */ );
-break;
-}
-case 9:{
+case 2:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_pong_tryggy = 2;
-dispatch_pong_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_fps_clock = 2;
+dispatch_fps_clock((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
-case 12:{
+case 14:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_blink = 2;
-dispatch_blink((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_bluetooth_act = 2;
+dispatch_bluetooth_act((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
-case 5:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_show_error = 2;
-dispatch_show_error((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 6:{
+case 15:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
 uint8_t mbufi_show_success = 2;
 dispatch_show_success((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
-case 7:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_tellucloud_act = 2;
-dispatch_tellucloud_act((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
-case 14:{
-byte mbuf[4 - 2];
-while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_breath = 2;
-dispatch_breath((mbuf[0] << 8) + mbuf[1] /* instance port*/);
-break;
-}
 }
 return 1;
 }
 
-void forward_Tryggi_send_timer_timer_start(struct Tryggi_Instance *_instance, uint8_t id, uint32_t time){
-if(_instance->id_timer == tryggi_var.id_timer) {
-forward_timer2_Tryggi_send_timer_timer_start(_instance, id, time);
-}
-}
 void forward_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
 if(_instance->id_clock == test_var.id_clock) {
 forward_timer2_TryggiTest_send_clock_timer_start(_instance, id, time);
+}
+}
+void forward_Tryggi_send_timer_timer_start(struct Tryggi_Instance *_instance, uint8_t id, uint32_t time){
+if(_instance->id_timer == tryggi_var.id_timer) {
+forward_timer2_Tryggi_send_timer_timer_start(_instance, id, time);
 }
 }
 void forward_Tryggi_send_timer_timer_cancel(struct Tryggi_Instance *_instance, uint8_t id){
@@ -2312,12 +2312,6 @@ void initialize_configuration_LocalTryggiTest() {
 register_external_Tryggi_send_timer_timer_start_listener(&forward_Tryggi_send_timer_timer_start);
 register_external_Tryggi_send_timer_timer_cancel_listener(&forward_Tryggi_send_timer_timer_cancel);
 register_external_TryggiTest_send_clock_timer_start_listener(&forward_TryggiTest_send_clock_timer_start);
-register_TryggiTest_send_tryggi_ping_tryggy_listener(&enqueue_TryggiTest_send_tryggi_ping_tryggy);
-register_TryggiTest_send_tryggi_bluetooth_act_listener(&enqueue_TryggiTest_send_tryggi_bluetooth_act);
-register_TryggiTest_send_tryggi_tellucloud_act_listener(&enqueue_TryggiTest_send_tryggi_tellucloud_act);
-register_TryggiTest_send_tryggi_show_success_listener(&enqueue_TryggiTest_send_tryggi_show_success);
-register_TryggiTest_send_tryggi_show_error_listener(&enqueue_TryggiTest_send_tryggi_show_error);
-register_TryggiTest_send_tryggi_clear_status_listener(&enqueue_TryggiTest_send_tryggi_clear_status);
 register_Tryggi_send_ctrl_pong_tryggy_listener(&enqueue_Tryggi_send_ctrl_pong_tryggy);
 register_Tryggi_send_head_setColor_listener(&enqueue_Tryggi_send_head_setColor);
 register_Tryggi_send_head_off_listener(&enqueue_Tryggi_send_head_off);
@@ -2333,6 +2327,12 @@ register_Tryggi_send_heart_rotate_listener(&enqueue_Tryggi_send_heart_rotate);
 register_Tryggi_send_heart_breath_listener(&enqueue_Tryggi_send_heart_breath);
 register_Tryggi_send_heart_solid_listener(&enqueue_Tryggi_send_heart_solid);
 register_Tryggi_send_heart_blink_listener(&enqueue_Tryggi_send_heart_blink);
+register_TryggiTest_send_tryggi_ping_tryggy_listener(&enqueue_TryggiTest_send_tryggi_ping_tryggy);
+register_TryggiTest_send_tryggi_bluetooth_act_listener(&enqueue_TryggiTest_send_tryggi_bluetooth_act);
+register_TryggiTest_send_tryggi_tellucloud_act_listener(&enqueue_TryggiTest_send_tryggi_tellucloud_act);
+register_TryggiTest_send_tryggi_show_success_listener(&enqueue_TryggiTest_send_tryggi_show_success);
+register_TryggiTest_send_tryggi_show_error_listener(&enqueue_TryggiTest_send_tryggi_show_error);
+register_TryggiTest_send_tryggi_clear_status_listener(&enqueue_TryggiTest_send_tryggi_clear_status);
 
 // Init the ID, state variables and properties for external connector timer2
 // Init the ID, state variables and properties for external connector timer2
@@ -2347,54 +2347,54 @@ timer2_setup();
 
 // End Network Initialization
 
-// Init the ID, state variables and properties for instance neo_head
-neo_head_var.active = true;
-neo_head_var.id_ctrl = add_instance( (void*) &neo_head_var);
-neo_head_var.id_clock = add_instance( (void*) &neo_head_var);
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_PULSE_STATE;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
-neo_head_var.NeoPixelGroup_neopixel_first_var = 1;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
-neo_head_var.NeoPixelGroup_neopixel_total_count_var = 4;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
-neo_head_var.NeoPixelGroup_neopixel_last_var = 2;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
-neo_head_var.NeoPixelGroup_neopixel_pin_var = 7;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var = 186;
-
-NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_head_var);
 // Init the ID, state variables and properties for instance neo_heart
 neo_heart_var.active = true;
 neo_heart_var.id_ctrl = add_instance( (void*) &neo_heart_var);
 neo_heart_var.id_clock = add_instance( (void*) &neo_heart_var);
 neo_heart_var.NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_PULSE_STATE;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
-neo_heart_var.NeoPixelGroup_neopixel_first_var = 0;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
 neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
-neo_heart_var.NeoPixelGroup_neopixel_total_count_var = 4;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
+neo_heart_var.NeoPixelGroup_neopixel_first_var = 0;
 neo_heart_var.NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var = 0;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
-neo_heart_var.NeoPixelGroup_neopixel_last_var = 0;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
-neo_heart_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
 neo_heart_var.NeoPixelGroup_neopixel_pin_var = 7;
+neo_heart_var.NeoPixelGroup_neopixel_last_var = 0;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
+neo_heart_var.NeoPixelGroup_neopixel_total_count_var = 4;
 neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var = 186;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
+neo_heart_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
 
 NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_heart_var);
+// Init the ID, state variables and properties for instance neo_head
+neo_head_var.active = true;
+neo_head_var.id_ctrl = add_instance( (void*) &neo_head_var);
+neo_head_var.id_clock = add_instance( (void*) &neo_head_var);
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_PULSE_STATE;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
+neo_head_var.NeoPixelGroup_neopixel_first_var = 1;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var = 0;
+neo_head_var.NeoPixelGroup_neopixel_pin_var = 7;
+neo_head_var.NeoPixelGroup_neopixel_last_var = 2;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
+neo_head_var.NeoPixelGroup_neopixel_total_count_var = 4;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var = 186;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
+
+NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_head_var);
 // Init the ID, state variables and properties for instance tryggi
 tryggi_var.active = true;
 tryggi_var.id_ctrl = add_instance( (void*) &tryggi_var);

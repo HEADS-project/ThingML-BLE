@@ -1,0 +1,65 @@
+@startuml
+caption Things used in configuration HouseTestCfg
+class Light <<(T,#F94918)PSM>> {
+..Properties..
+-ID : UInt8 = 1
+-digital_pin : UInt8 = 2
+..Port cmds..
+>>setLight
+}
+class HouseMsgs <<(F,#BC74ED)Fragment>> {
+..Messages..
+-openDoor(id : UInt8)
+-closeDoor(id : UInt8)
+-setLight(id : UInt8v : UInt8)
+}
+class Door <<(T,#F94918)PSM>> {
+..Properties..
+-ID : UInt8 = 1
+-servo_pin : UInt8 = 9
+-vOPEN : UInt8 = 130
+-vCLOSE : UInt8 = 40
+-servo : ArduinoServo
+..Port cmds..
+>>openDoor
+>>closeDoor
+..Port clock..
+>>clock_25ms
+}
+note left of Door : <b>@c_header</b> <color:royalBlue>"#include <Servo.h>"</color>\n
+class TimerMsgs <<(F,#BC74ED)Fragment>> {
+..Messages..
+-timer_start(id : UInt8time : UInt32)
+-timer_cancel(id : UInt8)
+-timer_timeout(id : UInt8)
+-clock_25ms()
+}
+class HouseTest <<(T,#5BBF09)PIM>> {
+..Properties..
+-NB_LIGHTS : UInt8 = 4
+-NB_DOORS : UInt8 = 2
+..Port timer..
+>>timer_timeout
+<<timer_start
+..Port house..
+<<setLight
+<<openDoor
+<<closeDoor
+}
+class House <<(T,#5BBF09)PIM>> {
+..Port housecontrol..
+>>setLight
+>>openDoor
+>>closeDoor
+..Port housebus..
+<<setLight
+<<openDoor
+<<closeDoor
+}
+HouseMsgs <|-- Light
+HouseMsgs <|-- Door
+TimerMsgs <|-- Door
+HouseMsgs <|-- HouseTest
+TimerMsgs <|-- HouseTest
+HouseMsgs <|-- House
+@enduml

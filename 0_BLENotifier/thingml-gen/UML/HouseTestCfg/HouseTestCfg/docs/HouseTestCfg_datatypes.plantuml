@@ -1,0 +1,12 @@
+@startuml
+caption Datatypes used in configuration HouseTestCfg
+class UInt8 <<(D,#D2E524)1>> {
+}
+note bottom of UInt8 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class ArduinoServo <<(O,#E5D224)>> {
+}
+note bottom of ArduinoServo : <b>@c_type</b> <color:royalBlue>"Servo"</color>\n<b>@c_byte_size</b> <color:royalBlue>"2"</color>\n
+class UInt32 <<(D,#D2E524)4>> {
+}
+note bottom of UInt32 : <b>@type_checker</b> <color:royalBlue>"Integer"</color>\n<b>@c_type</b> <color:royalBlue>"uint32_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"4"</color>\n
+@enduml

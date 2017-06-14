@@ -38,15 +38,13 @@ thing Tryggi includes TryggiMsgs, NeoPixelGroupMsgs, TimerMsgs {
 	function neo_standby() do
 		head!off()
 		heart!off()
-		heart!setColor(0, 255, 40)
+		heart!setColor(0, 40, 255)
 		heart!pulse()
 	end
 	
 	function neo_clear_status() do
 		head!off()
 	end
-	
-	
 	
 	function neo_ping_lost() do
 		head!off()

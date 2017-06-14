@@ -1,0 +1,13 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing House
+[*] --> House
+state House{
+state Ready{
+	Ready : c:housecontrol?setLight / \naction housebus!setLight(...)\n
+	Ready : c:housecontrol?openDoor / \naction housebus!openDoor(openDoor.id)\n
+	Ready : c:housecontrol?closeDoor / \naction housebus!closeDoor(closeDoor.id)\n
+}
+[*] --> Ready
+}
+@enduml

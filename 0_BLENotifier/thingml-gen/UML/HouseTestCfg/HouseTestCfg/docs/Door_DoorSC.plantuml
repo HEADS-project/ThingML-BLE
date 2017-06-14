@@ -1,0 +1,34 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing Door
+[*] --> DoorSC
+state DoorSC{
+state CLOSING{
+	CLOSING : entry / do \n'' & servo & '.attach(' & servo_pin & ');'\n'' & servo & '.write(' & servo_value & ');'\nend\n
+	CLOSING : exit / '' & servo & '.detach();'\n
+
+CLOSING --> CLOSED : [servo_value <= vCLOSE]
+
+CLOSING --> OPENING : c:cmds?openDoor[(openDoor.id == ID or openDoor.id == 0)]
+	CLOSING : clock?clock_25ms / [servo_value > vCLOSE]\naction do \nservo_value = servo_value - 2\n'' & servo & '.write(' & servo_value & ');'\nend\n
+}
+state CLOSED{
+
+CLOSED --> OPENING : c:cmds?openDoor[(openDoor.id == ID or openDoor.id == 0)]
+}
+state OPENING{
+	OPENING : entry / '' & servo & '.attach(' & servo_pin & ');'\n
+	OPENING : exit / '' & servo & '.detach();'\n
+
+OPENING --> OPENED : [servo_value >= vOPEN]
+
+OPENING --> CLOSING : c:cmds?closeDoor[(closeDoor.id == ID or closeDoor.id == 0)]
+	OPENING : clock?clock_25ms / [servo_value < vOPEN]\naction do \nservo_value = servo_value + 2\n'' & servo & '.write(' & servo_value & ');'\nend\n
+}
+state OPENED{
+
+OPENED --> CLOSING : c:cmds?closeDoor[(closeDoor.id == ID or closeDoor.id == 0)]
+}
+[*] --> CLOSING
+}
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing HouseTest
+[*] --> HouseTest
+state HouseTest{
+state Init{
+	Init : entry / do \ntimer!timer_start(...)\nhouse!closeDoor(0)\nhouse!setLight(...)\nend\n
+
+Init --> LightsOn : timer?timer_timeout
+}
+state LightsOn{
+	LightsOn : entry / do \nlight = 1\ntimer!timer_start(...)\nend\n
+
+LightsOn --> OpenDoors : timer?timer_timeout[light > NB_LIGHTS]
+	LightsOn : timer?timer_timeout / [light <= NB_LIGHTS]\naction do \nhouse!setLight(...)\nlight = light + 1\ntimer!timer_start(...)\nend\n
+}
+state OpenDoors{
+	OpenDoors : entry / do \ndoor = 1\ntimer!timer_start(...)\nend\n
+
+OpenDoors --> Wait : timer?timer_timeout[door > NB_DOORS]
+	OpenDoors : timer?timer_timeout / [door <= NB_DOORS]\naction do \nhouse!openDoor(door)\ndoor = door + 1\ntimer!timer_start(...)\nend\n
+}
+state Wait{
+	Wait : entry / timer!timer_start(...)\n
+
+Wait --> Init : timer?timer_timeout
+}
+[*] --> Init
+}
+@enduml

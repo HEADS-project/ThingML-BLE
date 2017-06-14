@@ -1,0 +1,22 @@
+@startuml
+caption Instances and Connectors in configuration HouseTestCfg
+component upstairsLight<<PSM>>
+component bedroomDoor<<PSM>>
+component test<<PIM>>
+component bathroomLight<<PSM>>
+component house<<PIM>>
+component bedroomLight<<PSM>>
+component downstairsLight<<PSM>>
+component bathroomDoor<<PSM>>
+boundary Timer
+house -(0- bedroomLight : housebus => cmds
+house -(0- bedroomDoor : housebus => cmds
+house -(0- downstairsLight : housebus => cmds
+test -(0- house : house => housecontrol
+house -(0- upstairsLight : housebus => cmds
+house -(0- bathroomLight : housebus => cmds
+house -(0- bathroomDoor : housebus => cmds
+bedroomDoor .. Timer : clock
+bathroomDoor .. Timer : clock
+test .. Timer : timer
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing Light
+[*] --> LightSC
+state LightSC{
+state OFF{
+	OFF : entry / 'digitalWrite(' & digital_pin & ', LOW);'\n
+
+OFF --> ON : c:cmds?setLight[(setLight.id == ID or setLight.id == 0) and setLight.v > 0]
+}
+state ON{
+	ON : entry / 'digitalWrite(' & digital_pin & ', HIGH);'\n
+
+ON --> OFF : c:cmds?setLight[(setLight.id == ID or setLight.id == 0) and setLight.v == 0]
+}
+[*] --> OFF
+	LightSC : entry / 'pinMode(' & digital_pin & ', OUTPUT);'\n
+}
+@enduml
