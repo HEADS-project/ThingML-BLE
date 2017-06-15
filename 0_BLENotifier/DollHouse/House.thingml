@@ -208,14 +208,14 @@ configuration HouseTestCfg {
 		set bedroomDoor.servo_pin		= 9
 		set bedroomDoor.vOPEN			= 135
 		set bedroomDoor.vCLOSE			= 25
-	connector bedroomDoor.clock over Timer //@hardware_timer "1"
+	connector bedroomDoor.clock over Timer 
 		
 	instance bathroomDoor : Door
 		set bathroomDoor.ID				= 2
 		set bathroomDoor.servo_pin		= 10
 		set bathroomDoor.vOPEN			= 130
 		set bathroomDoor.vCLOSE			= 40
-	connector bathroomDoor.clock over Timer //@hardware_timer "1"
+	connector bathroomDoor.clock over Timer
 		
 	instance house : House
 	
@@ -229,6 +229,6 @@ configuration HouseTestCfg {
 	instance test : HouseTest
 	
 	connector test.house => house.housecontrol
-	connector test.timer over Timer //@hardware_timer "1"
+	connector test.timer over Timer
 	
 }
