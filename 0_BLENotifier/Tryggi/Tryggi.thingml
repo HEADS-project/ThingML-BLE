@@ -1,18 +1,5 @@
 import "NeoPixelGroup.thingml"
-
-thing fragment TryggiMsgs {
-	message ping_tryggy();
-	message pong_tryggy();
-	
-	message bluetooth_act();
-	message tellucloud_act();
-	
-	message show_success();
-	message show_error();
-	
-	message clear_status();
-}
-
+import "TryggiMessages.thingml"
 
 thing Tryggi includes TryggiMsgs, NeoPixelGroupMsgs, TimerMsgs {
 	
@@ -107,83 +94,7 @@ thing Tryggi includes TryggiMsgs, NeoPixelGroupMsgs, TimerMsgs {
 }
 
 
-thing TryggiTest includes TryggiMsgs, TimerMsgs {
-	
-	required port clock {
-		receives timer_timeout
-		sends timer_start
-	}
-	
-	required port tryggi {
-		sends ping_tryggy, bluetooth_act, tellucloud_act, show_success, show_error, clear_status
-		receives pong_tryggy
-	}
-	
-	statechart TryggiTestSC init DISCONNECTED {
-		
-		state DISCONNECTED {
-			on entry clock!timer_start(0,3000)
-			transition -> CONNECTED event clock?timer_timeout
-		}
-		
-		state CONNECTED {
-			on entry do 
-				clock!timer_start(0,4000)
-				tryggi!ping_tryggy()
-			end
-			transition -> BLUETOOTH event clock?timer_timeout
-		}
-		
-		state BLUETOOTH {
-			on entry do 
-				clock!timer_start(0,2500)
-				tryggi!ping_tryggy()
-				tryggi!bluetooth_act()
-			end
-			transition -> SUCCESS event clock?timer_timeout
-		}
-		
-		state SUCCESS {
-			on entry do 
-				clock!timer_start(0,1500)
-				tryggi!ping_tryggy()
-				tryggi!show_success()
-			end
-			transition -> TELLU event clock?timer_timeout
-		}
-		
-		state TELLU {
-			on entry do 
-				clock!timer_start(0,2500)
-				tryggi!ping_tryggy()
-				tryggi!tellucloud_act()
-			end
-			transition -> ERROR event clock?timer_timeout
-		}
-		
-		// Stop sending the pig from here. the tryggy should show that it is disconnected after 5 sec
-		
-		state ERROR { 
-			on entry do 
-				clock!timer_start(0,1500)
-				tryggi!show_error()
-			end
-			transition -> STDBY event clock?timer_timeout
-		}
-		
-		state STDBY {
-			on entry do 
-				clock!timer_start(0,5000)
-				tryggi!clear_status()
-			end
-			transition -> DISCONNECTED event clock?timer_timeout
-		}
-	}
-}
-
-
-
-configuration LocalTryggiTest {
+configuration TryggiArduino {
 	
 	instance tryggi : Tryggi
 	connector tryggi.timer over Timer
@@ -202,9 +113,5 @@ configuration LocalTryggiTest {
 	connector neo_heart.clock over Timer
 	connector tryggi.heart => neo_heart.ctrl
 	
-	instance test : TryggiTest
-	connector test.clock over Timer
-	connector test.tryggi => tryggi.ctrl
-
+	connector tryggi.ctrl over Serial
 }
-

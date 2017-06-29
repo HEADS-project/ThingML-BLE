@@ -1,0 +1,160 @@
+import "_Datatypes.thingml"
+import "_Timer.thingml"
+import "TryggiMessages.thingml"
+
+thing fragment BrokerPing includes TimerMsgs {
+	required port clock {
+		receives timer_timeout
+		sends timer_start
+	}
+		
+	property tryggiID : UInt8 = 0
+	message gateway_ping(tryggi_id : UInt8)
+	
+	required port broker_ping {
+		sends gateway_ping
+		receives gateway_ping
+	}
+	
+	function send_broker_ping() do
+		print "Sending ping to MQTT broker..."
+		clock!timer_start(0, 2000)
+		broker_ping!gateway_ping(tryggiID)
+	end
+}
+
+thing fragment Measurements {
+	message MqttRequestBloodPressureMeasurement();
+  	message MqttConfirmBloodPressureMeasurement();
+  	
+  	message MqttRequestWeightMeasurement();
+  	message MqttConfirmWeightMeasurement();
+  	
+  	required port BloodPressure {
+  		receives MqttRequestBloodPressureMeasurement, MqttConfirmBloodPressureMeasurement
+  	}
+  	
+  	required port WeightScale {
+  		receives MqttRequestWeightMeasurement, MqttConfirmWeightMeasurement
+  	}
+}
+
+thing fragment FallDetection {
+	message falldetected();
+	
+	required port Fall {
+		receives falldetected
+	}	
+}
+
+thing TryggiGW includes TryggiMsgs, BrokerPing, Measurements, FallDetection {
+	required port tryggi {
+		sends ping_tryggy, bluetooth_act, tellucloud_act, show_success, show_error, clear_status
+		receives pong_tryggy
+	}
+	
+	statechart GW init Startup {
+		state Startup {
+			on entry do 
+				tryggi!clear_status()
+				send_broker_ping()
+			end
+			
+			transition -> Standby
+		}
+		
+		composite state Standby init WaitForRequest {
+			property BPrequested : UInt8 = 0
+			property WSrequested : UInt8 = 0
+			
+			state WaitForRequest {
+				on entry tryggi!clear_status()
+				
+				transition -> MesurementRequested guard (BPrequested != 0 or WSrequested != 0)
+			}
+			
+			state MesurementRequested {
+				on entry tryggi!bluetooth_act()
+				
+				transition -> WaitForRequest guard (BPrequested == 0 and WSrequested == 0)
+			}
+			
+			internal event BloodPressure?MqttRequestBloodPressureMeasurement action BPrequested = 1
+			internal event BloodPressure?MqttConfirmBloodPressureMeasurement action BPrequested = 0
+			
+			internal event WeightScale?MqttRequestWeightMeasurement action WSrequested = 1
+			internal event WeightScale?MqttConfirmWeightMeasurement action WSrequested = 0
+			
+			transition -> FallDetected event Fall?falldetected
+		}
+		
+		state FallDetected {
+			on entry do
+				print "Fall detected!\n"
+				tryggi!show_error()
+				clock!timer_start(1,10000)
+			end
+			
+			transition -> Standby event t : clock?timer_timeout guard (t.id == 1)
+		}
+		
+		// Re-send pings regularly
+		internal event t : clock?timer_timeout guard (t.id == 0) action send_broker_ping()
+		
+		// Send pings from MQTT to Tryggi
+		internal event p : broker_ping?gateway_ping guard (p.tryggi_id == tryggiID) action do
+			print "Received ping!\n"
+			tryggi!ping_tryggy()
+		end
+	}
+}
+
+// Broker pings
+protocol MQTT1 @serializer "PosixJSONSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_topic "tryggigw";
+
+// Blood pressure
+protocol MQTT2 @serializer "PosixTelluCloudSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @tellucloud_deviceid "5C:31:3E:00:4B:6B"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttRequestBloodPressureMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:00:4B:6B/MqttConfirmBloodPressureMeasurement";
+  
+// Weight scale
+protocol MQTT3 @serializer "PosixTelluCloudSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @tellucloud_deviceid "5C:31:3E:5F:00:7A"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttRequestWeightMeasurement"
+  @mqtt_subscribe_topic "5C:31:3E:5F:00:7A/MqttConfirmWeightMeasurement";
+  
+// Fall detection
+protocol MQTT4 @serializer "PosixJSONSerializerPlugin"
+  @mqtt_broker_address "mqtt.tellucloud.com" @trace_level "2"
+  @mqtt_subscribe_topic "d7aeebbfe4a7/smarttracker/fallIndex"
+  @mqtt_subscribe_topic "f1644c44bb01/smarttracker/fallIndex"
+  @mqtt_custom_parser "
+    uint8_t buffer[2];
+    int length = 0;
+
+    const char* fallEvent = \"\\\"health.event\\\":\\\"fall\\\"\";
+    
+    if (strstr(msg, fallEvent) != 0) {
+    	// This is a fall detection message, so lets enqueue it (it has no parameters, so only code)
+    	buffer[0] = (MESSAGECODE:falldetected >> 8);
+    	buffer[1] = (MESSAGECODE:falldetected & 0xFF);
+    	length = 2;
+    }
+";
+
+configuration TryggiGWRPi {
+	instance gw : TryggiGW
+	set gw.tryggiID = 1
+	
+	connector gw.clock over Timer
+	connector gw.tryggi over Serial
+	connector gw.broker_ping over MQTT1
+	connector gw.BloodPressure over MQTT2
+	connector gw.WeightScale over MQTT3
+	connector gw.Fall over MQTT4
+}

@@ -1,0 +1,14 @@
+thing fragment TryggiMsgs {
+	message ping_tryggy() @code "200";
+	message pong_tryggy() @code "201";
+	
+	message bluetooth_act() @code "202";
+	message tellucloud_act() @code "203";
+	
+	message show_success() @code "204";
+	message show_error() @code "205";
+	
+	message clear_status() @code "206";
+}
+
+protocol Serial @serial_baudrate "9600" @serial_path_to_device "/dev/ttyS0" @serializer "binary";
