@@ -49,7 +49,7 @@ thing Tryggi includes TryggiMsgs, NeoPixelGroupMsgs, TimerMsgs {
 	function neo_error() do
 		head!off()
 		head!setColor(255, 40, 0)
-		head!solid()
+		head!blink()
 	end
 	
 	function neo_bluetooth_act() do
@@ -102,7 +102,7 @@ configuration TryggiArduino {
 	instance neo_head : NeoPixelGroup
 	set neo_head.neopixel_pin = 7
 	set neo_head.neopixel_first = 1
-	set neo_head.neopixel_last = 2
+	set neo_head.neopixel_last = 3
 	connector neo_head.clock over Timer
 	connector tryggi.head => neo_head.ctrl
 	
