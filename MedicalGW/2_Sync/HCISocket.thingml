@@ -21,7 +21,7 @@ thing fragment HCISocket includes HCISocketMsgs, HCIController, SMP, ATT
   }
 }
 
-thing HCISocketProxy includes HCISocketMsgs, HCIControllerProxy, SMPProxy, ATTProxy
+thing fragment HCISocketProxy includes HCISocketMsgs, HCIControllerProxy, SMPProxy, ATTProxy
 {
   property Device : String // Device address or name
 
@@ -32,13 +32,13 @@ thing HCISocketProxy includes HCISocketMsgs, HCIControllerProxy, SMPProxy, ATTPr
   }
 
   /* Platform specific functions */
-  function OpenSocket() @abstract "true" @SuppressWarnings "Call" do end
-  function CloseSocket() @abstract "true" @SuppressWarnings "Call" do end
-  function SocketIsOpen() @abstract "true" @SuppressWarnings "Call" : Byte do end
-  function GetBTAddress() @abstract "true" @SuppressWarnings "Call" : BTAddress do end
+  abstract function OpenSocket() @abstract "true" @SuppressWarnings "Call"
+  abstract function CloseSocket() @abstract "true" @SuppressWarnings "Call"
+  abstract function SocketIsOpen() : Byte @abstract "true" @SuppressWarnings "Call" 
+  abstract function GetBTAddress() : BTAddress @abstract "true" @SuppressWarnings "Call"  
 
-  function SendCommand(Group : UInt, Command : UInt, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
-  function SendACLData(Handle : UInt, CID : UInt, Length : UInt, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" do end
+  abstract function SendCommand(Group : UInt, Command : UInt, Length : Byte, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" 
+  abstract function SendACLData(Handle : UInt, CID : UInt, Length : UInt, Data : DataPointer) @abstract "true" @SuppressWarnings "Call" 
 
 
   /* Receive ACL Data functions */

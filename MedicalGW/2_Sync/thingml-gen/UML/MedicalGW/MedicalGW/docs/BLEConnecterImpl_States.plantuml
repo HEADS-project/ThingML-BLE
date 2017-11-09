@@ -1,0 +1,91 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing BLEConnecterImpl
+[*] --> States
+state States{
+state NotConnected{
+
+NotConnected --> Connecting : e:Connecter?Connect\naction 'str2ba(' & ConnectAddress & ',&' & ConnectAddressBT & ');'\n
+
+NotConnected --> Connecting : e:Connecter?ConnectToU\naction do \nConnectAddressType = ConnectToU.AddressType\nConnectAddressBT = ConnectToU.Address\nend\n
+
+NotConnected --> Connecting : e:Connecter?ConnectTo\naction do \nConnectAddressType = ConnectTo.AddressType\nConnectAddressBT = ConnectTo.Address\nLongTermKey = ConnectTo.LongTermKey\nEncryptedDiversifier = ConnectTo.EncryptedDiversifier\nRandomNumber = ConnectTo.RandomNumber\nend\n
+	NotConnected : Connecter?Stop / \naction Connecter!Stopped()\n
+}
+state Connecting{
+	Connecting : entry / do \nvar Interval : Int = '0x0010'\nvar Window : Int = '0x0010'\nvar FilterPolicy : BLEInitiatorFilterPolicy = BLEInitiatorFilterPolicy:WHITELIST_NOT_USED\nvar PeerAddressType : BLEAddressType = ConnectAddressType\n...\nvar ConnIntervalMin : Int = '0x0006'\nvar ConnIntervalMax : Int = '0x000C'\nvar ConnLatency : Int = '0x0000'\nvar SupervisionTimeout : Int = '0x00c8'\nvar CELengthMin : Int = '0x0004'\nvar CELengthMax : Int = '0x0006'\nHCICommands!LECreateConnection(...)\nend\n
+
+Connecting --> Failure : e:HCIEvents?LECreateConnectionStatus[(LECreateConnectionStatus.Status > 0)]
+
+Connecting --> CancelConnection : Connecter?Stop
+
+Connecting --> Connected : e:HCIEvents?LEConnectionComplete[(LEConnectionComplete.Status == 0)]\naction do \nConnectedHandle = LEConnectionComplete.ConnectionHandle\nConnectedAddressType = LEConnectionComplete.PeerAddressType\nConnectedAddress = LEConnectionComplete.PeerAddress\nprint "[INFO]: Normal connection complete\\n"\nend\n
+
+Connecting --> Failure : e:HCIEvents?LEConnectionComplete[(LEConnectionComplete.Status > 0)]
+
+Connecting --> Connected : e:HCIEvents?LEEnhancedConnectionComplete[(LEEnhancedConnectionComplete.Status == 0)]\naction do \nConnectedHandle = LEEnhancedConnectionComplete.ConnectionHandle\nprint "[INFO]: Enhanced connection complete\\n"\nend\n
+
+Connecting --> Failure : e:HCIEvents?LEEnhancedConnectionComplete[(LEEnhancedConnectionComplete.Status > 0)]
+	Connecting : e:HCIEvents?LECreateConnectionStatus / [(LECreateConnectionStatus.Status == 0)]\naction do \nprint "[INFO]: Requested connection to "\n'\n          char address[18];\n          bzero(address, 18);\n          ba2str(&' & ConnectAddressBT & ', address);\n          printf("%s", address);\n        '\nprint "...\\n"\nend\n
+}
+state CancelConnection{
+	CancelConnection : entry / HCICommands!LECreateConnectionCancel()\n
+
+CancelConnection --> Failure : e:HCIEvents?LECreateConnectionCancelCompleted[(LECreateConnectionCancelCompleted.Status > 0)]
+
+CancelConnection --> NotConnected : e:HCIEvents?LEConnectionComplete[(LEConnectionComplete.Status == '0x02')]\naction Connecter!Stopped()\n
+
+CancelConnection --> NotConnected : e:HCIEvents?LEEnhancedConnectionComplete[(LEEnhancedConnectionComplete.Status == '0x02')]\naction Connecter!Stopped()\n
+}
+state Connected{
+	Connected : entry / do \nprint "[INFO]: Connected!\\n"\nConnecter!Connected(...)\nend\n
+
+Connected --> Failure : e:HCIEvents?LEStartEncryptionStatus[(LEStartEncryptionStatus.Status > 0)]\naction print "[ERROR]: Start encryption failed!\\n"\n
+
+Connected --> Encrypted : e:HCIEvents?EncryptionChanged[(EncryptionChanged.Status == 0 and EncryptionChanged.Enabled)]
+
+Connected --> Failure : e:HCIEvents?EncryptionChanged[(EncryptionChanged.Status > 0)]\naction print "[ERROR]: Encryption failed!\\n"\n
+
+Connected --> NotConnected : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status == 0)]\naction do \nprint "[INFO]: Connection closed by remote.\\n"\nConnecter!Stopped()\nend\n
+
+Connected --> Failure : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status > 0)]
+
+Connected --> Disconnecting : Connecter?Stop
+	Connected : Connecter?Connect / \naction Connecter!Connected(...)\n
+	Connected : e:Connecter?Encrypt / \naction HCICommands!LEStartEncryption(...)\n
+	Connected : e:HCIEvents?LEStartEncryptionStatus / [(LEStartEncryptionStatus.Status == 0)]\naction print "[INFO]: Requested encryption...\\n"\n
+}
+state Encrypted{
+	Encrypted : entry / do \nprint "[INFO]: Connection encrypted!\\n"\nConnecter!Encrypted()\nend\n
+
+Encrypted --> Connected : e:HCIEvents?EncryptionChanged[(EncryptionChanged.Status == 0 and not EncryptionChanged.Enabled)]
+
+Encrypted --> Failure : e:HCIEvents?EncryptionChanged[(EncryptionChanged.Status > 0)]\naction print "[ERROR]: Encryption failed!\\n"\n
+
+Encrypted --> NotConnected : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status == 0)]\naction do \nprint "[INFO]: Connection closed by remote.\\n"\nConnecter!Stopped()\nend\n
+
+Encrypted --> Failure : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status > 0)]
+
+Encrypted --> Disconnecting : Connecter?Stop
+	Encrypted : Connecter?Connect / \naction Connecter!Connected(...)\n
+	Encrypted : Connecter?Encrypt / \naction Connecter!Encrypted()\n
+}
+state Disconnecting{
+	Disconnecting : entry / HCICommands!Disconnect(...)\n
+
+Disconnecting --> Failure : e:HCIEvents?DisconnectStatus[(DisconnectStatus.Status > 0)]
+
+Disconnecting --> NotConnected : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status == 0)]\naction Connecter!Stopped()\n
+
+Disconnecting --> Failure : e:HCIEvents?DisconnectionCompleted[(DisconnectionCompleted.Status > 0)]
+	Disconnecting : e:HCIEvents?DisconnectStatus / [(DisconnectStatus.Status == 0)]\naction print "[INFO]: Closing connection...\\n"\n
+}
+state Failure{
+	Failure : entry / do \nprint "[ERROR]: BLE_connecter failed :(\\n"\nConnecter!Failure()\nConnecter!Stopped()\nend\n
+
+Failure --> Connecting : e:Connecter?Connect
+	Failure : Connecter?Stop / \naction Connecter!Failure()\n
+}
+[*] --> NotConnected
+}
+@enduml

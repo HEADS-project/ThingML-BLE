@@ -1,0 +1,12 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing ExitHandler
+[*] --> Handler
+state Handler{
+state Waiting{
+	Waiting : entry / do \n'_handler_instance = _instance;'\n'signal(SIGINT, catch_sigint);'\nend\n
+	Waiting : e:Signals?Quit / \naction do \nprint "Exiting!\\n"\n'exit(' & Quit.code & ');'\nend\n
+}
+[*] --> Waiting
+}
+@enduml

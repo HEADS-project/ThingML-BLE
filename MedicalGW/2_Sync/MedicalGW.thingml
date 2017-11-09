@@ -201,14 +201,20 @@ configuration MedicalGW
   connector initialiser.Socket => hci.Socket
   connector initialiser.HCICommands => hci.Commands
   connector initialiser.HCIEvents => hci.Events
+  connector initialiser.ATT => hci.ATT
+  connector initialiser.SMP => hci.SMP
   
   connector scanner.Socket => hci.Socket
   connector scanner.HCICommands => hci.Commands
   connector scanner.HCIEvents => hci.Events
+  connector scanner.ATT => hci.ATT
+  connector scanner.SMP => hci.SMP
   
   connector connecter.Socket => hci.Socket
   connector connecter.HCICommands => hci.Commands
   connector connecter.HCIEvents => hci.Events
+  connector connecter.ATT => hci.ATT
+  connector connecter.SMP => hci.SMP
   
   connector notifierconnecter.Socket => hci.Socket
   connector notifierconnecter.HCICommands => hci.Commands

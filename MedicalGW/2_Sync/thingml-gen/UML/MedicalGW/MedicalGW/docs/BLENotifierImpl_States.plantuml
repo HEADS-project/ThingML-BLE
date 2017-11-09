@@ -1,0 +1,43 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing BLENotifierImpl
+[*] --> States
+state States{
+state Waiting{
+
+Waiting --> Connected : e:Connecter?Connected\naction ConnectedHandle = Connected.Handle\n
+	Waiting : e:Notifications?NotifierConnect / \naction Connecter!ConnectToU(...)\n
+}
+state Connected{
+state SetReadNotifications{
+	SetReadNotifications : entry / do \nvar AttributeValue : GATTData\n'' & AttributeValue & '.length = 2;'\n'' & AttributeValue & '.bytes[0] = 0x01;'\n'' & AttributeValue & '.bytes[1] = 0x00;'\nATT!ATTWriteRequest(...)\nend\n
+
+SetReadNotifications --> WaitForCommand : e:ATT?ATTWriteResponse[(ATTWriteResponse.ConnectionHandle == ConnectedHandle)]
+}
+state WaitForCommand{
+	WaitForCommand : entry / Notifications!NotifierReady()\n
+
+WaitForCommand --> SendCommand : Notifications?NotifierRequest\naction do \nprint "[INFO]: Sending notifier request...\\n"\nCommandToSend = RequestCommand\nend\n
+
+WaitForCommand --> SendCommand : Notifications?NotifierReceived\naction do \nprint "[INFO]: Sending notifier received...\\n"\nCommandToSend = ReceivedCommand\nend\n
+
+WaitForCommand --> SendCommand : Notifications?NotifierError\naction do \nprint "[INFO]: Sending notifier error...\\n"\nCommandToSend = ErrorCommand\nend\n
+
+WaitForCommand --> SendCommand : Notifications?NotifierStored\naction do \nprint "[INFO]: Sending notifier stored...\\n"\nCommandToSend = StoredCommand\nend\n
+}
+state SendCommand{
+	SendCommand : entry / do \nBytesToSend = '' & CommandToSend & '.bytes[0]'\nSendtBytes = 0\nif(BytesToSend > 0) do\ndo \nvar AttributeValue : GATTData\n'' & AttributeValue & '.length = 1;'\n'' & AttributeValue & '.bytes[0] = ' & CommandToSend & '.bytes[' & SendtBytes & '+1];'\nATT!ATTWriteRequest(...)\nend\nend else do\nConnecter!Stop()\n\nend\n
+	SendCommand : e:ATT?ATTWriteResponse / [(ATTWriteResponse.ConnectionHandle == ConnectedHandle)]\naction do \nSendtBytes = SendtBytes + 1\nif(SendtBytes <= BytesToSend) do\ndo \nvar AttributeValue : GATTData\n'' & AttributeValue & '.length = 1;'\n'' & AttributeValue & '.bytes[0] = ' & CommandToSend & '.bytes[' & SendtBytes & '+1];'\nATT!ATTWriteRequest(...)\nend\nend else do\nConnecter!Stop()\n\nend\n
+}
+[*] --> SetReadNotifications
+
+Connected --> Waiting : Connecter?Stopped\naction Notifications!NotifierFinished()\n
+
+Connected --> Waiting : Connecter?Failure\naction Notifications!NotifierFinished()\n
+	Connected : e:ATT?ATTWriteError / [(ATTWriteError.ConnectionHandle == ConnectedHandle)]\naction do \nprint "[ERROR]: Error while writing!\\n"\nConnecter!Stop()\nend\n
+	Connected : e:ATT?ATTHandleValueNotification / [(ATTHandleValueNotification.ConnectionHandle == ConnectedHandle and ATTHandleValueNotification.AttributeHandle == ReadByteValueHandle)]\naction 
+}
+[*] --> Waiting
+	States : entry / do \nRequestCommand = 'request_cmd'\nReceivedCommand = 'received_cmd'\nErrorCommand = 'error_cmd'\nStoredCommand = 'stored_cmd'\nend\n
+}
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+caption Instances and Connectors in configuration MedicalGW
+component scanner<<PSM>>
+component handler<<PSM>>
+component weightscale<<PSM>>
+component bloodpressure<<PSM>>
+component initialiser<<PSM>>
+component main<<PSM>>
+component connecter<<PSM>>
+component notifierconnecter<<PSM>>
+component notifier<<PSM>>
+component hci<<PSM>>
+boundary MQTT2
+boundary MQTT1
+scanner -(0- hci : HCIEvents => Events
+bloodpressure -(0- hci : ATT => ATT
+connecter -(0- hci : SMP => SMP
+scanner -(0- hci : Socket => Socket
+initialiser -(0- hci : SMP => SMP
+notifierconnecter -(0- hci : Socket => Socket
+main -(0- bloodpressure : ANDUA651BLE => ANDUA651BLE
+notifier -(0- hci : ATT => ATT
+scanner -(0- hci : HCICommands => Commands
+bloodpressure -(0- connecter : Connecter => Connecter
+initialiser -(0- hci : HCICommands => Commands
+connecter -(0- hci : HCICommands => Commands
+weightscale -(0- notifier : Notifications => Notifications
+notifierconnecter -(0- hci : HCIEvents => Events
+connecter -(0- hci : Socket => Socket
+initialiser -(0- hci : Socket => Socket
+scanner -(0- hci : SMP => SMP
+main -(0- weightscale : ANDUC352BLE => ANDUC352BLE
+initialiser -(0- hci : ATT => ATT
+main -(0- scanner : Scanner => Scanner
+weightscale -(0- hci : ATT => ATT
+notifier -(0- notifierconnecter : Connecter => Connecter
+bloodpressure -(0- notifier : Notifications => Notifications
+notifierconnecter -(0- hci : HCICommands => Commands
+weightscale -(0- connecter : Connecter => Connecter
+bloodpressure -(0- scanner : Scanner => Scanner
+weightscale -(0- scanner : Scanner => Scanner
+main -(0- handler : Signals => Signals
+connecter -(0- hci : ATT => ATT
+connecter -(0- hci : HCIEvents => Events
+initialiser -(0- hci : HCIEvents => Events
+main -(0- initialiser : Initialiser => Initialiser
+scanner -(0- hci : ATT => ATT
+weightscale .. MQTT2 : Tellu
+bloodpressure .. MQTT1 : Tellu
+@enduml

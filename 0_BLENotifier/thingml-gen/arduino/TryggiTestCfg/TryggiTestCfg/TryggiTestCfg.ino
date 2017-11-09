@@ -127,29 +127,6 @@ void register_external_Tryggi_send_heart_blink_listener(void (*_listener)(struct
 #define TRYGGI_TRYGGISC_CONNECTED_STATE 2
 
 
-/*****************************************************/
-//                    Serial
-/*****************************************************/
-
-struct Serial_instance_type {
-    uint16_t listener_id;
-    /*INSTANCE_INFORMATION*/
-};
-
-extern struct Serial_instance_type Serial_instance;
-
-void Serial_setup();
-
-void Serial_set_listener_id(uint16_t id);
-
-void Serial_forwardMessage(byte * msg, uint8_t size);
-
-void Serial_read();
-
-/********************* FORWARDERS *********************/
-
-/*FORWARDERS*/// Forwarding of messages Serial::Tryggi::ctrl::pong_tryggy
-void forward_Serial_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance);
 
 struct timer2_instance_type {
     uint16_t listener_id;
@@ -164,6 +141,54 @@ void timer2_read();
 //void forward_timer2_SoftButton_send_Timer_timer_cancel(struct SoftButton_Instance *_instance, uint8_t id);
 void forward_timer2_Tryggi_send_timer_timer_start(struct Tryggi_Instance *_instance, uint8_t id, uint32_t time);
 void forward_timer2_Tryggi_send_timer_timer_cancel(struct Tryggi_Instance *_instance, uint8_t id);
+void forward_timer2_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time);
+/*****************************************************************************
+ * Headers for type : TryggiTest
+ *****************************************************************************/
+
+// Definition of the instance struct:
+struct TryggiTest_Instance {
+
+// Instances of different sessions
+bool active;
+// Variables for the ID of the ports of the instance
+uint16_t id_clock;
+uint16_t id_tryggi;
+// Variables for the current instance state
+int TryggiTest_TryggiTestSC_State;
+// Variables for the properties of the instance
+
+};
+// Declaration of prototypes outgoing messages :
+void TryggiTest_TryggiTestSC_OnEntry(int state, struct TryggiTest_Instance *_instance);
+void TryggiTest_handle_clock_timer_timeout(struct TryggiTest_Instance *_instance, uint8_t id);
+// Declaration of callbacks for incoming messages:
+void register_TryggiTest_send_clock_timer_start_listener(void (*_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t));
+void register_external_TryggiTest_send_clock_timer_start_listener(void (*_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t));
+void register_TryggiTest_send_tryggi_ping_tryggy_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_ping_tryggy_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_TryggiTest_send_tryggi_bluetooth_act_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_bluetooth_act_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_TryggiTest_send_tryggi_tellucloud_act_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_tellucloud_act_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_TryggiTest_send_tryggi_show_success_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_show_success_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_TryggiTest_send_tryggi_show_error_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_show_error_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_TryggiTest_send_tryggi_clear_status_listener(void (*_listener)(struct TryggiTest_Instance *));
+void register_external_TryggiTest_send_tryggi_clear_status_listener(void (*_listener)(struct TryggiTest_Instance *));
+
+// Definition of the states:
+#define TRYGGITEST_TRYGGITESTSC_STATE 0
+#define TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE 1
+#define TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE 2
+#define TRYGGITEST_TRYGGITESTSC_ERROR_STATE 3
+#define TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE 4
+#define TRYGGITEST_TRYGGITESTSC_STDBY_STATE 5
+#define TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE 6
+#define TRYGGITEST_TRYGGITESTSC_TELLU_STATE 7
+
+
 
 /* Adds and instance to the runtime and returns its id */
 uint16_t add_instance(void * instance_struct);
@@ -188,7 +213,7 @@ int _fifo_enqueue(byte b);
    The caller should check that the fifo is not empty */
 byte fifo_dequeue();
 
-#define MAX_INSTANCES 12
+#define MAX_INSTANCES 14
 #define FIFO_SIZE 256
 
 /*********************************
@@ -265,6 +290,267 @@ byte fifo_dequeue() {
   }
   return 0;
 }
+
+/*****************************************************************************
+ * Implementation for type : TryggiTest
+ *****************************************************************************/
+
+// Declaration of prototypes:
+//Prototypes: State Machine
+void TryggiTest_TryggiTestSC_OnExit(int state, struct TryggiTest_Instance *_instance);
+//Prototypes: Message Sending
+void TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time);
+void TryggiTest_send_tryggi_ping_tryggy(struct TryggiTest_Instance *_instance);
+void TryggiTest_send_tryggi_bluetooth_act(struct TryggiTest_Instance *_instance);
+void TryggiTest_send_tryggi_tellucloud_act(struct TryggiTest_Instance *_instance);
+void TryggiTest_send_tryggi_show_success(struct TryggiTest_Instance *_instance);
+void TryggiTest_send_tryggi_show_error(struct TryggiTest_Instance *_instance);
+void TryggiTest_send_tryggi_clear_status(struct TryggiTest_Instance *_instance);
+//Prototypes: Function
+// Declaration of functions:
+
+// Sessions functionss:
+
+
+// On Entry Actions:
+void TryggiTest_TryggiTestSC_OnEntry(int state, struct TryggiTest_Instance *_instance) {
+switch(state) {
+case TRYGGITEST_TRYGGITESTSC_STATE:{
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE;
+TryggiTest_TryggiTestSC_OnEntry(_instance->TryggiTest_TryggiTestSC_State, _instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE:{
+// PRINT: "Success\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 1500);
+TryggiTest_send_tryggi_ping_tryggy(_instance);
+TryggiTest_send_tryggi_show_success(_instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE:{
+TryggiTest_send_clock_timer_start(_instance, 0, 3000);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_ERROR_STATE:{
+// PRINT: "Error\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 1500);
+TryggiTest_send_tryggi_show_error(_instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE:{
+// PRINT: "Connected\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 4000);
+TryggiTest_send_tryggi_ping_tryggy(_instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_STDBY_STATE:{
+// PRINT: "Standby\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 5000);
+TryggiTest_send_tryggi_clear_status(_instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE:{
+// PRINT: "Bluetooth\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 2500);
+TryggiTest_send_tryggi_ping_tryggy(_instance);
+TryggiTest_send_tryggi_bluetooth_act(_instance);
+break;
+}
+case TRYGGITEST_TRYGGITESTSC_TELLU_STATE:{
+// PRINT: "Tellu\n"
+TryggiTest_send_clock_timer_start(_instance, 0, 2500);
+TryggiTest_send_tryggi_ping_tryggy(_instance);
+TryggiTest_send_tryggi_tellucloud_act(_instance);
+break;
+}
+default: break;
+}
+}
+
+// On Exit Actions:
+void TryggiTest_TryggiTestSC_OnExit(int state, struct TryggiTest_Instance *_instance) {
+switch(state) {
+case TRYGGITEST_TRYGGITESTSC_STATE:{
+TryggiTest_TryggiTestSC_OnExit(_instance->TryggiTest_TryggiTestSC_State, _instance);
+break;}
+case TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_ERROR_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_STDBY_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE:{
+break;}
+case TRYGGITEST_TRYGGITESTSC_TELLU_STATE:{
+break;}
+default: break;
+}
+}
+
+// Event Handlers for incoming messages:
+void TryggiTest_handle_clock_timer_timeout(struct TryggiTest_Instance *_instance, uint8_t id) {
+if(!(_instance->active)) return;
+//Region TryggiTestSC
+uint8_t TryggiTest_TryggiTestSC_State_event_consumed = 0;
+if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_CONNECTED_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_BLUETOOTH_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_SUCCESS_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_TELLU_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_TELLU_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_TELLU_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_TELLU_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_ERROR_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_ERROR_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_ERROR_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_ERROR_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_STDBY_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_STDBY_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+else if (_instance->TryggiTest_TryggiTestSC_State == TRYGGITEST_TRYGGITESTSC_STDBY_STATE) {
+if (TryggiTest_TryggiTestSC_State_event_consumed == 0 && 1) {
+TryggiTest_TryggiTestSC_OnExit(TRYGGITEST_TRYGGITESTSC_STDBY_STATE, _instance);
+_instance->TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE;
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE, _instance);
+TryggiTest_TryggiTestSC_State_event_consumed = 1;
+}
+}
+//End Region TryggiTestSC
+//End dsregion TryggiTestSC
+//Session list: 
+}
+
+// Observers for outgoing messages:
+void (*external_TryggiTest_send_clock_timer_start_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t)= 0x0;
+void (*TryggiTest_send_clock_timer_start_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t)= 0x0;
+void register_external_TryggiTest_send_clock_timer_start_listener(void (*_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t)){
+external_TryggiTest_send_clock_timer_start_listener = _listener;
+}
+void register_TryggiTest_send_clock_timer_start_listener(void (*_listener)(struct TryggiTest_Instance *, uint8_t, uint32_t)){
+TryggiTest_send_clock_timer_start_listener = _listener;
+}
+void TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
+if (TryggiTest_send_clock_timer_start_listener != 0x0) TryggiTest_send_clock_timer_start_listener(_instance, id, time);
+if (external_TryggiTest_send_clock_timer_start_listener != 0x0) external_TryggiTest_send_clock_timer_start_listener(_instance, id, time);
+;
+}
+void (*external_TryggiTest_send_tryggi_ping_tryggy_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_ping_tryggy_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_ping_tryggy_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_ping_tryggy_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_ping_tryggy_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_ping_tryggy_listener = _listener;
+}
+void TryggiTest_send_tryggi_ping_tryggy(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_ping_tryggy_listener != 0x0) TryggiTest_send_tryggi_ping_tryggy_listener(_instance);
+if (external_TryggiTest_send_tryggi_ping_tryggy_listener != 0x0) external_TryggiTest_send_tryggi_ping_tryggy_listener(_instance);
+;
+}
+void (*external_TryggiTest_send_tryggi_bluetooth_act_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_bluetooth_act_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_bluetooth_act_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_bluetooth_act_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_bluetooth_act_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_bluetooth_act_listener = _listener;
+}
+void TryggiTest_send_tryggi_bluetooth_act(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_bluetooth_act_listener != 0x0) TryggiTest_send_tryggi_bluetooth_act_listener(_instance);
+if (external_TryggiTest_send_tryggi_bluetooth_act_listener != 0x0) external_TryggiTest_send_tryggi_bluetooth_act_listener(_instance);
+;
+}
+void (*external_TryggiTest_send_tryggi_tellucloud_act_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_tellucloud_act_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_tellucloud_act_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_tellucloud_act_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_tellucloud_act_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_tellucloud_act_listener = _listener;
+}
+void TryggiTest_send_tryggi_tellucloud_act(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_tellucloud_act_listener != 0x0) TryggiTest_send_tryggi_tellucloud_act_listener(_instance);
+if (external_TryggiTest_send_tryggi_tellucloud_act_listener != 0x0) external_TryggiTest_send_tryggi_tellucloud_act_listener(_instance);
+;
+}
+void (*external_TryggiTest_send_tryggi_show_success_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_show_success_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_show_success_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_show_success_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_show_success_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_show_success_listener = _listener;
+}
+void TryggiTest_send_tryggi_show_success(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_show_success_listener != 0x0) TryggiTest_send_tryggi_show_success_listener(_instance);
+if (external_TryggiTest_send_tryggi_show_success_listener != 0x0) external_TryggiTest_send_tryggi_show_success_listener(_instance);
+;
+}
+void (*external_TryggiTest_send_tryggi_show_error_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_show_error_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_show_error_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_show_error_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_show_error_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_show_error_listener = _listener;
+}
+void TryggiTest_send_tryggi_show_error(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_show_error_listener != 0x0) TryggiTest_send_tryggi_show_error_listener(_instance);
+if (external_TryggiTest_send_tryggi_show_error_listener != 0x0) external_TryggiTest_send_tryggi_show_error_listener(_instance);
+;
+}
+void (*external_TryggiTest_send_tryggi_clear_status_listener)(struct TryggiTest_Instance *)= 0x0;
+void (*TryggiTest_send_tryggi_clear_status_listener)(struct TryggiTest_Instance *)= 0x0;
+void register_external_TryggiTest_send_tryggi_clear_status_listener(void (*_listener)(struct TryggiTest_Instance *)){
+external_TryggiTest_send_tryggi_clear_status_listener = _listener;
+}
+void register_TryggiTest_send_tryggi_clear_status_listener(void (*_listener)(struct TryggiTest_Instance *)){
+TryggiTest_send_tryggi_clear_status_listener = _listener;
+}
+void TryggiTest_send_tryggi_clear_status(struct TryggiTest_Instance *_instance){
+if (TryggiTest_send_tryggi_clear_status_listener != 0x0) TryggiTest_send_tryggi_clear_status_listener(_instance);
+if (external_TryggiTest_send_tryggi_clear_status_listener != 0x0) external_TryggiTest_send_tryggi_clear_status_listener(_instance);
+;
+}
+
+
 
 #define timer2_NB_SOFT_TIMER 4
 uint32_t timer2_timer[timer2_NB_SOFT_TIMER];
@@ -371,6 +657,10 @@ timer2_timer_start(id, time);}
 // Forwarding of messages timer2::Tryggi::timer::timer_cancel
 void forward_timer2_Tryggi_send_timer_timer_cancel(struct Tryggi_Instance *_instance, uint8_t id){
 timer2_timer_cancel(id);}
+
+// Forwarding of messages timer2::TryggiTest::clock::timer_start
+void forward_timer2_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
+timer2_timer_start(id, time);}
 
 /*****************************************************************************
  * Implementation for type : NeoPixelGroup
@@ -1293,130 +1583,22 @@ if (external_Tryggi_send_heart_blink_listener != 0x0) external_Tryggi_send_heart
 
 
 
-/*****************************************************/
-//                    Serial
-/*****************************************************/
-
-#define Serial_BAUDRATE 9600
-#define Serial_MAX_LOOP 4
-#define Serial_MAX_MSG_SIZE 2
-/*OTHER_VARS*/
-
-
-#define Serial_LISTENER_STATE_IDLE 0
-#define Serial_LISTENER_STATE_READING 1
-#define Serial_LISTENER_STATE_ESCAPE 2
-#define Serial_LISTENER_STATE_ERROR 3
-
-
-#define Serial_START_BYTE 18
-#define Serial_STOP_BYTE 19
-#define Serial_ESCAPE_BYTE 125
-
-struct Serial_instance_type Serial_instance;
-
-void externalMessageEnqueue(uint8_t * msg, uint8_t msgSize, uint16_t listener_id);
-
-void Serial_setup() {
-  Serial.begin(Serial_BAUDRATE);
-}
-
-void Serial_set_listener_id(uint16_t id) {
-  Serial_instance.listener_id = id;
-}
-
-void Serial_forwardMessage(byte * msg, uint8_t size) {
-  Serial.write(Serial_START_BYTE);
-  for(uint8_t i = 0; i < size; i++) {
-	if(msg[i] == Serial_ESCAPE_BYTE || msg[i] == Serial_START_BYTE || msg[i] == Serial_STOP_BYTE) {
-    	Serial.write(Serial_ESCAPE_BYTE);
-	}
-    Serial.write(msg[i]);
-  }
-  Serial.write(Serial_STOP_BYTE);
-}
-
-void Serial_parser(byte * msg, uint16_t size) {
-externalMessageEnqueue((uint8_t *) msg, size, Serial_instance.listener_id);
-}
-
-
-uint8_t Serial_serialListenerState = 0;
-uint8_t Serial_msg_buf[Serial_MAX_MSG_SIZE];
-uint16_t Serial_msg_index = 0;
-uint8_t Serial_incoming = 0;
-
-void Serial_read() {
-  byte limit = 0;
-  while ((Serial.available()) && (limit < Serial_MAX_LOOP)) {
-   limit++;
-    Serial_incoming = Serial.read();
-    
-    switch(Serial_serialListenerState) {
-      case Serial_LISTENER_STATE_IDLE:
-        if(Serial_incoming == Serial_START_BYTE) {
-          Serial_serialListenerState = Serial_LISTENER_STATE_READING;
-          Serial_msg_index = 0;
-        }
-      break;
-      
-      case Serial_LISTENER_STATE_READING:
-        if (Serial_msg_index > Serial_MAX_MSG_SIZE) {
-          Serial_serialListenerState = Serial_LISTENER_STATE_ERROR;
-        } else {
-          if(Serial_incoming == Serial_STOP_BYTE) {
-            Serial_serialListenerState = Serial_LISTENER_STATE_IDLE;
-            
-            
-            Serial_parser(Serial_msg_buf, Serial_msg_index);
-            
-          } else if (Serial_incoming == Serial_ESCAPE_BYTE) {
-            Serial_serialListenerState = Serial_LISTENER_STATE_ESCAPE;
-          } else {
-            Serial_msg_buf[Serial_msg_index] = Serial_incoming;
-            Serial_msg_index++;
-          }
-        }
-      break;
-      
-      case Serial_LISTENER_STATE_ESCAPE:
-        if (Serial_msg_index >= Serial_MAX_MSG_SIZE) {
-          Serial_serialListenerState = Serial_LISTENER_STATE_ERROR;
-        } else {
-          Serial_msg_buf[Serial_msg_index] = Serial_incoming;
-          Serial_msg_index++;
-          Serial_serialListenerState = Serial_LISTENER_STATE_READING;
-        }
-      break;
-      
-      case Serial_LISTENER_STATE_ERROR:
-        Serial_serialListenerState = Serial_LISTENER_STATE_IDLE;
-        Serial_msg_index = 0;
-      break;
-    }
-  }
-  
-}
-
-/*FORWARDERS*/// Forwarding of messages Serial::Tryggi::ctrl::pong_tryggy
-void forward_Serial_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance){
-byte forward_buf[2];
-forward_buf[0] = (201 >> 8) & 0xFF;
-forward_buf[1] =  201 & 0xFF;
-
-
-//Forwarding with specified function 
-Serial_forwardMessage(forward_buf, 2);
-}
-
 
 
 
 /*****************************************************************************
- * Definitions for configuration : TryggiArduino
+ * Definitions for configuration : TryggiTestCfg
  *****************************************************************************/
 
 //Declaration of instance variables
+//Instance test
+// Variables for the properties of the instance
+struct TryggiTest_Instance test_var;
+// Variables for the sessions of the instance
+//Instance tryggi
+// Variables for the properties of the instance
+struct Tryggi_Instance tryggi_var;
+// Variables for the sessions of the instance
 //Instance neo_head
 // Variables for the properties of the instance
 struct NeoPixelGroup_Instance neo_head_var;
@@ -1425,12 +1607,92 @@ struct NeoPixelGroup_Instance neo_head_var;
 // Variables for the properties of the instance
 struct NeoPixelGroup_Instance neo_heart_var;
 // Variables for the sessions of the instance
-//Instance tryggi
-// Variables for the properties of the instance
-struct Tryggi_Instance tryggi_var;
-// Variables for the sessions of the instance
 
 
+// Enqueue of messages TryggiTest::tryggi::tellucloud_act
+void enqueue_TryggiTest_send_tryggi_tellucloud_act(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (203 >> 8) & 0xFF );
+_fifo_enqueue( 203 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::show_success
+void enqueue_TryggiTest_send_tryggi_show_success(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (204 >> 8) & 0xFF );
+_fifo_enqueue( 204 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::show_error
+void enqueue_TryggiTest_send_tryggi_show_error(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (205 >> 8) & 0xFF );
+_fifo_enqueue( 205 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::bluetooth_act
+void enqueue_TryggiTest_send_tryggi_bluetooth_act(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (202 >> 8) & 0xFF );
+_fifo_enqueue( 202 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::clear_status
+void enqueue_TryggiTest_send_tryggi_clear_status(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (206 >> 8) & 0xFF );
+_fifo_enqueue( 206 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages TryggiTest::tryggi::ping_tryggy
+void enqueue_TryggiTest_send_tryggi_ping_tryggy(struct TryggiTest_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (200 >> 8) & 0xFF );
+_fifo_enqueue( 200 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_tryggi >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_tryggi & 0xFF );
+}
+}
+// Enqueue of messages Tryggi::ctrl::pong_tryggy
+void enqueue_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance){
+if ( fifo_byte_available() > 4 ) {
+
+_fifo_enqueue( (201 >> 8) & 0xFF );
+_fifo_enqueue( 201 & 0xFF );
+
+// ID of the source port of the instance
+_fifo_enqueue( (_instance->id_ctrl >> 8) & 0xFF );
+_fifo_enqueue( _instance->id_ctrl & 0xFF );
+}
+}
 // Enqueue of messages Tryggi::head::setColor
 void enqueue_Tryggi_send_head_setColor(struct Tryggi_Instance *_instance, uint8_t red, uint8_t green, uint8_t blue){
 if ( fifo_byte_available() > 7 ) {
@@ -1667,7 +1929,7 @@ _fifo_enqueue( _instance->id_heart & 0xFF );
 
 //New dispatcher for messages
 void dispatch_tellucloud_act(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_tellucloud_act(&tryggi_var);
 
 }
@@ -1677,7 +1939,7 @@ Tryggi_handle_ctrl_tellucloud_act(&tryggi_var);
 
 //New dispatcher for messages
 void dispatch_show_error(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_show_error(&tryggi_var);
 
 }
@@ -1687,12 +1949,12 @@ Tryggi_handle_ctrl_show_error(&tryggi_var);
 
 //New dispatcher for messages
 void dispatch_setColor(uint16_t sender, uint8_t param_red, uint8_t param_green, uint8_t param_blue) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_setColor(&neo_heart_var, param_red, param_green, param_blue);
-
-}
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_setColor(&neo_head_var, param_red, param_green, param_blue);
+
+}
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_setColor(&neo_heart_var, param_red, param_green, param_blue);
 
 }
 
@@ -1701,7 +1963,7 @@ NeoPixelGroup_handle_ctrl_setColor(&neo_head_var, param_red, param_green, param_
 
 //New dispatcher for messages
 void dispatch_bluetooth_act(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_bluetooth_act(&tryggi_var);
 
 }
@@ -1711,12 +1973,12 @@ Tryggi_handle_ctrl_bluetooth_act(&tryggi_var);
 
 //New dispatcher for messages
 void dispatch_off(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_off(&neo_heart_var);
-
-}
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_off(&neo_head_var);
+
+}
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_off(&neo_heart_var);
 
 }
 
@@ -1729,6 +1991,10 @@ if (sender == timer2_instance.listener_id) {
 Tryggi_handle_timer_timer_timeout(&tryggi_var, param_id);
 
 }
+if (sender == timer2_instance.listener_id) {
+TryggiTest_handle_clock_timer_timeout(&test_var, param_id);
+
+}
 
 }
 
@@ -1736,11 +2002,11 @@ Tryggi_handle_timer_timer_timeout(&tryggi_var, param_id);
 //New dispatcher for messages
 void dispatch_fps_clock(uint16_t sender) {
 if (sender == timer2_instance.listener_id) {
-NeoPixelGroup_handle_clock_fps_clock(&neo_head_var);
+NeoPixelGroup_handle_clock_fps_clock(&neo_heart_var);
 
 }
 if (sender == timer2_instance.listener_id) {
-NeoPixelGroup_handle_clock_fps_clock(&neo_heart_var);
+NeoPixelGroup_handle_clock_fps_clock(&neo_head_var);
 
 }
 
@@ -1749,7 +2015,7 @@ NeoPixelGroup_handle_clock_fps_clock(&neo_heart_var);
 
 //New dispatcher for messages
 void dispatch_show_success(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_show_success(&tryggi_var);
 
 }
@@ -1759,12 +2025,12 @@ Tryggi_handle_ctrl_show_success(&tryggi_var);
 
 //New dispatcher for messages
 void dispatch_pulse(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_pulse(&neo_heart_var);
-
-}
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_pulse(&neo_head_var);
+
+}
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_pulse(&neo_heart_var);
 
 }
 
@@ -1773,7 +2039,7 @@ NeoPixelGroup_handle_ctrl_pulse(&neo_head_var);
 
 //New dispatcher for messages
 void dispatch_clear_status(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_clear_status(&tryggi_var);
 
 }
@@ -1783,26 +2049,12 @@ Tryggi_handle_ctrl_clear_status(&tryggi_var);
 
 //New dispatcher for messages
 void dispatch_blink(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_blink(&neo_heart_var);
-
-}
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_blink(&neo_head_var);
 
 }
-
-}
-
-
-//New dispatcher for messages
-void dispatch_rotate(uint16_t sender, int8_t param_speed) {
 if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_rotate(&neo_heart_var, param_speed);
-
-}
-if (sender == tryggi_var.id_head) {
-NeoPixelGroup_handle_ctrl_rotate(&neo_head_var, param_speed);
+NeoPixelGroup_handle_ctrl_blink(&neo_heart_var);
 
 }
 
@@ -1811,7 +2063,7 @@ NeoPixelGroup_handle_ctrl_rotate(&neo_head_var, param_speed);
 
 //New dispatcher for messages
 void dispatch_ping_tryggy(uint16_t sender) {
-if (sender == Serial_instance.listener_id) {
+if (sender == test_var.id_tryggi) {
 Tryggi_handle_ctrl_ping_tryggy(&tryggi_var);
 
 }
@@ -1820,13 +2072,36 @@ Tryggi_handle_ctrl_ping_tryggy(&tryggi_var);
 
 
 //New dispatcher for messages
-void dispatch_solid(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_solid(&neo_heart_var);
+void dispatch_rotate(uint16_t sender, int8_t param_speed) {
+if (sender == tryggi_var.id_head) {
+NeoPixelGroup_handle_ctrl_rotate(&neo_head_var, param_speed);
 
 }
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_rotate(&neo_heart_var, param_speed);
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_pong_tryggy(uint16_t sender) {
+if (sender == tryggi_var.id_ctrl) {
+
+}
+
+}
+
+
+//New dispatcher for messages
+void dispatch_solid(uint16_t sender) {
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_solid(&neo_head_var);
+
+}
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_solid(&neo_heart_var);
 
 }
 
@@ -1835,12 +2110,12 @@ NeoPixelGroup_handle_ctrl_solid(&neo_head_var);
 
 //New dispatcher for messages
 void dispatch_breath(uint16_t sender) {
-if (sender == tryggi_var.id_heart) {
-NeoPixelGroup_handle_ctrl_breath(&neo_heart_var);
-
-}
 if (sender == tryggi_var.id_head) {
 NeoPixelGroup_handle_ctrl_breath(&neo_head_var);
+
+}
+if (sender == tryggi_var.id_heart) {
+NeoPixelGroup_handle_ctrl_breath(&neo_heart_var);
 
 }
 
@@ -1964,6 +2239,13 @@ uint8_t mbufi_blink = 2;
 dispatch_blink((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
+case 200:{
+byte mbuf[4 - 2];
+while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
+uint8_t mbufi_ping_tryggy = 2;
+dispatch_ping_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+break;
+}
 case 6:{
 byte mbuf[5 - 2];
 while (mbufi < (5 - 2)) mbuf[mbufi++] = fifo_dequeue();
@@ -1978,11 +2260,11 @@ dispatch_rotate((mbuf[0] << 8) + mbuf[1] /* instance port*/,
  u_rotate_speed.p /* speed */ );
 break;
 }
-case 200:{
+case 201:{
 byte mbuf[4 - 2];
 while (mbufi < (4 - 2)) mbuf[mbufi++] = fifo_dequeue();
-uint8_t mbufi_ping_tryggy = 2;
-dispatch_ping_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
+uint8_t mbufi_pong_tryggy = 2;
+dispatch_pong_tryggy((mbuf[0] << 8) + mbuf[1] /* instance port*/);
 break;
 }
 case 7:{
@@ -2003,6 +2285,11 @@ break;
 return 1;
 }
 
+void forward_TryggiTest_send_clock_timer_start(struct TryggiTest_Instance *_instance, uint8_t id, uint32_t time){
+if(_instance->id_clock == test_var.id_clock) {
+forward_timer2_TryggiTest_send_clock_timer_start(_instance, id, time);
+}
+}
 void forward_Tryggi_send_timer_timer_start(struct Tryggi_Instance *_instance, uint8_t id, uint32_t time){
 if(_instance->id_timer == tryggi_var.id_timer) {
 forward_timer2_Tryggi_send_timer_timer_start(_instance, id, time);
@@ -2011,11 +2298,6 @@ forward_timer2_Tryggi_send_timer_timer_start(_instance, id, time);
 void forward_Tryggi_send_timer_timer_cancel(struct Tryggi_Instance *_instance, uint8_t id){
 if(_instance->id_timer == tryggi_var.id_timer) {
 forward_timer2_Tryggi_send_timer_timer_cancel(_instance, id);
-}
-}
-void forward_Tryggi_send_ctrl_pong_tryggy(struct Tryggi_Instance *_instance){
-if(_instance->id_ctrl == tryggi_var.id_ctrl) {
-forward_Serial_Tryggi_send_ctrl_pong_tryggy(_instance);
 }
 }
 
@@ -2029,30 +2311,6 @@ if(msgSize == 3) {
 msgSizeOK = 1;}
 break;
 case 2:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 203:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 204:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 205:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 202:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 206:
-if(msgSize == 2) {
-msgSizeOK = 1;}
-break;
-case 200:
 if(msgSize == 2) {
 msgSizeOK = 1;}
 break;
@@ -2074,11 +2332,18 @@ if ( fifo_byte_available() > (msgSize + 2) ) {
 }
 }
 
-void initialize_configuration_TryggiArduino() {
+void initialize_configuration_TryggiTestCfg() {
 // Initialize connectors
 register_external_Tryggi_send_timer_timer_start_listener(&forward_Tryggi_send_timer_timer_start);
 register_external_Tryggi_send_timer_timer_cancel_listener(&forward_Tryggi_send_timer_timer_cancel);
-register_external_Tryggi_send_ctrl_pong_tryggy_listener(&forward_Tryggi_send_ctrl_pong_tryggy);
+register_external_TryggiTest_send_clock_timer_start_listener(&forward_TryggiTest_send_clock_timer_start);
+register_TryggiTest_send_tryggi_ping_tryggy_listener(&enqueue_TryggiTest_send_tryggi_ping_tryggy);
+register_TryggiTest_send_tryggi_bluetooth_act_listener(&enqueue_TryggiTest_send_tryggi_bluetooth_act);
+register_TryggiTest_send_tryggi_tellucloud_act_listener(&enqueue_TryggiTest_send_tryggi_tellucloud_act);
+register_TryggiTest_send_tryggi_show_success_listener(&enqueue_TryggiTest_send_tryggi_show_success);
+register_TryggiTest_send_tryggi_show_error_listener(&enqueue_TryggiTest_send_tryggi_show_error);
+register_TryggiTest_send_tryggi_clear_status_listener(&enqueue_TryggiTest_send_tryggi_clear_status);
+register_Tryggi_send_ctrl_pong_tryggy_listener(&enqueue_Tryggi_send_ctrl_pong_tryggy);
 register_Tryggi_send_head_setColor_listener(&enqueue_Tryggi_send_head_setColor);
 register_Tryggi_send_head_off_listener(&enqueue_Tryggi_send_head_off);
 register_Tryggi_send_head_pulse_listener(&enqueue_Tryggi_send_head_pulse);
@@ -2097,14 +2362,9 @@ register_Tryggi_send_heart_blink_listener(&enqueue_Tryggi_send_heart_blink);
 // Init the ID, state variables and properties for external connector timer2
 // Init the ID, state variables and properties for external connector timer2
 // Init the ID, state variables and properties for external connector timer2
-// Init the ID, state variables and properties for external connector Serial
+// Init the ID, state variables and properties for external connector timer2
 
 // Network Initialization
-
-Serial_instance.listener_id = add_instance(&Serial_instance);
-
-Serial_setup();
-
 
 timer2_instance.listener_id = add_instance(&timer2_instance);
 
@@ -2112,30 +2372,6 @@ timer2_setup();
 
 // End Network Initialization
 
-// Init the ID, state variables and properties for instance neo_head
-neo_head_var.active = true;
-neo_head_var.id_ctrl = add_instance( (void*) &neo_head_var);
-neo_head_var.id_clock = add_instance( (void*) &neo_head_var);
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_PULSE_STATE;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
-neo_head_var.NeoPixelGroup_neopixel_pin_var = 7;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var = 186;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
-neo_head_var.NeoPixelGroup_neopixel_total_count_var = 4;
-neo_head_var.NeoPixelGroup_neopixel_first_var = 1;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
-neo_head_var.NeoPixelGroup_neopixel_last_var = 3;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
-neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
-
-NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_head_var);
 // Init the ID, state variables and properties for instance neo_heart
 neo_heart_var.active = true;
 neo_heart_var.id_ctrl = add_instance( (void*) &neo_heart_var);
@@ -2160,6 +2396,30 @@ neo_heart_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
 neo_heart_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
 
 NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_heart_var);
+// Init the ID, state variables and properties for instance neo_head
+neo_head_var.active = true;
+neo_head_var.id_ctrl = add_instance( (void*) &neo_head_var);
+neo_head_var.id_clock = add_instance( (void*) &neo_head_var);
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_State = NEOPIXELGROUP_NEOPIXELSTATECHART_PULSE_STATE;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_maxcount_var = 22;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_g_var = 10;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BLINKALL_counter_var = 0;
+neo_head_var.NeoPixelGroup_neopixel_pin_var = 7;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_r_var = 100;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_maxcount_var = 186;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_maxangle_var = 200;
+neo_head_var.NeoPixelGroup_neopixel_total_count_var = 4;
+neo_head_var.NeoPixelGroup_neopixel_first_var = 1;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_ROTATE_angle_var = 0;
+neo_head_var.NeoPixelGroup_neopixel_last_var = 3;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_counter_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_color_b_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_rotate_speed_var = 4;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_breath_speed_var = 100;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_BREATH_counter_var = 0;
+neo_head_var.NeoPixelGroup_NeoPixelStateChart_PULSE_maxcount_var = 100;
+
+NeoPixelGroup_NeoPixelStateChart_OnEntry(NEOPIXELGROUP_NEOPIXELSTATECHART_STATE, &neo_head_var);
 // Init the ID, state variables and properties for instance tryggi
 tryggi_var.active = true;
 tryggi_var.id_ctrl = add_instance( (void*) &tryggi_var);
@@ -2170,21 +2430,26 @@ tryggi_var.Tryggi_TryggiSC_State = TRYGGI_TRYGGISC_WAITINGFORPING_STATE;
 tryggi_var.Tryggi_TIMERID_var = 2;
 
 Tryggi_TryggiSC_OnEntry(TRYGGI_TRYGGISC_STATE, &tryggi_var);
+// Init the ID, state variables and properties for instance test
+test_var.active = true;
+test_var.id_clock = add_instance( (void*) &test_var);
+test_var.id_tryggi = add_instance( (void*) &test_var);
+test_var.TryggiTest_TryggiTestSC_State = TRYGGITEST_TRYGGITESTSC_DISCONNECTED_STATE;
+
+TryggiTest_TryggiTestSC_OnEntry(TRYGGITEST_TRYGGITESTSC_STATE, &test_var);
 }
 
 
 
 
 void setup() {
-initialize_configuration_TryggiArduino();
+initialize_configuration_TryggiTestCfg();
 
 }
 
 void loop() {
 
 // Network Listener
-Serial_read();
-
 timer2_read();
 // End Network Listener
 

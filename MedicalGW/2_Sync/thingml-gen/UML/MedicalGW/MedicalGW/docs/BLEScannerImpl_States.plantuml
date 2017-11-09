@@ -1,0 +1,45 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing BLEScannerImpl
+[*] --> States
+state States{
+state Standby{
+
+Standby --> Initiating : Scanner?Start
+	Standby : Scanner?Stop / \naction Scanner!Stopped()\n
+}
+state Initiating{
+	Initiating : entry / do \nprint "[INFO]: Setting scan parameters...\\n"\nvar Type : BLEScanType = BLEScanType:PASSIVE\nvar Interval : Int = '0x0010'\nvar Window : Int = '0x0010'\nvar OwnAddressType : BLEAddressType = BLEAddressType:PUBLIC\nvar FilterPolicy : BLEScanFilterPolicy = BLEScanFilterPolicy:ALL\nHCICommands!SetLEScanParameters(...)\nend\n
+
+Initiating --> Failure : e:HCIEvents?SetLEScanParametersCompleted[(SetLEScanParametersCompleted.Status > 0)]
+
+Initiating --> Scanning : e:HCIEvents?SetLEScanEnableCompleted[(SetLEScanEnableCompleted.Status == 0)]
+
+Initiating --> Failure : e:HCIEvents?SetLEScanEnableCompleted[(SetLEScanEnableCompleted.Status > 0)]
+
+Initiating --> Stopping : Scanner?Stop
+	Initiating : e:HCIEvents?SetLEScanParametersCompleted / [(SetLEScanParametersCompleted.Status == 0)]\naction HCICommands!SetLEScanEnable(...)\n
+}
+state Scanning{
+	Scanning : entry / do \nprint "[INFO]: Scanning for incoming connections...\\n"\nScanner!Started()\nend\n
+
+Scanning --> Stopping : Scanner?Stop
+	Scanning : e:HCIEvents?LEAdvertisementReport / \naction if(LEAdvertisementReport.Type == BLEAdvertisementReportType:ADV_IND or LEAdvertisementReport.Type == BLEAdvertisementReportType:ADV_DIRECT_IND) do\nScanner!ConnectableAdvertisement(...)\nend\n
+	Scanning : Scanner?Start / \naction Scanner!Started()\n
+}
+state Stopping{
+	Stopping : entry / do \nprint "[INFO]: Stopping scan...\\n"\nHCICommands!SetLEScanEnable(...)\nend\n
+
+Stopping --> Standby : e:HCIEvents?SetLEScanEnableCompleted[(SetLEScanEnableCompleted.Status == 0)]\naction Scanner!Stopped()\n
+
+Stopping --> Failure : e:HCIEvents?SetLEScanEnableCompleted[(SetLEScanEnableCompleted.Status > 0)]
+}
+state Failure{
+	Failure : entry / do \nprint "[ERROR]: BLE_scanner failed!\\n"\nScanner!Failure()\nend\n
+
+Failure --> Initiating : Scanner?Start
+	Failure : Scanner?Stop / \naction Scanner!Failure()\n
+}
+[*] --> Standby
+}
+@enduml

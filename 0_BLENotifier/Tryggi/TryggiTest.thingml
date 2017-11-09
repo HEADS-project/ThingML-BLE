@@ -1,0 +1,31 @@
+import "Tryggi.thingml"
+import "TryggiRPi.thingml"
+
+/*
+ * Self contained test on the Arduino
+ */
+
+configuration TryggiTestCfg {
+	
+	instance tryggi : Tryggi
+	connector tryggi.timer over Timer
+	
+	instance test : TryggiTest
+	connector test.clock over Timer
+	
+	instance neo_head : NeoPixelGroup
+	set neo_head.neopixel_pin = 7
+	set neo_head.neopixel_first = 1
+	set neo_head.neopixel_last = 3
+	connector neo_head.clock over Timer
+	connector tryggi.head => neo_head.ctrl
+	
+	instance neo_heart : NeoPixelGroup
+	set neo_heart.neopixel_pin = 7
+	set neo_heart.neopixel_first = 0
+	set neo_heart.neopixel_last = 0
+	connector neo_heart.clock over Timer
+	connector tryggi.heart => neo_heart.ctrl
+	
+	connector test.tryggi => tryggi.ctrl
+}

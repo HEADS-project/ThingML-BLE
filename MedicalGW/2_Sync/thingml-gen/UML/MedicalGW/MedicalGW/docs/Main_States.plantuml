@@ -1,0 +1,64 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing Main
+[*] --> States
+state States{
+state Initialise{
+	Initialise : entry / Initialiser!Start()\n
+
+Initialise --> Standby : Initialiser?DeviceInitialised
+
+Initialise --> Failed : Initialiser?Failure
+
+Initialise --> Quit : Signals?Interrupt
+}
+state Standby{
+state Scan{
+	Scan : entry / do \nWantsToConnect = Device:NONE\nConnectedTo = Device:NONE\nScanner!Start()\nend\n
+
+Scan --> Sync : Scanner?Stopped
+	Scan : ANDUC352BLE?WantsToConnect / \naction do \n'' & WantsToConnect & ' |= ' & Device:ANDUC352BLE & ';'\nScanner!Stop()\nend\n
+	Scan : ANDUA651BLE?WantsToConnect / \naction do \n'' & WantsToConnect & ' |= ' & Device:ANDUA651BLE & ';'\nScanner!Stop()\nend\n
+}
+state Sync{
+	Sync : entry / if('' & WantsToConnect & ' & ' & Device:ANDUC352BLE & '') do\ndo \nConnectedTo = Device:ANDUC352BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUC352BLE & ';'\nANDUC352BLE!AllowedToConnect()\nend\nend else do\nif('' & WantsToConnect & ' & ' & Device:ANDUA651BLE & '') do\ndo \nConnectedTo = Device:ANDUA651BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUA651BLE & ';'\nANDUA651BLE!AllowedToConnect()\nend\nend\n\n
+
+Sync --> Scan : ANDUC352BLE?FinishedConnection[(ConnectedTo == Device:ANDUC352BLE and WantsToConnect == Device:NONE)]
+
+Sync --> Scan : ANDUA651BLE?FinishedConnection[(ConnectedTo == Device:ANDUA651BLE and WantsToConnect == Device:NONE)]
+	Sync : ANDUC352BLE?WantsToConnect / [(ConnectedTo == Device:ANDUC352BLE)]\naction ANDUC352BLE!AllowedToConnect()\n
+	Sync : ANDUA651BLE?WantsToConnect / [(ConnectedTo == Device:ANDUA651BLE)]\naction ANDUA651BLE!AllowedToConnect()\n
+	Sync : ANDUC352BLE?WantsToConnect / [(ConnectedTo != Device:ANDUC352BLE)]\naction '' & WantsToConnect & ' |= ' & Device:ANDUC352BLE & ';'\n
+	Sync : ANDUA651BLE?WantsToConnect / [(ConnectedTo != Device:ANDUA651BLE)]\naction '' & WantsToConnect & ' |= ' & Device:ANDUA651BLE & ';'\n
+	Sync : e:ANDUC352BLE?FinishedConnection / [(ConnectedTo == Device:ANDUC352BLE and WantsToConnect != Device:NONE)]\naction if('' & WantsToConnect & ' & ' & Device:ANDUC352BLE & '') do\ndo \nConnectedTo = Device:ANDUC352BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUC352BLE & ';'\nANDUC352BLE!AllowedToConnect()\nend\nend else do\nif('' & WantsToConnect & ' & ' & Device:ANDUA651BLE & '') do\ndo \nConnectedTo = Device:ANDUA651BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUA651BLE & ';'\nANDUA651BLE!AllowedToConnect()\nend\nend\n\n
+	Sync : e:ANDUA651BLE?FinishedConnection / [(ConnectedTo == Device:ANDUA651BLE and WantsToConnect != Device:NONE)]\naction if('' & WantsToConnect & ' & ' & Device:ANDUC352BLE & '') do\ndo \nConnectedTo = Device:ANDUC352BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUC352BLE & ';'\nANDUC352BLE!AllowedToConnect()\nend\nend else do\nif('' & WantsToConnect & ' & ' & Device:ANDUA651BLE & '') do\ndo \nConnectedTo = Device:ANDUA651BLE\n'' & WantsToConnect & ' &= ~' & Device:ANDUA651BLE & ';'\nANDUA651BLE!AllowedToConnect()\nend\nend\n\n
+}
+[*] --> Scan
+
+Standby --> Deinitialise : Signals?Interrupt
+
+Standby --> Failed : Initialiser?Failure
+
+Standby --> Failed : Scanner?Failure
+}
+state Deinitialise{
+	Deinitialise : entry / do \nprint "[INFO]: Stopping...\\n"\nScanner!Stop()\nend\n
+
+Deinitialise --> Quit : Initialiser?Stopped
+
+Deinitialise --> Failed : Scanner?Failure
+
+Deinitialise --> Failed : Initialiser?Failure
+
+Deinitialise --> Failed : Signals?Interrupt
+	Deinitialise : Scanner?Stopped / \naction Initialiser!Stop()\n
+}
+state Failed{
+	Failed : entry / do \nprint "[ERROR]: Failed, quitting... !!!\\n"\nSignals!Quit(1)\nend\n
+}
+state Quit{
+	Quit : entry / do \nprint "[INFO]: Finished, quitting...\\n"\nSignals!Quit(0)\nend\n
+}
+[*] --> Initialise
+}
+@enduml

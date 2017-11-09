@@ -1,0 +1,55 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing BLEInitialiserImpl
+[*] --> States
+state States{
+state Closed{
+
+Closed --> Opening : Initialiser?Start
+	Closed : Initialiser?Stop / \naction Initialiser!Stopped()\n
+}
+state Opening{
+	Opening : entry / do \nprint "[INFO]: Opening HCI socket...\\n"\nSocket!Open()\nend\n
+
+Opening --> Initialise : e:Socket?Opened\naction DeviceAddress = Opened.Address\n
+
+Opening --> Failure : Socket?Closed
+}
+state Initialise{
+	Initialise : entry / do \nprint "[INFO]: Initialising BLE Controller...\\n"\nHCICommands!Reset()\nend\n
+
+Initialise --> Failure : e:HCIEvents?ResetCompleted[(ResetCompleted.Status > 0)]
+
+Initialise --> Failure : e:HCIEvents?SetEventMaskCompleted[(SetEventMaskCompleted.Status > 0)]
+
+Initialise --> Open : e:HCIEvents?SetLEEventMaskCompleted[(SetLEEventMaskCompleted.Status == 0)]
+
+Initialise --> Failure : e:HCIEvents?SetLEEventMaskCompleted[(SetLEEventMaskCompleted.Status > 0)]
+
+Initialise --> Failure : Socket?Closed
+
+Initialise --> Closing : Initialiser?Stop
+	Initialise : e:HCIEvents?ResetCompleted / [(ResetCompleted.Status == 0)]\naction HCICommands!SetEventMaskAll()\n
+	Initialise : e:HCIEvents?SetEventMaskCompleted / [(SetEventMaskCompleted.Status == 0)]\naction HCICommands!SetLEEventMaskAll()\n
+}
+state Open{
+	Open : entry / do \nprint "[INFO]: HCI Socket initialised...\\n"\nInitialiser!Started()\nInitialiser!DeviceInitialised(DeviceAddress)\nend\n
+
+Open --> Failure : Socket?Closed
+
+Open --> Closing : Initialiser?Stop
+}
+state Closing{
+	Closing : entry / do \nprint "[INFO]: Closing HCI socket...\\n"\nSocket!Close()\nend\n
+
+Closing --> Closed : Socket?Closed\naction Initialiser!Stopped()\n
+}
+state Failure{
+	Failure : entry / do \nprint "[ERROR]: BLE_initialiser failed!\\n"\nSocket!Close()\nInitialiser!Failure()\nend\n
+
+Failure --> Opening : Initialiser?Start
+	Failure : Initialiser?Stop / \naction Initialiser!Failure()\n
+}
+[*] --> Closed
+}
+@enduml

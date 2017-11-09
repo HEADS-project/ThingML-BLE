@@ -1,0 +1,218 @@
+@startuml
+caption Datatypes used in configuration MedicalGW
+class GATTData <<(D,#D2E524)24>> {
+}
+note bottom of GATTData : <b>@c_type</b> <color:royalBlue>"ble_gatt_data_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef BLE_GATT_DATA_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define BLE_GATT_DATA_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t length; uint8_t bytes[23]; } ble_gatt_data_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class UInt <<(D,#D2E524)2>> {
+}
+note bottom of UInt : <b>@c_type</b> <color:royalBlue>"uint16_t"</color>\n
+class Boolean <<(D,#D2E524)1>> {
+}
+note bottom of Boolean : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n
+class BLEScanType <<(E,#24E5B2)>> {
+-PASSIVE
+-ACTIVE
+}
+note bottom of BLEScanType : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BTLocalName <<(D,#D2E524)248>> {
+}
+note bottom of BTLocalName : <b>@c_type</b> <color:royalBlue>"change_local_name_cp"</color>\n<b>@c_header</b> <color:royalBlue>"#include <bluetooth/bluetooth.h>"</color>\n<b>@c_header</b> <color:royalBlue>"#include <bluetooth/hci.h>"</color>\n
+class BTAddress <<(D,#D2E524)6>> {
+}
+note bottom of BTAddress : <b>@c_type</b> <color:royalBlue>"bdaddr_t"</color>\n<b>@c_header</b> <color:royalBlue>"#include <bluetooth/bluetooth.h>"</color>\n
+class BLEAdvertisingType <<(E,#24E5B2)>> {
+-ADV_IND
+-ADV_DIRECT_IND_HIGH
+-ADV_SCAN_IND
+-ADV_NONCONN_IND
+-ADV_DIRECT_IND_LOW
+}
+note bottom of BLEAdvertisingType : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class SMPPublicKey <<(D,#D2E524)32>> {
+}
+note bottom of SMPPublicKey : <b>@c_type</b> <color:royalBlue>"smp_public_key_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef SMP_PUBLIC_KEY_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define SMP_PUBLIC_KEY_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[32]; } smp_public_key_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class SMPKeyDistribution <<(E,#24E5B2)>> {
+-NOENCKEY_NOIDKEY_NOSIGN_NOLINKKEY
+-ENCKEY_NOIDKEY_NOSIGN_NOLINKKEY
+-NOENCKEY_IDKEY_NOSIGN_NOLINKKEY
+-ENCKEY_IDKEY_NOSIGN_NOLINKKEY
+-NOENCKEY_NOIDKEY_SIGN_NOLINKKEY
+-ENCKEY_NOIDKEY_SIGN_NOLINKKEY
+-NOENCKEY_IDKEY_SIGN_NOLINKKEY
+-ENCKEY_IDKEY_SIGN_NOLINKKEY
+-NOENCKEY_NOIDKEY_NOSIGN_LINKKEY
+-ENCKEY_NOIDKEY_NOSIGN_LINKKEY
+-NOENCKEY_IDKEY_NOSIGN_LINKKEY
+-ENCKEY_IDKEY_NOSIGN_LINKKEY
+-NOENCKEY_NOIDKEY_SIGN_LINKKEY
+-ENCKEY_NOIDKEY_SIGN_LINKKEY
+-NOENCKEY_IDKEY_SIGN_LINKKEY
+-ENCKEY_IDKEY_SIGN_LINKKEY
+}
+note bottom of SMPKeyDistribution : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLERandomNumber <<(D,#D2E524)16>> {
+}
+note bottom of BLERandomNumber : <b>@c_type</b> <color:royalBlue>"ble_random_number_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef BLE_RANDOM_NUMBER_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define BLE_RANDOM_NUMBER_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[16]; } ble_random_number_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class UUID <<(D,#D2E524)16>> {
+}
+note bottom of UUID : <b>@c_type</b> <color:royalBlue>"ble_uuid_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef BLE_UUID_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define BLE_UUID_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[16]; } ble_uuid_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class BTDisconnectReason <<(E,#24E5B2)>> {
+-AUTHENTICATION_FAILURE
+-REMOTE_USER
+-REMOTE_LOW_RESOURCES
+-REMOTE_POWER_OFF
+-UNSUPPORTED_REMOTE_FEATURE
+-UNIT_KEY_NOT_SUPPORTED
+-UNACCEPTABLE_CONNECTION_PARAMETERS
+}
+note bottom of BTDisconnectReason : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLEAddressType <<(E,#24E5B2)>> {
+-PUBLIC
+-RANDOM
+}
+note bottom of BLEAddressType : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLEInitiatorFilterPolicy <<(E,#24E5B2)>> {
+-WHITELIST_NOT_USED
+-WHITELIST_USED
+}
+note bottom of BLEInitiatorFilterPolicy : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLERandomPart <<(D,#D2E524)8>> {
+}
+note bottom of BLERandomPart : <b>@c_type</b> <color:royalBlue>"ble_random_part_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef BLE_RANDOM_PART_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define BLE_RANDOM_PART_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[8]; } ble_random_part_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class NotifierCommand <<(D,#D2E524)8>> {
+}
+note bottom of NotifierCommand : <b>@c_type</b> <color:royalBlue>"notifier_cmd_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef NOTIFIER_CMD_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define NOTIFIER_CMD_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[8]; } notifier_cmd_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class SMPPairingFailReason <<(E,#24E5B2)>> {
+-PASSKEY_ENTRY_FAILED
+-OOB_NOT_AVAILABLE
+-AUTHENTICATION_REQUIREMENTS
+-CONFIRM_VALUE_FAILED
+-PAIRING_NOT_SUPPORTED
+-ENCRYPTION_KEY_SIZE
+-COMMAND_NOT_SUPPORTED
+-UNSPECIFIED
+-REPEATED_ATTEMPTS
+-INVALID_PARAMETERS
+-DHKEY_FAILED
+-NUMERIC_COMPARISON_FAILED
+-BREDR_PAIRING_PROGRESS
+-CROSS_TRANSPORT_KEY
+}
+note bottom of SMPPairingFailReason : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class DataPointer <<(O,#E5D224)>> {
+}
+note bottom of DataPointer : <b>@c_type</b> <color:royalBlue>"uint8_t *"</color>\n
+class ACLBroadcastFlag <<(E,#24E5B2)>> {
+-POINTTOPOINT
+-ACTIVE_SLAVE
+-PARKED_SLAVE
+}
+note bottom of ACLBroadcastFlag : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class SMPIOCapabilities <<(E,#24E5B2)>> {
+-DISPLAY_ONLY
+-DISPLAY_YESNO
+-KEYBOARD_ONLY
+-NO_INPUT_NO_OUTPUT
+-KEYBOARD_DISPLAY
+}
+note bottom of SMPIOCapabilities : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class Byte <<(D,#D2E524)1>> {
+}
+note bottom of Byte : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n
+class BLEAdvertisingChannel <<(E,#24E5B2)>> {
+-CHANNEL_37
+-CHANNEL_38
+-CHANNEL_39
+-ALL
+}
+note bottom of BLEAdvertisingChannel : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class HCIEventMask <<(D,#D2E524)8>> {
+}
+note bottom of HCIEventMask : <b>@c_type</b> <color:royalBlue>"set_event_mask_cp"</color>\n<b>@c_header</b> <color:royalBlue>"#include <bluetooth/bluetooth.h>"</color>\n<b>@c_header</b> <color:royalBlue>"#include <bluetooth/hci.h>"</color>\n
+class BLELinkRole <<(E,#24E5B2)>> {
+-MASTER
+-SLAVE
+}
+note bottom of BLELinkRole : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLEAdvertisingFilterPolicy <<(E,#24E5B2)>> {
+-ALL
+-CONN_ALL_SCAN_WHITELIST
+-CONN_WHITELIST_SCAN_ALL
+-CONN_SCAN_WHITELIST
+}
+note bottom of BLEAdvertisingFilterPolicy : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class Device <<(E,#24E5B2)>> {
+-NONE
+-ANDUC352BLE
+-ANDUA651BLE
+}
+note bottom of Device : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class ATTErrorCode <<(E,#24E5B2)>> {
+-INVALID_HANDLE
+-READ_NOT_PERMITTED
+-WRITE_NOT_PERMITTED
+-INVALID_PDU
+-INSUFFICIENT_AUTHENTICATION
+-REQUEST_NOT_SUPPORTED
+-INVALID_OFFSET
+-INSUFFICIENT_AUTHORIZATION
+-PREPARE_QUEUE_FULL
+-ATTRIBUTE_NOT_FOUND
+-ATTRIBUTE_NOT_LONG
+-INSUFFICIENT_ENCRYPTION_KEY_SIZE
+-INVALID_ATTRIBUTE_VALUE_LENGTH
+-UNLIKELY_ERROR
+-INSUFICIENT_ENCRYPTION
+-UNSUPPORTED_GROUP_TYPE
+-INSUFICIENT_RESOURCES
+}
+note bottom of ATTErrorCode : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class BLEAdvertisementReportType <<(E,#24E5B2)>> {
+-ADV_IND
+-ADV_DIRECT_IND
+-ADV_SCAN_IND
+-ADV_NONCONN_IND
+-SCAN_RSP
+}
+note bottom of BLEAdvertisementReportType : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class ExitCode <<(D,#D2E524)2>> {
+}
+note bottom of ExitCode : <b>@c_type</b> <color:royalBlue>"int16_t"</color>\n
+class BLEAdvertiseData <<(D,#D2E524)31>> {
+}
+note bottom of BLEAdvertiseData : <b>@c_type</b> <color:royalBlue>"ble_adv_data_t"</color>\n<b>@c_header</b> <color:royalBlue>"#ifndef BLE_ADV_DATA_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"#define BLE_ADV_DATA_T_H"</color>\n<b>@c_header</b> <color:royalBlue>"typedef struct { uint8_t bytes[31]; } ble_adv_data_t;"</color>\n<b>@c_header</b> <color:royalBlue>"#endif"</color>\n
+class BLEScanFilterPolicy <<(E,#24E5B2)>> {
+-ALL
+-ONLY_FROM_WHITELISTED
+-DIRECTED_RESOLVABLE
+-DIRECTED_RESOLVABLE_WHITELISTED
+}
+note bottom of BLEScanFilterPolicy : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class ACLPacketBoundaryFlag <<(E,#24E5B2)>> {
+-FIRST_NOFLUSH
+-CONT_FRAGMENT
+-FIRST_FLUSHABLE
+-COMPLETE
+}
+note bottom of ACLPacketBoundaryFlag : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+class Int <<(D,#D2E524)2>> {
+}
+note bottom of Int : <b>@c_type</b> <color:royalBlue>"int16_t"</color>\n
+class Float <<(D,#D2E524)4>> {
+}
+note bottom of Float : <b>@c_type</b> <color:royalBlue>"float"</color>\n
+class String <<(O,#E5D224)>> {
+}
+note bottom of String : <b>@c_type</b> <color:royalBlue>"const char *"</color>\n
+class DateTime <<(D,#D2E524)4>> {
+}
+note bottom of DateTime : <b>@c_type</b> <color:royalBlue>"time_t"</color>\n
+class SMPKeypressNotification <<(E,#24E5B2)>> {
+-ENTRY_STARTED
+-DIGIT_ENTERED
+-DIGIT_ERASED
+-CLEARED
+-ENTRY_COMPLETED
+}
+note bottom of SMPKeypressNotification : <b>@c_type</b> <color:royalBlue>"uint8_t"</color>\n<b>@c_byte_size</b> <color:royalBlue>"1"</color>\n
+@enduml

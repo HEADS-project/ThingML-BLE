@@ -1,0 +1,76 @@
+@startuml
+skinparam defaultTextAlignment left
+caption Behavior of thing ANDUA651BLEImpl
+[*] --> States
+state States{
+state Standby{
+	Standby : entry / DoSync = false\n
+
+Standby --> Connecting : ANDUA651BLE?AllowedToConnect[(DoSync == true)]
+
+Standby --> Notify : ANDUA651BLE?AllowedToConnect[(DoSync == false)]
+	Standby : e:Scanner?ConnectableAdvertisement / \naction if(ConnectableAdvertisement.AddressType == AddressType and 'bacmp(&' & ConnectableAdvertisement.Address & ', &' & AddressBT & ')' == 0) do\ndo \nDoSync = true\nGotMeasurement = false\nANDUA651BLE!WantsToConnect()\nend\nend\n
+	Standby : Tellu?MqttRequestBloodPressureMeasurement / \naction do \nGotRequest = true\nANDUA651BLE!WantsToConnect()\nend\n
+	Standby : Tellu?MqttConfirmBloodPressureMeasurement / \naction do \nGotStored = true\nANDUA651BLE!WantsToConnect()\nend\n
+}
+state Connecting{
+	Connecting : entry / do \nprint "[INFO]: Connecting to A&D UA-651BLE...\\n"\nConnecter!ConnectTo(...)\nend\n
+
+Connecting --> Sync : Connecter?Encrypted
+
+Connecting --> Notify : Connecter?Stopped
+
+Connecting --> Notify : Connecter?Failure
+	Connecting : e:Connecter?Connected / \naction do \nConnectedHandle = Connected.Handle\nConnecter!Encrypt()\nend\n
+}
+state Sync{
+state ReadBattery{
+	ReadBattery : entry / do \nprint "[INFO]: Reading battery percentage...\\n"\nATT!ATTReadRequest(...)\nend\n
+
+ReadBattery --> TimeSync : e:ATT?ATTReadResponse[(ATTReadResponse.ConnectionHandle == ConnectedHandle)]\naction do \nvar Percent : Byte = '' & ATTReadResponse.AttributeValue & '.bytes[0]'\n'printf("[INFO]: Got battery percentage - %u%%\n", ' & Percent & ');'\nend\n
+	ReadBattery : e:ATT?ATTReadError / [(ATTReadError.ConnectionHandle == ConnectedHandle)]\naction do \nprint "[ERROR]: Could not read battery percentage!\\n"\nConnecter!Stop()\nend\n
+}
+state TimeSync{
+	TimeSync : entry / do \nprint "[INFO]: Synchronizing the time...\\n"\nvar AttributeValue : GATTData\n'\n            time_t utc = time(NULL);\n            struct tm *ptm = gmtime(&utc);\n          '\n'\n            ' & AttributeValue & '.length = 7;\n            *((uint16_t*)&' & AttributeValue & '.bytes[0]) = ptm->tm_year+1900;\n            *((uint8_t*)&' & AttributeValue & '.bytes[2]) = ptm->tm_mon+1;\n            *((uint8_t*)&' & AttributeValue & '.bytes[3]) = ptm->tm_mday;\n            *((uint8_t*)&' & AttributeValue & '.bytes[4]) = ptm->tm_hour;\n            *((uint8_t*)&' & AttributeValue & '.bytes[5]) = ptm->tm_min;\n            *((uint8_t*)&' & AttributeValue & '.bytes[6]) = ptm->tm_sec;\n          '\nATT!ATTWriteRequest(...)\nend\n
+
+TimeSync --> GetValues : e:ATT?ATTWriteResponse\naction print "[INFO]: Time synchronization successfull!\\n"\n
+	TimeSync : e:ATT?ATTWriteError / \naction do \nprint "[ERROR]: Time synchronization failed. Error code: "\n'printf("%2.2X", ' & ATTWriteError.Error & ');'\nprint "!!\\n"\nConnecter!Stop()\nend\n
+}
+state GetValues{
+	GetValues : entry / do \nprint "[INFO]: Requesting indications of Blood Pressure Measurement...\\n"\nvar AttributeValue : GATTData\n'' & AttributeValue & '.length = 2;'\n'' & AttributeValue & '.bytes[0] = 0x02;'\n'' & AttributeValue & '.bytes[1] = 0x00;'\nATT!ATTWriteRequest(...)\nend\n
+	GetValues : e:ATT?ATTWriteError / [(ATTWriteError.ConnectionHandle == ConnectedHandle)]\naction do \nprint "[ERROR]: Could not set indications of Blood Pressure Measurement!\\n"\nConnecter!Stop()\nend\n
+	GetValues : e:ATT?ATTHandleValueIndication / [(ATTHandleValueIndication.ConnectionHandle == ConnectedHandle and ATTHandleValueIndication.AttributeHandle == BloodPressureValueHandle)]\naction do \n'\n            uint8_t length = ' & ATTHandleValueIndication.AttributeValue & '.length;\n            uint8_t *data  = ' & ATTHandleValueIndication.AttributeValue & '.bytes;\n            uint8_t index = 7;\n          '\nvar UnitsKPA : Boolean = 'data[0] & 0x01'\nvar HasTimestamp : Boolean = '(data[0] & 0x02) >> 1'\nvar HasPulseRate : Boolean = '(data[0] & 0x04) >> 2'\n...\nvar Systolic : Float = 'sfloat_to_float(&data[1])'\nvar Diastolic : Float = 'sfloat_to_float(&data[3])'\nvar MeanArterial : Float = 'sfloat_to_float(&data[5])'\nvar Year : UInt = 0\nvar Month : Byte = 0\nvar Day : Byte = 0\nvar Hour : Byte = 0\nvar Minute : Byte = 0\nvar Second : Byte = 0\nif(HasTimestamp) do\ndo \nYear = '*(uint16_t*)&data[index+0]'\nMonth = 'data[index+2]'\nDay = 'data[index+3]'\nHour = 'data[index+4]'\nMinute = 'data[index+5]'\nSecond = 'data[index+6]'\n'index = index+7;'\nend\nend\nvar Pulse : Float = 0\nif(HasPulseRate) do\ndo \nPulse = 'sfloat_to_float(&data[index])'\n'index = index+2;'\nend\nend\nvar UserID : Byte = 0\nif(HasUserID) do\ndo \nUserID = 'data[index]'\n'index = index+1;'\nend\nend\nvar BodyMovement : Boolean = false\nvar CuffFit : Boolean = false\nvar IrregularPulse : Boolean = false\nvar PulseRate : Byte = 0\nvar MeasurementPosition : Boolean = false\nif(HasMeasurementStatus) do\ndo \nBodyMovement = 'data[index] & 0x01'\nCuffFit = '(data[index] & 0x02) >> 1'\nIrregularPulse = '(data[index] & 0x04) >> 2'\nPulseRate = '(data[index] & 0x18) >> 3'\nMeasurementPosition = '(data[index] & 0x20) >> 5'\nend\nend\nprint "[INFO]: Got Blood Pressure measurement - "\n'printf("%.0f/%.0f (%.0f) ",' & Systolic & ', ' & Diastolic & ', ' & MeanArterial & ');'\nif(UnitsKPA) do\nprint "kPa "\nend else do\nprint "mmHg "\n\nif(HasPulseRate) do\n'printf("%.0fBPM ",' & Pulse & ');'\nend\nif(HasTimestamp) do\n'printf("%u.%u.%u %u:%u:%u ",' & Day & ', ' & Month & ', ' & Year & ', ' & Hour & ', ' & Minute & ', ' & Second & ');'\nend\nif(HasMeasurementStatus) do\ndo \nprint "- "\nif(IrregularPulse) do\nprint "Irregular pulse detected "\nend else do\nprint "Normal pulse detected "\n\nend\nend\nprint "\\n"\nATT!ATTHandleValueConfirmation(ATTHandleValueIndication.ConnectionHandle)\nif(HasTimestamp and '!isnan(' & Systolic & ')') do\ndo \nvar ObservationTime : DateTime = 0\n'\n              struct tm timebuf;\n              timebuf.tm_year = ' & Year & '-1900;\n              timebuf.tm_mon = ' & Month & '-1;\n              timebuf.tm_mday = ' & Day & ';\n              timebuf.tm_hour = ' & Hour & ';\n              timebuf.tm_min = ' & Minute & ';\n              timebuf.tm_sec = ' & Second & ';\n            '\nObservationTime = 'timegm(&timebuf)'\nvar HealthPressureDiastolic : Int = Diastolic\n...\nvar HealthPulseRate : Int = Pulse\nTellu!TelluCloudBloodPressure(...)\nGotMeasurement = true\nend\nend\nend\n
+}
+[*] --> ReadBattery
+
+Sync --> Notify : Connecter?Stopped
+
+Sync --> Notify : Connecter?Failure
+	Sync : entry / print "[INFO]: Syncing with A&D UA-651BLE...\\n"\n
+}
+state Notify{
+state Wait{
+	Wait : entry / ANDUA651BLE!WantsToConnect()\n
+
+Wait --> ConnectingNotifier : ANDUA651BLE?AllowedToConnect
+}
+state ConnectingNotifier{
+	ConnectingNotifier : entry / do \nprint "[INFO]: Connecting to A&D UA-651BLE notifier...\\n"\nNotifications!NotifierConnect(...)\nend\n
+
+ConnectingNotifier --> ConnectedNotifier : Notifications?NotifierReady
+}
+state ConnectedNotifier{
+	ConnectedNotifier : entry / if(DoSync == true) do\ndo \nDoSync = false\nif(GotMeasurement == true) do\nNotifications!NotifierReceived()\nend else do\nNotifications!NotifierError()\n\nend\nend else do\nif(GotStored == true) do\ndo \nGotStored = false\nNotifications!NotifierStored()\nend\nend else do\nif(GotRequest == true) do\ndo \nGotRequest = false\nNotifications!NotifierRequest()\nend\nend\n\n\n
+
+ConnectedNotifier --> ConnectingNotifier : Notifications?NotifierFinished[(GotStored == true or GotRequest == true)]
+}
+[*] --> Wait
+
+Notify --> Standby : Notifications?NotifierFinished\naction ANDUA651BLE!FinishedConnection()\n
+}
+[*] --> Standby
+	States : entry / do \nLongTermKey = 'peer_ltk'\nEncryptedDiversifier = 'peer_ediv'\nRandomNumber = 'peer_random'\n'str2ba(' & Address & ', &' & AddressBT & ');'\n'str2ba(' & NotifierAddress & ', &' & NotifierAddressBT & ');'\nend\n
+	States : Tellu?MqttRequestBloodPressureMeasurement / \naction GotRequest = true\n
+	States : Tellu?MqttConfirmBloodPressureMeasurement / \naction GotStored = true\n
+}
+@enduml

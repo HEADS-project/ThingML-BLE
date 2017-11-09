@@ -1,6 +1,6 @@
 import "HCISocket.thingml"
 
-thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
+thing HCISocketProxyImpl includes HCISocketProxy
 @c_header "#include <errno.h>"
 @c_header "#include <stdio.h>"
 @c_header "#include <sys/ioctl.h>"
@@ -54,17 +54,14 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
   end
 
   /* Check if socket is open */
-  function SocketIsOpen()
+  function SocketIsOpen() : Byte
   @SuppressWarnings "Call"
-  : Byte
   do
     return DevHandle >= 0
   end
 
   /* Get the address of the controller currently connected to */
-  function GetBTAddress()
-  @SuppressWarnings "Call"
-  : BTAddress
+  function GetBTAddress() : BTAddress @SuppressWarnings "Call"
   do
     var Address : BTAddress = '{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}'
     if (DevHandle >= 0) do
@@ -184,7 +181,7 @@ thing HCISocketProxyImpl includes HCISocketProxy, HCIControllerProxy
             case 0xff: // Vendor Package
               printf("[WARNING]: Unhandled incoming vendor package!\n");
               break;
-          }
+          } 
         }
       '
     end

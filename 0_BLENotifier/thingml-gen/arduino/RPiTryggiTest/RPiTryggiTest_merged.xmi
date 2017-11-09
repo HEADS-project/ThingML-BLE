@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="ASCII"?>
+<thingML:ThingMLModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:thingML="http://www.thingml.org/xtext/ThingML">
+  <types xsi:type="thingML:Thing" name="TryggiTest" includes="//@types.16 //@types.15">
+    <ports xsi:type="thingML:RequiredPort" name="clock" sends="//@types.15/@messages.0" receives="//@types.15/@messages.2"/>
+    <ports xsi:type="thingML:RequiredPort" name="tryggi" sends="//@types.16/@messages.0 //@types.16/@messages.2 //@types.16/@messages.3 //@types.16/@messages.4 //@types.16/@messages.5 //@types.16/@messages.6" receives="//@types.16/@messages.1"/>
+    <behaviour name="TryggiTestSC" initial="//@types.0/@behaviour/@substate.0">
+      <substate name="DISCONNECTED">
+        <entry xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+          <parameters xsi:type="thingML:IntegerLiteral"/>
+          <parameters xsi:type="thingML:IntegerLiteral" intValue="3000"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.1">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="CONNECTED">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Connected\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="4000"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.0"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.2">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="BLUETOOTH">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Bluetooth\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="2500"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.0"/>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.2"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.3">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="SUCCESS">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Success\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="1500"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.0"/>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.4"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.4">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="TELLU">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Tellu\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="2500"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.0"/>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.3"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.5">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="ERROR">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Error\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="1500"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.5"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.6">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+      <substate name="STDBY">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:PrintAction">
+            <msg xsi:type="thingML:StringLiteral" stringValue="Standby\n"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.15/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral"/>
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="5000"/>
+          </actions>
+          <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.1" message="//@types.16/@messages.6"/>
+        </entry>
+        <outgoing target="//@types.0/@behaviour/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.0/@ports.0" message="//@types.15/@messages.2"/>
+        </outgoing>
+      </substate>
+    </behaviour>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Char" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="char"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:ObjectType" name="String">
+    <annotations name="type_checker" value="String"/>
+    <annotations name="c_type" value="char *"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Boolean" ByteSize="1">
+    <annotations name="type_checker" value="Boolean"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt8" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt16" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+    <annotations name="java_type" value="int"/>
+    <annotations name="java_primitive" value="true"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Int8" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="int8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Int16" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="int16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt32" ByteSize="4">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint32_t"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Integer" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="int16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Long" ByteSize="4">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="long"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Float" ByteSize="4">
+    <annotations name="type_checker" value="Real"/>
+    <annotations name="c_type" value="float"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:Enumeration" name="DigitalState">
+    <annotations name="c_byte_size" value="1"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <literals name="LOW">
+      <annotations name="enum_val" value="0"/>
+    </literals>
+    <literals name="HIGH">
+      <annotations name="enum_val" value="1"/>
+    </literals>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Byte" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+    <annotations name="java_type" value="byte"/>
+    <annotations name="java_primitive" value="true"/>
+    <annotations name="scala_type" value="Byte"/>
+    <annotations name="SenML_type" value="Double"/>
+  </types>
+  <types xsi:type="thingML:Enumeration" name="DigitalState">
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+    <literals name="LOW">
+      <annotations name="enum_val" value="0"/>
+    </literals>
+    <literals name="HIGH">
+      <annotations name="enum_val" value="1"/>
+    </literals>
+  </types>
+  <types xsi:type="thingML:Thing" name="TimerMsgs" fragment="true">
+    <messages name="timer_start">
+      <annotations name="timer_start" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.4"/>
+      </parameters>
+      <parameters name="time">
+        <typeRef type="//@types.8"/>
+      </parameters>
+    </messages>
+    <messages name="timer_cancel">
+      <annotations name="timer_cancel" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.4"/>
+      </parameters>
+    </messages>
+    <messages name="timer_timeout">
+      <annotations name="timeout" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.4"/>
+      </parameters>
+    </messages>
+    <messages name="io_clock">
+      <annotations name="xms_tic" value="10"/>
+    </messages>
+    <messages name="fps_clock">
+      <annotations name="xms_tic" value="33"/>
+    </messages>
+    <messages name="ui_clock">
+      <annotations name="xms_tic" value="231"/>
+    </messages>
+  </types>
+  <types xsi:type="thingML:Thing" name="TryggiMsgs" fragment="true">
+    <messages name="ping_tryggy">
+      <annotations name="code" value="200"/>
+    </messages>
+    <messages name="pong_tryggy">
+      <annotations name="code" value="201"/>
+    </messages>
+    <messages name="bluetooth_act">
+      <annotations name="code" value="202"/>
+    </messages>
+    <messages name="tellucloud_act">
+      <annotations name="code" value="203"/>
+    </messages>
+    <messages name="show_success">
+      <annotations name="code" value="204"/>
+    </messages>
+    <messages name="show_error">
+      <annotations name="code" value="205"/>
+    </messages>
+    <messages name="clear_status">
+      <annotations name="code" value="206"/>
+    </messages>
+  </types>
+  <protocols name="Timer"/>
+  <protocols name="Serial">
+    <annotations name="serial_baudrate" value="9600"/>
+    <annotations name="serial_path_to_device" value="/dev/ttyS0"/>
+    <annotations name="serializer" value="binary"/>
+  </protocols>
+  <configs name="RPiTryggiTest">
+    <instances name="test" type="//@types.0"/>
+    <connectors xsi:type="thingML:ExternalConnector" inst="//@configs.0/@instances.0" port="//@types.0/@ports.0" protocol="//@protocols.0"/>
+    <connectors xsi:type="thingML:ExternalConnector" inst="//@configs.0/@instances.0" port="//@types.0/@ports.1" protocol="//@protocols.1"/>
+  </configs>
+</thingML:ThingMLModel>

@@ -60,7 +60,7 @@ thing TryggiTest includes TryggiMsgs, TimerMsgs {
 			transition -> ERROR event clock?timer_timeout
 		}
 		
-		// Stop sending the pig from here. the tryggy should show that it is disconnected after 5 sec
+		// Stop sending the ping from here. the tryggy should show that it is disconnected after 5 sec
 		
 		state ERROR { 
 			on entry do 
